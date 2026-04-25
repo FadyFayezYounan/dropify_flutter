@@ -1,7 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dropify_flutter/dropify_flutter.dart';
 
 // ignore: avoid_relative_lib_imports
 import '../../example/lib/raw_demo_keys.dart';
+// ignore: avoid_relative_lib_imports
+import '../../example/lib/static_demo_keys.dart';
 
 /// Robot actions for Dropify example journeys.
 class DropifyRobot {
@@ -32,6 +35,36 @@ class DropifyRobot {
   /// Selects a raw demo row by value.
   Future<void> selectRow(String value) async {
     await tester.tap(find.byKey(RawDemoKeys.row(value)));
+    await tester.pumpAndSettle();
+  }
+
+  /// Opens the static dropdown demo from the gallery.
+  Future<void> openStaticDemo() async {
+    await tester.tap(find.byKey(StaticDemoKeys.staticNavTile));
+    await tester.pumpAndSettle();
+  }
+
+  /// Opens the default static single dropdown.
+  Future<void> openStaticSingle() async {
+    await tester.tap(find.byKey(DropifyKeys.anchor).first);
+    await tester.pumpAndSettle();
+  }
+
+  /// Opens the default static multi dropdown.
+  Future<void> openStaticMulti() async {
+    await tester.tap(find.byKey(DropifyKeys.anchor).at(1));
+    await tester.pumpAndSettle();
+  }
+
+  /// Searches the open default dropdown.
+  Future<void> searchDefault(String query) async {
+    await tester.enterText(find.byKey(DropifyKeys.searchField), query);
+    await tester.pumpAndSettle();
+  }
+
+  /// Selects a default dropdown row by value.
+  Future<void> selectDefaultRow(String value) async {
+    await tester.tap(find.byKey(DropifyKeys.row(value)));
     await tester.pumpAndSettle();
   }
 }

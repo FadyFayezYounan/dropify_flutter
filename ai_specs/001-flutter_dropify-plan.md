@@ -37,27 +37,27 @@ Universal Dropify v1 package. Layered API: core RawDropify, concrete widgets, fo
 - [x] Robot journey tests + keys for raw demo open/search/select; fake-only data.
 - [x] Verify: `dart format . && flutter analyze && flutter test`.
 
-### Phase 2: Static Concrete Dropdown
+### Phase 2: Static Concrete Dropdown (Complete)
 
 - **Goal**: Default static single/multi widgets over RawDropify.
-- [ ] `lib/src/widgets/dropify_keys.dart` - stable key constants for anchor, panel, search, rows, chips.
-- [ ] `lib/src/widgets/_dropify_anchor.dart` - label, hint, summary, chevron, errors, disabled, chips.
-- [ ] `lib/src/widgets/_dropify_search_field.dart` - keyed search field; disabled when `searchEnabled == false`.
-- [ ] `lib/src/widgets/_dropify_panel.dart` - results, selected/disabled states, empty state, constraints, RTL-safe layout.
-- [ ] `lib/src/widgets/dropify_dropdown.dart` - `DropifyDropdown<T>` and `.multi`; thin RawDropify wrappers.
-- [ ] `lib/src/theme/dropify_theme_data.dart` - default anchor/panel/item styling tokens.
-- [ ] `lib/dropify_flutter.dart` - export static dropdown and keys.
-- [ ] `example/lib/static_page.dart` - static single/multi examples.
-- [ ] `example/lib/main.dart` - gallery navigation to static page.
-- [ ] `test/widgets/dropify_dropdown_test.dart` - default widget behavior.
-- [ ] `test/journeys/static_dropdown_journey_test.dart` - robot journeys.
-- [ ] `test/robots/dropify_robot.dart` - key-first dropdown actions.
-- [ ] TDD: static single selection updates value/callback and closes by default.
-- [ ] TDD: static multi chips update, min/max rejection sets `lastRejectionReason`, stays open by default.
-- [ ] TDD: search disabled hides search while selection and keyboard still work.
-- [ ] TDD: long chips and panel constraints avoid layout exceptions.
-- [ ] Robot journey tests + selectors/seams for static single and multi happy paths.
-- [ ] Verify: `dart format . && flutter analyze && flutter test`.
+- [x] `lib/src/widgets/dropify_keys.dart` - stable key constants for anchor, panel, search, rows, chips.
+- [x] `lib/src/widgets/_dropify_anchor.dart` - label, hint, summary, chevron, errors, disabled, chips.
+- [x] `lib/src/widgets/_dropify_search_field.dart` - keyed search field; disabled when `searchEnabled == false`.
+- [x] `lib/src/widgets/_dropify_panel.dart` - results, selected/disabled states, empty state, constraints, RTL-safe layout.
+- [x] `lib/src/widgets/dropify_dropdown.dart` - `DropifyDropdown<T>` and `.multi`; thin RawDropify wrappers.
+- [x] `lib/src/theme/dropify_theme_data.dart` - default anchor/panel/item styling tokens.
+- [x] `lib/dropify_flutter.dart` - export static dropdown and keys.
+- [x] `example/lib/static_page.dart` - static single/multi examples.
+- [x] `example/lib/main.dart` - gallery navigation to static page.
+- [x] `test/widgets/dropify_dropdown_test.dart` - default widget behavior.
+- [x] `test/journeys/static_dropdown_journey_test.dart` - robot journeys.
+- [x] `test/robots/dropify_robot.dart` - key-first dropdown actions.
+- [x] TDD: static single selection updates value/callback and closes by default.
+- [x] TDD: static multi chips update, min/max rejection sets `lastRejectionReason`, stays open by default.
+- [x] TDD: search disabled hides search while selection and keyboard still work.
+- [x] TDD: long chips and panel constraints avoid layout exceptions.
+- [x] Robot journey tests + selectors/seams for static single and multi happy paths.
+- [x] Verify: `dart format . && flutter analyze && flutter test`.
 
 ### Phase 3: Async Dropdown
 

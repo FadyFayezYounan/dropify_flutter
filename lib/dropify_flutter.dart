@@ -5,3 +5,5 @@ export 'src/core/dropify_state.dart';
 export 'src/core/raw_dropify.dart';
 export 'src/theme/dropify_theme.dart';
 export 'src/theme/dropify_theme_data.dart';
+export 'src/widgets/dropify_dropdown.dart';
+export 'src/widgets/dropify_keys.dart';

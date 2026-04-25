@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'pages/raw_page.dart';
+import 'pages/static_page.dart';
 import 'raw_demo_keys.dart';
+import 'static_demo_keys.dart';
 
 void main() {
   runApp(const DropifyExampleApp());
@@ -43,7 +45,16 @@ class DropifyGallery extends StatelessWidget {
               );
             },
           ),
-          const ListTile(title: Text('Static dropdowns land in Phase 2')),
+          ListTile(
+            key: StaticDemoKeys.staticNavTile,
+            title: const Text('Static dropdowns'),
+            subtitle: const Text('Default single and multi DropifyDropdown'),
+            onTap: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(builder: (_) => const StaticPage()),
+              );
+            },
+          ),
           const ListTile(title: Text('Async dropdowns land in Phase 3')),
           const ListTile(title: Text('Paginated dropdowns land in Phase 4')),
           const ListTile(title: Text('Forms land in Phase 5')),
