@@ -158,7 +158,10 @@ class _RawPaginatedDropifyState<PageKey, T>
         widget.initialValues != null ||
         widget.confirmable;
 
-    final panelBuilder = (BuildContext ctx, DropifyPanelState<T> panelState) {
+    PagedListView<PageKey, T> panelBuilder(
+      BuildContext ctx,
+      DropifyPanelState<T> panelState,
+    ) {
       return PagedListView<PageKey, T>(
         state: widget.state,
         fetchNextPage: widget.fetchNextPage,
@@ -232,7 +235,7 @@ class _RawPaginatedDropifyState<PageKey, T>
               ),
         ),
       );
-    };
+    }
 
     if (isMulti) {
       return RawDropify<T>.multi(
