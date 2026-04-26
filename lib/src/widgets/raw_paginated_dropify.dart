@@ -267,7 +267,11 @@ class _PaginatedBodyState<PageKey, T>
   void initState() {
     super.initState();
     if (widget.loadOnOpen && widget.state.pages == null) {
-      unawaited(Future<void>.sync(widget.fetchNextPage));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.state.pages == null) {
+          unawaited(Future<void>.sync(widget.fetchNextPage));
+        }
+      });
     }
   }
 
