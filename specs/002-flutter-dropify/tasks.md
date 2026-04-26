@@ -17,12 +17,12 @@
 
 **Purpose**: Establish package directories, test structure, and baseline project configuration.
 
-- [ ] T001 Create the planned package source directories under `/Users/fady/Documents/Projects/dropify_flutter/lib/src/`
-- [ ] T002 Create the planned test directories under `/Users/fady/Documents/Projects/dropify_flutter/test/`
-- [ ] T003 Create the planned example page directories under `/Users/fady/Documents/Projects/dropify_flutter/example/lib/pages/`
-- [ ] T004 Verify package dependencies and dev dependencies match the implementation plan in `/Users/fady/Documents/Projects/dropify_flutter/pubspec.yaml`
-- [ ] T005 [P] Create shared widget test harness helpers in `/Users/fady/Documents/Projects/dropify_flutter/test/helpers/dropify_test_app.dart`
-- [ ] T006 [P] Create shared data, fetcher, paging, and semantics fixtures in `/Users/fady/Documents/Projects/dropify_flutter/test/helpers/dropify_fixtures.dart`
+- [X] T001 Create the planned package source directories under `/Users/fady/Documents/Projects/dropify_flutter/lib/src/`
+- [X] T002 Create the planned test directories under `/Users/fady/Documents/Projects/dropify_flutter/test/`
+- [X] T003 Create the planned example page directories under `/Users/fady/Documents/Projects/dropify_flutter/example/lib/pages/`
+- [X] T004 Verify package dependencies and dev dependencies match the implementation plan in `/Users/fady/Documents/Projects/dropify_flutter/pubspec.yaml`
+- [X] T005 [P] Create shared widget test harness helpers in `/Users/fady/Documents/Projects/dropify_flutter/test/helpers/dropify_test_app.dart`
+- [X] T006 [P] Create shared data, fetcher, paging, and semantics fixtures in `/Users/fady/Documents/Projects/dropify_flutter/test/helpers/dropify_fixtures.dart`
 
 ---
 
@@ -32,19 +32,19 @@
 
 **Critical**: No user story work can begin until this phase is complete.
 
-- [ ] T007 [P] Add failing cancel token tests in `/Users/fady/Documents/Projects/dropify_flutter/test/core/dropify_cancel_token_test.dart`
-- [ ] T008 [P] Add failing entry, value, and selection identity tests in `/Users/fady/Documents/Projects/dropify_flutter/test/core/dropify_selection_test.dart`
-- [ ] T009 [P] Add failing controller state transition tests in `/Users/fady/Documents/Projects/dropify_flutter/test/core/dropify_controller_test.dart`
-- [ ] T010 [P] Add failing paging state tests in `/Users/fady/Documents/Projects/dropify_flutter/test/core/dropify_paging_state_test.dart`
-- [ ] T011 [P] Add failing debouncer and default matcher tests in `/Users/fady/Documents/Projects/dropify_flutter/test/internal/dropify_internal_test.dart`
-- [ ] T012 [P] Add failing public export contract tests in `/Users/fady/Documents/Projects/dropify_flutter/test/public_api_test.dart`
-- [ ] T013 [P] Implement `DropifyCancelToken` and `DropifyCancelledException` in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/core/dropify_cancel_token.dart`
-- [ ] T014 Implement `DropifyEntry`, `DropifySelectionMode`, `DropifyValue`, and selection identity helpers in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/core/dropify_entry.dart`, `/Users/fady/Documents/Projects/dropify_flutter/lib/src/core/dropify_selection.dart`, and `/Users/fady/Documents/Projects/dropify_flutter/lib/src/core/dropify_value.dart`
-- [ ] T015 Implement `DropifyController` open, close, clear, single value, multi value, and toggle behavior in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/core/dropify_controller.dart`
-- [ ] T016 Implement `DropifyPagingState` as a caller-owned paging helper with search and cancel token support in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/core/dropify_paging_state.dart`
-- [ ] T017 [P] Implement the private debouncer in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/internal/_debouncer.dart`
-- [ ] T018 [P] Implement the private default static matcher in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/internal/_default_matcher.dart`
-- [ ] T019 Export all foundational public APIs and paging dependency types through `/Users/fady/Documents/Projects/dropify_flutter/lib/dropify_flutter.dart`
+- [X] T007 [P] Add failing cancel token tests in `/Users/fady/Documents/Projects/dropify_flutter/test/core/dropify_cancel_token_test.dart`
+- [X] T008 [P] Add failing entry, value, and selection identity tests in `/Users/fady/Documents/Projects/dropify_flutter/test/core/dropify_selection_test.dart`
+- [X] T009 [P] Add failing controller state transition tests in `/Users/fady/Documents/Projects/dropify_flutter/test/core/dropify_controller_test.dart`
+- [X] T010 [P] Add failing paging state tests in `/Users/fady/Documents/Projects/dropify_flutter/test/core/dropify_paging_state_test.dart`
+- [X] T011 [P] Add failing debouncer and default matcher tests in `/Users/fady/Documents/Projects/dropify_flutter/test/internal/dropify_internal_test.dart`
+- [X] T012 [P] Add failing public export contract tests in `/Users/fady/Documents/Projects/dropify_flutter/test/public_api_test.dart`
+- [X] T013 [P] Implement `DropifyCancelToken` and `DropifyCancelledException` in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/core/dropify_cancel_token.dart`
+- [X] T014 Implement `DropifyEntry`, `DropifySelectionMode`, `DropifyValue`, and selection identity helpers in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/core/dropify_entry.dart`, `/Users/fady/Documents/Projects/dropify_flutter/lib/src/core/dropify_selection.dart`, and `/Users/fady/Documents/Projects/dropify_flutter/lib/src/core/dropify_value.dart`
+- [X] T015 Implement `DropifyController` open, close, clear, single value, multi value, and toggle behavior in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/core/dropify_controller.dart`
+- [X] T016 Implement `DropifyPagingState` as a caller-owned paging helper with search and cancel token support in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/core/dropify_paging_state.dart`
+- [X] T017 [P] Implement the private debouncer in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/internal/_debouncer.dart`
+- [X] T018 [P] Implement the private default static matcher in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/internal/_default_matcher.dart`
+- [X] T019 Export all foundational public APIs and paging dependency types through `/Users/fady/Documents/Projects/dropify_flutter/lib/dropify_flutter.dart`
 
 **Checkpoint**: Foundation ready; user story implementation can begin.
 
@@ -66,18 +66,18 @@
 
 ### Implementation for User Story 1
 
-- [ ] T025 [P] [US1] Implement private anchor behavior, clear affordance, error slot, and semantic key wiring in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/internal/_dropify_anchor.dart`
-- [ ] T026 [P] [US1] Implement private panel layout, constrained overlay surface, and visible-row list behavior in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/internal/_dropify_panel.dart`
-- [ ] T027 [P] [US1] Implement private search field with fixed panel positioning and clear action in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/internal/_dropify_search_field.dart`
+- [X] T025 [P] [US1] Implement private anchor behavior, clear affordance, error slot, and semantic key wiring in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/internal/_dropify_anchor.dart`
+- [X] T026 [P] [US1] Implement private panel layout, constrained overlay surface, and visible-row list behavior in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/internal/_dropify_panel.dart`
+- [X] T027 [P] [US1] Implement private search field with fixed panel positioning and clear action in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/internal/_dropify_search_field.dart`
 - [ ] T028 [P] [US1] Implement private focus scope and keyboard routing for static dropdown flows in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/internal/_dropify_focus_scope.dart`
-- [ ] T029 [US1] Implement `RawDropify` with FormField integration, controller attachment, selection identity, validation, search slot, and panel builder in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/core/raw_dropify.dart`
-- [ ] T030 [US1] Implement `RawStaticDropify` with entry filtering, consumer-owned search text control, disabled row handling, empty state, multi constructors, and large-list builder threshold in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_static_dropify.dart`
-- [ ] T031 [US1] Implement the minimal `DropifyThemeData.fromMaterial` defaults needed by static themed widgets in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/theme/dropify_theme_data.dart`
-- [ ] T032 [US1] Implement `DropifyTheme` inherited theme lookup for static themed widgets in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/theme/dropify_theme.dart`
-- [ ] T033 [US1] Implement `DropifyDropdown` as the Material 3 themed static wrapper with single and multi constructors in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/dropify_dropdown.dart`
-- [ ] T034 [US1] Export static raw and themed widget APIs through `/Users/fady/Documents/Projects/dropify_flutter/lib/dropify_flutter.dart`
-- [ ] T035 [US1] Add static dropdown demos covering raw, themed, search, disabled entries, clear, validation, and large lists in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/pages/static_dropdown_page.dart`
-- [ ] T036 [US1] Wire the static dropdown demo into the example app navigation in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/main.dart`
+- [X] T029 [US1] Implement `RawDropify` with FormField integration, controller attachment, selection identity, validation, search slot, and panel builder in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/core/raw_dropify.dart`
+- [X] T030 [US1] Implement `RawStaticDropify` with entry filtering, consumer-owned search text control, disabled row handling, empty state, multi constructors, and large-list builder threshold in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_static_dropify.dart`
+- [X] T031 [US1] Implement the minimal `DropifyThemeData.fromMaterial` defaults needed by static themed widgets in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/theme/dropify_theme_data.dart`
+- [X] T032 [US1] Implement `DropifyTheme` inherited theme lookup for static themed widgets in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/theme/dropify_theme.dart`
+- [X] T033 [US1] Implement `DropifyDropdown` as the Material 3 themed static wrapper with single and multi constructors in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/dropify_dropdown.dart`
+- [X] T034 [US1] Export static raw and themed widget APIs through `/Users/fady/Documents/Projects/dropify_flutter/lib/dropify_flutter.dart`
+- [X] T035 [US1] Add static dropdown demos covering raw, themed, search, disabled entries, clear, validation, and large lists in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/pages/static_dropdown_page.dart`
+- [X] T036 [US1] Wire the static dropdown demo into the example app navigation in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/main.dart`
 
 **Checkpoint**: User Story 1 is independently functional and testable as the MVP.
 
@@ -98,15 +98,15 @@
 
 ### Implementation for User Story 2
 
-- [ ] T041 [US2] Implement `DropifyAsyncFetcher`, `DropifyAsyncState`, and async state transition model in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_async_dropify.dart`
-- [ ] T042 [US2] Implement `RawAsyncDropify` load-on-open, configurable debounced search, consumer-owned search text control, cancellation, stale-result protection, retry, cache, reset, and dispose behavior in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_async_dropify.dart`
-- [ ] T043 [US2] Integrate async loading, refreshing, empty, error, retry, and live status slots with shared panel semantics in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_async_dropify.dart`
-- [ ] T044 [US2] Extend `DropifyThemeData` with async state-slot builders and visible copy defaults in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/theme/dropify_theme_data.dart`
-- [ ] T045 [US2] Implement `DropifyAsyncDropdown` as the Material 3 themed async wrapper with single and multi constructors in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/dropify_async_dropdown.dart`
-- [ ] T046 [US2] Export async raw and themed widget APIs through `/Users/fady/Documents/Projects/dropify_flutter/lib/dropify_flutter.dart`
-- [ ] T047 [US2] Add fake async API scenarios for success, empty, delayed, stale, and error responses in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/fake_api.dart`
-- [ ] T048 [US2] Add raw and themed async dropdown demos covering search, loading, empty, error, retry, refresh, and cache behavior in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/pages/async_dropdown_page.dart`
-- [ ] T049 [US2] Wire the async dropdown demo into the example app navigation in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/main.dart`
+- [X] T041 [US2] Implement `DropifyAsyncFetcher`, `DropifyAsyncState`, and async state transition model in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_async_dropify.dart`
+- [X] T042 [US2] Implement `RawAsyncDropify` load-on-open, configurable debounced search, consumer-owned search text control, cancellation, stale-result protection, retry, cache, reset, and dispose behavior in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_async_dropify.dart`
+- [X] T043 [US2] Integrate async loading, refreshing, empty, error, retry, and live status slots with shared panel semantics in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_async_dropify.dart`
+- [X] T044 [US2] Extend `DropifyThemeData` with async state-slot builders and visible copy defaults in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/theme/dropify_theme_data.dart`
+- [X] T045 [US2] Implement `DropifyAsyncDropdown` as the Material 3 themed async wrapper with single and multi constructors in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/dropify_async_dropdown.dart`
+- [X] T046 [US2] Export async raw and themed widget APIs through `/Users/fady/Documents/Projects/dropify_flutter/lib/dropify_flutter.dart`
+- [X] T047 [US2] Add fake async API scenarios for success, empty, delayed, stale, and error responses in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/fake_api.dart`
+- [X] T048 [US2] Add raw and themed async dropdown demos covering search, loading, empty, error, retry, refresh, and cache behavior in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/pages/async_dropdown_page.dart`
+- [X] T049 [US2] Wire the async dropdown demo into the example app navigation in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/main.dart`
 
 **Checkpoint**: User Story 2 is independently functional and remains compatible with User Story 1.
 
@@ -128,16 +128,16 @@
 
 ### Implementation for User Story 3
 
-- [ ] T055 [US3] Implement `RawPaginatedDropify` as a pure consumer of `PagingState<PageKey, T>` and `fetchNextPage` in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_paginated_dropify.dart`
-- [ ] T056 [US3] Implement paginated first-page progress, first-page error, empty, and initial open fetch behavior in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_paginated_dropify.dart`
-- [ ] T057 [US3] Implement paginated scroll threshold, new-page progress, new-page error retry, no-more-items footer, and retained existing items in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_paginated_dropify.dart`
-- [ ] T058 [US3] Implement debounced paginated search notification and consumer-owned search text control without mutating caller paging state in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_paginated_dropify.dart`
-- [ ] T059 [US3] Extend `DropifyThemeData` with paginated footer builders and visible copy defaults in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/theme/dropify_theme_data.dart`
-- [ ] T060 [US3] Implement `DropifyPaginatedDropdown` as the Material 3 themed paginated wrapper with single and multi constructors in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/dropify_paginated_dropdown.dart`
-- [ ] T061 [US3] Export paginated raw and themed widget APIs through `/Users/fady/Documents/Projects/dropify_flutter/lib/dropify_flutter.dart`
-- [ ] T062 [US3] Add paginated fake API and paging owner examples using `DropifyPagingState` in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/fake_api.dart`
-- [ ] T063 [US3] Add raw and themed paginated dropdown demos covering first page, next page, search reset, retry, empty, and no-more-items states in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/pages/paginated_dropdown_page.dart`
-- [ ] T064 [US3] Wire the paginated dropdown demo into the example app navigation in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/main.dart`
+- [X] T055 [US3] Implement `RawPaginatedDropify` as a pure consumer of `PagingState<PageKey, T>` and `fetchNextPage` in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_paginated_dropify.dart`
+- [X] T056 [US3] Implement paginated first-page progress, first-page error, empty, and initial open fetch behavior in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_paginated_dropify.dart`
+- [X] T057 [US3] Implement paginated scroll threshold, new-page progress, new-page error retry, no-more-items footer, and retained existing items in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_paginated_dropify.dart`
+- [X] T058 [US3] Implement debounced paginated search notification and consumer-owned search text control without mutating caller paging state in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/raw_paginated_dropify.dart`
+- [X] T059 [US3] Extend `DropifyThemeData` with paginated footer builders and visible copy defaults in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/theme/dropify_theme_data.dart`
+- [X] T060 [US3] Implement `DropifyPaginatedDropdown` as the Material 3 themed paginated wrapper with single and multi constructors in `/Users/fady/Documents/Projects/dropify_flutter/lib/src/widgets/dropify_paginated_dropdown.dart`
+- [X] T061 [US3] Export paginated raw and themed widget APIs through `/Users/fady/Documents/Projects/dropify_flutter/lib/dropify_flutter.dart`
+- [X] T062 [US3] Add paginated fake API and paging owner examples using `DropifyPagingState` in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/fake_api.dart`
+- [X] T063 [US3] Add raw and themed paginated dropdown demos covering first page, next page, search reset, retry, empty, and no-more-items states in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/pages/paginated_dropdown_page.dart`
+- [X] T064 [US3] Wire the paginated dropdown demo into the example app navigation in `/Users/fady/Documents/Projects/dropify_flutter/example/lib/main.dart`
 
 **Checkpoint**: User Story 3 is independently functional and remains compatible with User Stories 1 and 2.
 
@@ -210,11 +210,11 @@
 - [ ] T093 [P] Add example widget tests for static, async, paginated, selection, theme, and accessibility pages in `/Users/fady/Documents/Projects/dropify_flutter/example/test/dropify_example_test.dart`
 - [ ] T094 Audit public exports against the API contract and remove unintended exports in `/Users/fady/Documents/Projects/dropify_flutter/lib/dropify_flutter.dart`
 - [ ] T095 Audit long labels, narrow panels, constrained overlays, visible-row large-list behavior, and overflow behavior with focused widget tests in `/Users/fady/Documents/Projects/dropify_flutter/test/widgets/dropify_layout_test.dart`
-- [ ] T096 Run `dart format --set-exit-if-changed .` and fix formatting issues in `/Users/fady/Documents/Projects/dropify_flutter/`
-- [ ] T097 Run `dart analyze` and fix analyzer issues in `/Users/fady/Documents/Projects/dropify_flutter/`
-- [ ] T098 Run `flutter test` and fix package test failures in `/Users/fady/Documents/Projects/dropify_flutter/`
-- [ ] T099 Run `flutter test` and fix example test failures in `/Users/fady/Documents/Projects/dropify_flutter/example/`
-- [ ] T100 Run `flutter build web` and fix example compilation issues in `/Users/fady/Documents/Projects/dropify_flutter/example/`
+- [X] T096 Run `dart format --set-exit-if-changed .` and fix formatting issues in `/Users/fady/Documents/Projects/dropify_flutter/`
+- [X] T097 Run `dart analyze` and fix analyzer issues in `/Users/fady/Documents/Projects/dropify_flutter/`
+- [X] T098 Run `flutter test` and fix package test failures in `/Users/fady/Documents/Projects/dropify_flutter/`
+- [X] T099 Run `flutter test` and fix example test failures in `/Users/fady/Documents/Projects/dropify_flutter/example/`
+- [X] T100 Run `flutter build web` and fix example compilation issues in `/Users/fady/Documents/Projects/dropify_flutter/example/`
 - [ ] T101 Validate the documented quickstart in a clean minimal Flutter app and fix documentation or API issues in `/Users/fady/Documents/Projects/dropify_flutter/README.md`, `/Users/fady/Documents/Projects/dropify_flutter/example/README.md`, and `/Users/fady/Documents/Projects/dropify_flutter/lib/dropify_flutter.dart`
 - [ ] T102 Verify the example app compiles or has documented CI/manual verification evidence for Android, iOS, web, macOS, Windows, and Linux supported targets, and fix platform-specific issues in `/Users/fady/Documents/Projects/dropify_flutter/example/`
 - [ ] T103 Run `flutter pub publish --dry-run` and fix package health issues in `/Users/fady/Documents/Projects/dropify_flutter/`
