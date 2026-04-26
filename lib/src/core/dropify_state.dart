@@ -29,6 +29,8 @@ class DropifyState<T> {
     required this.entries,
     required this.status,
     this.error,
+    this.pageError,
+    this.isLoadingMore = false,
     this.hasMore = false,
     this.overlayInfo,
   });
@@ -44,6 +46,12 @@ class DropifyState<T> {
 
   /// Current error, when [status] is [DropifyStatus.error].
   final Object? error;
+
+  /// Page-level error for paginated sources after some entries loaded.
+  final Object? pageError;
+
+  /// Whether a paginated source is loading another page.
+  final bool isLoadingMore;
 
   /// Whether a paginated source has another page.
   final bool hasMore;

@@ -22,6 +22,9 @@ class DropifyPanel<T> extends StatefulWidget {
     this.loadingBuilder,
     this.errorBuilder,
     this.emptyBuilder,
+    this.newPageProgressBuilder,
+    this.newPageErrorBuilder,
+    this.noMoreItemsBuilder,
   });
 
   final DropifyState<T> state;
@@ -34,6 +37,10 @@ class DropifyPanel<T> extends StatefulWidget {
   final WidgetBuilder? loadingBuilder;
   final Widget Function(BuildContext, Object, VoidCallback)? errorBuilder;
   final Widget Function(BuildContext, String)? emptyBuilder;
+  final WidgetBuilder? newPageProgressBuilder;
+  final Widget Function(BuildContext, Object, VoidCallback)?
+  newPageErrorBuilder;
+  final WidgetBuilder? noMoreItemsBuilder;
 
   @override
   State<DropifyPanel<T>> createState() => _DropifyPanelState<T>();
@@ -128,11 +135,15 @@ class _DropifyPanelState<T> extends State<DropifyPanel<T>> {
         widget.state.status == DropifyStatus.loading ||
         widget.state.status == DropifyStatus.error ||
         widget.state.status == DropifyStatus.idle;
+    final bool hasFooter = _hasFooter();
     final double listHeight = usesStateContent
         ? math.min(84, listMaxHeight)
         : widget.state.entries.isEmpty
         ? math.min(52, listMaxHeight)
-        : math.min(widget.state.entries.length * 48, listMaxHeight);
+        : math.min(
+            widget.state.entries.length * 48 + (hasFooter ? 48 : 0),
+            listMaxHeight,
+          );
     return Align(
       alignment: AlignmentDirectional.topStart,
       child: ConstrainedBox(
@@ -176,34 +187,50 @@ class _DropifyPanelState<T> extends State<DropifyPanel<T>> {
                           theme: widget.theme,
                           builder: widget.emptyBuilder,
                         ),
-                        DropifyStatus.data => ListView.builder(
-                          padding: EdgeInsets.zero,
-                          itemCount: widget.state.entries.length,
-                          itemBuilder: (BuildContext context, int index) {
-                            final DropifyEntry<T> entry =
-                                widget.state.entries[index];
-                            final bool selected = widget.state.isSelected(
-                              entry.value,
-                            );
-                            final VoidCallback? onSelect = entry.enabled
-                                ? () => widget.state.toggle(entry.value)
-                                : null;
-                            return widget.itemBuilder?.call(
-                                  context,
-                                  entry,
-                                  selected,
-                                  onSelect,
-                                ) ??
-                                _DefaultRow<T>(
-                                  entry: entry,
-                                  state: widget.state,
-                                  selected: selected,
-                                  focused: index == _focusedIndex,
-                                  onSelect: onSelect,
-                                  theme: widget.theme,
+                        DropifyStatus.data =>
+                          NotificationListener<ScrollNotification>(
+                            onNotification: _handleScrollNotification,
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              itemCount:
+                                  widget.state.entries.length +
+                                  (hasFooter ? 1 : 0),
+                              itemBuilder: (BuildContext context, int index) {
+                                if (index == widget.state.entries.length) {
+                                  return _FooterState<T>(
+                                    state: widget.state,
+                                    progressBuilder:
+                                        widget.newPageProgressBuilder,
+                                    errorBuilder: widget.newPageErrorBuilder,
+                                    noMoreItemsBuilder:
+                                        widget.noMoreItemsBuilder,
+                                  );
+                                }
+                                final DropifyEntry<T> entry =
+                                    widget.state.entries[index];
+                                final bool selected = widget.state.isSelected(
+                                  entry.value,
                                 );
-                          },
-                        ),
+                                final VoidCallback? onSelect = entry.enabled
+                                    ? () => widget.state.toggle(entry.value)
+                                    : null;
+                                return widget.itemBuilder?.call(
+                                      context,
+                                      entry,
+                                      selected,
+                                      onSelect,
+                                    ) ??
+                                    _DefaultRow<T>(
+                                      entry: entry,
+                                      state: widget.state,
+                                      selected: selected,
+                                      focused: index == _focusedIndex,
+                                      onSelect: onSelect,
+                                      theme: widget.theme,
+                                    );
+                              },
+                            ),
+                          ),
                       },
                     ),
                   ),
@@ -213,6 +240,70 @@ class _DropifyPanelState<T> extends State<DropifyPanel<T>> {
           ),
         ),
       ),
+    );
+  }
+
+  bool _handleScrollNotification(ScrollNotification notification) {
+    if (notification.metrics.extentAfter < 80 &&
+        widget.state.hasMore &&
+        !widget.state.isLoadingMore &&
+        widget.state.pageError == null) {
+      widget.state.controller.loadMore();
+    }
+    return false;
+  }
+
+  bool _hasFooter() {
+    if (widget.state.entries.isEmpty) {
+      return false;
+    }
+    return widget.state.isLoadingMore ||
+        widget.state.pageError != null ||
+        (!widget.state.hasMore && widget.noMoreItemsBuilder != null);
+  }
+}
+
+class _FooterState<T> extends StatelessWidget {
+  const _FooterState({
+    required this.state,
+    this.progressBuilder,
+    this.errorBuilder,
+    this.noMoreItemsBuilder,
+  });
+
+  final DropifyState<T> state;
+  final WidgetBuilder? progressBuilder;
+  final Widget Function(BuildContext, Object, VoidCallback)? errorBuilder;
+  final WidgetBuilder? noMoreItemsBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    final Object? error = state.pageError;
+    if (error != null) {
+      return Center(
+        child:
+            errorBuilder?.call(context, error, state.controller.retry) ??
+            TextButton(
+              key: DropifyKeys.pageRetryButton,
+              onPressed: state.controller.retry,
+              child: Text('Retry: $error'),
+            ),
+      );
+    }
+    if (state.isLoadingMore) {
+      return Center(
+        key: DropifyKeys.loadingMoreFooter,
+        child:
+            progressBuilder?.call(context) ??
+            const SizedBox.square(
+              dimension: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+      );
+    }
+    return Center(
+      key: DropifyKeys.noMoreItemsFooter,
+      child: noMoreItemsBuilder?.call(context) ?? const SizedBox.shrink(),
     );
   }
 }

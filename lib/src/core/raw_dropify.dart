@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import '../internal/debouncer.dart';
 import '../internal/default_matcher.dart';
+import '../internal/paging.dart';
 import 'dropify_controller.dart';
 import 'dropify_data_source.dart';
 import 'dropify_entry.dart';
@@ -134,6 +135,7 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
   String _lastQuery = '';
   String? _lastAsyncQuery;
   int _asyncRequestToken = 0;
+  DropifyPagingAdapter<T>? _pagingAdapter;
   List<T> _lastMultiValues = List<T>.empty();
   T? _lastSingleValue;
 
@@ -196,6 +198,7 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
   }
 
   void _unbindController() {
+    _disposePagingAdapter();
     _controller.setDataActions();
     _controller.removeListener(_handleControllerChanged);
     _controller.detach(this);
@@ -257,10 +260,20 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
       );
       return;
     }
+    final DropifyPagingAdapter<T>? pagingAdapter = _pagingAdapter;
+    if (source is PaginatedDropifyDataSource<T> && pagingAdapter != null) {
+      _controller.setDataActions(
+        refresh: pagingAdapter.refresh,
+        retry: pagingAdapter.retry,
+        loadMore: pagingAdapter.loadMore,
+      );
+      return;
+    }
     _controller.setDataActions();
   }
 
   void _initializeDataSource() {
+    _disposePagingAdapter();
     _configureDataActions();
     final DropifyDataSource<T>? source = widget.dataSource;
     switch (source) {
@@ -278,10 +291,17 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
           status: DropifyStatus.idle,
         );
       case PaginatedDropifyDataSource<T>():
-        throw UnimplementedError(
-          'PaginatedDropifyDataSource is wired in a later phase.',
+        _pagingAdapter = DropifyPagingAdapter<T>(
+          controller: _controller,
+          dataSource: source,
         );
+        _configureDataActions();
     }
+  }
+
+  void _disposePagingAdapter() {
+    _pagingAdapter?.dispose();
+    _pagingAdapter = null;
   }
 
   void _handleQueryChanged() {
@@ -298,6 +318,15 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
           _fetchAsyncNow();
         }
       });
+      return;
+    }
+    if (source is PaginatedDropifyDataSource<T>) {
+      _queryDebouncer.run(() {
+        widget.onQueryChanged?.call(_controller.query);
+        if (_controller.isOpen) {
+          _pagingAdapter?.refresh();
+        }
+      });
     }
   }
 
@@ -310,9 +339,7 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
       ) =>
         _filter(entries),
       AsyncDropifyDataSource<T>() => _controller.entries,
-      PaginatedDropifyDataSource<T>() => throw UnimplementedError(
-        'PaginatedDropifyDataSource is wired in a later phase.',
-      ),
+      PaginatedDropifyDataSource<T>() => _controller.entries,
     };
     _controller.setEntries(
       entries,
@@ -369,6 +396,11 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
         (_controller.entries.isEmpty || _lastAsyncQuery != _controller.query)) {
       _fetchAsyncNow();
     }
+    if (source is PaginatedDropifyDataSource<T> &&
+        (_controller.entries.isEmpty ||
+            _controller.status == DropifyStatus.idle)) {
+      _pagingAdapter?.refresh();
+    }
     widget.onOpenChanged?.call(true);
   }
 
@@ -385,6 +417,9 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
       entries: _controller.entries,
       status: _controller.status,
       error: _controller.error,
+      pageError: _controller.pageError,
+      isLoadingMore: _controller.isLoadingMore,
+      hasMore: _controller.hasMore,
       overlayInfo: overlayInfo,
     );
   }

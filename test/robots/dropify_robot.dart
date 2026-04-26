@@ -4,6 +4,8 @@ import 'package:dropify_flutter/dropify_flutter.dart';
 // ignore: avoid_relative_lib_imports
 import '../../example/lib/async_demo_keys.dart';
 // ignore: avoid_relative_lib_imports
+import '../../example/lib/paginated_demo_keys.dart';
+// ignore: avoid_relative_lib_imports
 import '../../example/lib/raw_demo_keys.dart';
 // ignore: avoid_relative_lib_imports
 import '../../example/lib/static_demo_keys.dart';
@@ -79,6 +81,18 @@ class DropifyRobot {
   /// Waits for async example requests to settle.
   Future<void> settleAsyncExample() async {
     await tester.pump(const Duration(milliseconds: 650));
+    await tester.pumpAndSettle();
+  }
+
+  /// Opens the paginated dropdown demo from the gallery.
+  Future<void> openPaginatedDemo() async {
+    await tester.tap(find.byKey(PaginatedDemoKeys.paginatedNavTile));
+    await tester.pumpAndSettle();
+  }
+
+  /// Waits for paginated example requests to settle.
+  Future<void> settlePaginatedExample() async {
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
   }
 }

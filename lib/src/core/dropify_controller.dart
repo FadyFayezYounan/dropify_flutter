@@ -46,6 +46,15 @@ abstract class DropifyController<T> extends ChangeNotifier {
   /// Current error object, when [status] is [DropifyStatus.error].
   Object? get error;
 
+  /// Current page-level error for paginated sources with loaded entries.
+  Object? get pageError;
+
+  /// Whether a paginated source is currently loading another page.
+  bool get isLoadingMore;
+
+  /// Whether a paginated source can load another page.
+  bool get hasMore;
+
   /// Current entries visible to the widget.
   List<DropifyEntry<T>> get entries;
 
@@ -99,6 +108,9 @@ abstract class DropifyController<T> extends ChangeNotifier {
     List<DropifyEntry<T>> entries, {
     required DropifyStatus status,
     Object? error,
+    Object? pageError,
+    bool hasMore = false,
+    bool isLoadingMore = false,
   });
 
   /// Attaches this controller to one widget owner.
@@ -156,6 +168,9 @@ class _DropifyController<T> extends DropifyController<T> {
   String _query = '';
   DropifyStatus _status = DropifyStatus.idle;
   Object? _error;
+  Object? _pageError;
+  bool _hasMore = false;
+  bool _isLoadingMore = false;
   List<DropifyEntry<T>> _entries = List<DropifyEntry<T>>.empty();
   T? _singleValue;
   List<T> _multiValues;
@@ -179,6 +194,15 @@ class _DropifyController<T> extends DropifyController<T> {
 
   @override
   Object? get error => _error;
+
+  @override
+  Object? get pageError => _pageError;
+
+  @override
+  bool get isLoadingMore => _isLoadingMore;
+
+  @override
+  bool get hasMore => _hasMore;
 
   @override
   List<DropifyEntry<T>> get entries =>
@@ -304,10 +328,16 @@ class _DropifyController<T> extends DropifyController<T> {
     List<DropifyEntry<T>> entries, {
     required DropifyStatus status,
     Object? error,
+    Object? pageError,
+    bool hasMore = false,
+    bool isLoadingMore = false,
   }) {
     _entries = List<DropifyEntry<T>>.unmodifiable(entries);
     _status = status;
     _error = error;
+    _pageError = pageError;
+    _hasMore = hasMore;
+    _isLoadingMore = isLoadingMore;
     notifyListeners();
   }
 

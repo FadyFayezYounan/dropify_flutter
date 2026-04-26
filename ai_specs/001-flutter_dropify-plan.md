@@ -79,25 +79,25 @@ Universal Dropify v1 package. Layered API: core RawDropify, concrete widgets, fo
 - [x] Robot journey tests + selectors/seams for loading -> search -> select -> error retry.
 - [x] Verify: `dart format . && flutter analyze && flutter test`.
 
-### Phase 4: Paginated Dropdown
+### Phase 4: Paginated Dropdown (Complete)
 
 - **Goal**: Isolated paging adapter and paginated widget states.
-- [ ] `lib/src/internal/paging.dart` - `PagingController` v5 adapter; page keys, dedupe, reset, page errors.
-- [ ] `lib/src/core/raw_dropify.dart` - paginated loadMore, refresh, retry, query reset, first/later error split.
-- [ ] `lib/src/widgets/dropify_paginated_dropdown.dart` - paginated single/multi wrappers.
-- [ ] `lib/src/widgets/_dropify_panel.dart` - loading-more, no-more-items, page retry footer.
-- [ ] `lib/dropify_flutter.dart` - export paginated dropdown.
-- [ ] `example/lib/paginated_page.dart` - deterministic fake pages and errors.
-- [ ] `example/lib/main.dart` - gallery navigation to paginated page.
-- [ ] `test/internal/paging_test.dart` - adapter behavior.
-- [ ] `test/widgets/dropify_paginated_dropdown_test.dart` - page states.
-- [ ] `test/journeys/paginated_dropdown_journey_test.dart` - robot journey.
-- [ ] TDD: first page load, next page load, no duplicate request for same page key.
-- [ ] TDD: duplicate values deduped by value equality across pages.
-- [ ] TDD: query reset clears stale page state and reloads first page.
-- [ ] TDD: first-page error shows main retry; later-page error keeps loaded entries.
-- [ ] Robot journey tests + selectors/seams for scroll-load-select-retry.
-- [ ] Verify: `dart format . && flutter analyze && flutter test`.
+- [x] `lib/src/internal/paging.dart` - `PagingController` v5 adapter; page keys, dedupe, reset, page errors.
+- [x] `lib/src/core/raw_dropify.dart` - paginated loadMore, refresh, retry, query reset, first/later error split.
+- [x] `lib/src/widgets/dropify_paginated_dropdown.dart` - paginated single/multi wrappers.
+- [x] `lib/src/widgets/_dropify_panel.dart` - loading-more, no-more-items, page retry footer.
+- [x] `lib/dropify_flutter.dart` - export paginated dropdown.
+- [x] `example/lib/paginated_page.dart` - deterministic fake pages and errors.
+- [x] `example/lib/main.dart` - gallery navigation to paginated page.
+- [x] `test/internal/paging_test.dart` - adapter behavior.
+- [x] `test/widgets/dropify_paginated_dropdown_test.dart` - page states.
+- [x] `test/journeys/paginated_dropdown_journey_test.dart` - robot journey.
+- [x] TDD: first page load, next page load, no duplicate request for same page key.
+- [x] TDD: duplicate values deduped by value equality across pages.
+- [x] TDD: query reset clears stale page state and reloads first page.
+- [x] TDD: first-page error shows main retry; later-page error keeps loaded entries.
+- [x] Robot journey tests + selectors/seams for scroll-load-select-retry.
+- [x] Verify: `dart format . && flutter analyze && flutter test`.
 
 ### Phase 5: Form Field
 

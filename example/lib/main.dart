@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'async_demo_keys.dart';
+import 'paginated_demo_keys.dart';
 import 'pages/async_page.dart';
+import 'pages/paginated_page.dart';
 import 'pages/raw_page.dart';
 import 'pages/static_page.dart';
 import 'raw_demo_keys.dart';
@@ -67,7 +69,16 @@ class DropifyGallery extends StatelessWidget {
               );
             },
           ),
-          const ListTile(title: Text('Paginated dropdowns land in Phase 4')),
+          ListTile(
+            key: PaginatedDemoKeys.paginatedNavTile,
+            title: const Text('Paginated dropdowns'),
+            subtitle: const Text('Infinite scroll, page retry, and end state'),
+            onTap: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(builder: (_) => const PaginatedPage()),
+              );
+            },
+          ),
           const ListTile(title: Text('Forms land in Phase 5')),
         ],
       ),
