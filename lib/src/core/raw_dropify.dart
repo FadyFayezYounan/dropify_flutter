@@ -27,6 +27,7 @@ class RawDropify<T> extends StatefulWidget {
     this.searchable = false,
     this.searchHintText,
     this.searchDebounce = const Duration(milliseconds: 300),
+    this.onSearchChanged,
     this.showClearButton = false,
     this.matchAnchorWidth = true,
     this.panelConstraints,
@@ -61,6 +62,7 @@ class RawDropify<T> extends StatefulWidget {
     this.searchable = false,
     this.searchHintText,
     this.searchDebounce = const Duration(milliseconds: 300),
+    this.onSearchChanged,
     this.showClearButton = false,
     this.matchAnchorWidth = true,
     this.panelConstraints,
@@ -97,6 +99,7 @@ class RawDropify<T> extends StatefulWidget {
   final bool searchable;
   final String? searchHintText;
   final Duration searchDebounce;
+  final void Function(String query)? onSearchChanged;
 
   final bool showClearButton;
   final bool matchAnchorWidth;
@@ -169,8 +172,8 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
       _internalSearchController = widget.searchController;
     } else {
       _internalSearchController = TextEditingController();
-      _internalSearchController!.addListener(_onSearchChanged);
     }
+    _internalSearchController?.addListener(_onSearchChanged);
 
     _controller.addListener(_onControllerChanged);
   }
@@ -186,8 +189,8 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
     _searchDebouncer.dispose();
     _focusScope.dispose();
     _anchorFocusNode.dispose();
+    _internalSearchController?.removeListener(_onSearchChanged);
     if (widget.searchController == null) {
-      _internalSearchController?.removeListener(_onSearchChanged);
       _internalSearchController?.dispose();
     }
     super.dispose();
@@ -200,8 +203,12 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
   }
 
   void _onSearchChanged() {
-    if (mounted) {
-      setState(() {});
+    if (!mounted) return;
+    _overlayEntry?.markNeedsBuild();
+    if (widget.onSearchChanged != null) {
+      _searchDebouncer.run(() {
+        widget.onSearchChanged!(_internalSearchController?.text ?? '');
+      });
     }
   }
 

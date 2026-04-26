@@ -7,7 +7,6 @@ import '../core/dropify_value.dart';
 import '../core/raw_dropify.dart';
 import '../internal/dropify_anchor_state.dart';
 import '../internal/dropify_panel_state.dart';
-import '../internal/_debouncer.dart';
 
 // --- Async State ---
 
@@ -175,19 +174,11 @@ class _RawAsyncDropifyState<T> extends State<RawAsyncDropify<T>> {
   DropifyAsyncState<T> _state = DropifyAsyncIdle<T>();
   final Map<String, List<T>> _cache = <String, List<T>>{};
   DropifyCancelToken? _activeToken;
-  late Debouncer _debouncer;
   String _currentQuery = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _debouncer = Debouncer(duration: widget.searchDebounce);
-  }
 
   @override
   void dispose() {
     _activeToken?.cancel();
-    _debouncer.dispose();
     super.dispose();
   }
 
@@ -325,6 +316,7 @@ class _RawAsyncDropifyState<T> extends State<RawAsyncDropify<T>> {
         searchable: true,
         searchHintText: widget.searchHintText,
         searchDebounce: widget.searchDebounce,
+        onSearchChanged: _fetch,
         showClearButton: widget.showClearButton,
         matchAnchorWidth: widget.matchAnchorWidth,
         panelConstraints: widget.panelConstraints,
@@ -361,6 +353,7 @@ class _RawAsyncDropifyState<T> extends State<RawAsyncDropify<T>> {
       searchable: true,
       searchHintText: widget.searchHintText,
       searchDebounce: widget.searchDebounce,
+      onSearchChanged: _fetch,
       showClearButton: widget.showClearButton,
       matchAnchorWidth: widget.matchAnchorWidth,
       panelConstraints: widget.panelConstraints,
