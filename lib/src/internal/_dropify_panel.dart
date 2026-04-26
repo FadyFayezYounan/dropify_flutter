@@ -21,6 +21,7 @@ class DropifyPanel<T> extends StatelessWidget {
     required this.searchHintText,
     required this.isSelectedFn,
     required this.focusScopeNode,
+    this.anchorWidth,
     this.matchAnchorWidth = true,
     this.panelConstraints,
     this.confirmable = false,
@@ -41,6 +42,7 @@ class DropifyPanel<T> extends StatelessWidget {
   final String? searchHintText;
   final bool Function(T) isSelectedFn;
   final FocusNode focusScopeNode;
+  final double? anchorWidth;
   final bool matchAnchorWidth;
   final BoxConstraints? panelConstraints;
   final bool confirmable;
@@ -59,53 +61,84 @@ class DropifyPanel<T> extends StatelessWidget {
       child: Material(
         elevation: 8,
         borderRadius: BorderRadius.circular(8),
-        child: ConstrainedBox(
-          constraints: effectiveConstraints,
-          child: IntrinsicWidth(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (searchable)
-                  DropifySearchField(
-                    controller: searchController ?? TextEditingController(),
-                    hintText: searchHintText,
-                  ),
-                Flexible(
-                  child: panelBuilder(
-                    context,
-                    DropifyPanelState<T>(
-                      mode: mode,
-                      value: mode == DropifySelectionMode.single
-                          ? controller.value
-                          : null,
-                      values: mode == DropifySelectionMode.multi
-                          ? controller.values
-                          : <T>{},
-                      searchQuery: searchController?.text ?? '',
-                      isSelected: isSelectedFn,
-                      toggle: onToggle,
-                      select: onSelect,
-                      close: onClose,
-                      focusScope: focusScopeNode,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final constrainedWidth = constraints.maxWidth.isFinite
+                ? BoxConstraints(maxWidth: constraints.maxWidth)
+                : const BoxConstraints();
+            final resolvedConstraints = effectiveConstraints.enforce(
+              constrainedWidth,
+            );
+            final panelWidth = _resolvePanelWidth(resolvedConstraints);
+
+            return ConstrainedBox(
+              constraints: resolvedConstraints,
+              child: SizedBox(
+                width: panelWidth,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (searchable)
+                      DropifySearchField(
+                        controller: searchController ?? TextEditingController(),
+                        hintText: searchHintText,
+                      ),
+                    Flexible(
+                      child: panelBuilder(
+                        context,
+                        DropifyPanelState<T>(
+                          mode: mode,
+                          value: mode == DropifySelectionMode.single
+                              ? controller.value
+                              : null,
+                          values: mode == DropifySelectionMode.multi
+                              ? controller.values
+                              : <T>{},
+                          searchQuery: searchController?.text ?? '',
+                          isSelected: isSelectedFn,
+                          toggle: onToggle,
+                          select: onSelect,
+                          close: onClose,
+                          focusScope: focusScopeNode,
+                        ),
+                      ),
                     ),
-                  ),
+                    if (confirmable && mode == DropifySelectionMode.multi)
+                      _ConfirmableFooter(
+                        confirmLabel: confirmLabel ?? 'Apply',
+                        cancelLabel: cancelLabel ?? 'Cancel',
+                        onApply: onApply ?? () {},
+                        onCancel: onCancel ?? () {},
+                      ),
+                  ],
                 ),
-                if (confirmable && mode == DropifySelectionMode.multi)
-                  _ConfirmableFooter(
-                    confirmLabel: confirmLabel ?? 'Apply',
-                    cancelLabel: cancelLabel ?? 'Cancel',
-                    onApply: onApply ?? () {},
-                    onCancel: onCancel ?? () {},
-                  ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
+
+  double _resolvePanelWidth(BoxConstraints constraints) {
+    final anchorWidth = this.anchorWidth;
+    final hasAnchorWidth =
+        anchorWidth != null && anchorWidth.isFinite && anchorWidth > 0;
+
+    if (matchAnchorWidth && hasAnchorWidth) {
+      return constraints.constrainWidth(anchorWidth);
+    }
+
+    if (constraints.hasTightWidth) {
+      return constraints.maxWidth;
+    }
+
+    return constraints.constrainWidth(_kDefaultPanelWidth);
+  }
 }
+
+const double _kDefaultPanelWidth = 240;
 
 class _ConfirmableFooter extends StatelessWidget {
   const _ConfirmableFooter({

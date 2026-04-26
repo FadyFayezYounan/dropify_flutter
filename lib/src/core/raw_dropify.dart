@@ -247,6 +247,14 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
     _overlayEntry = null;
   }
 
+  Size? get _anchorSize {
+    final renderObject = _anchorKey.currentContext?.findRenderObject();
+    if (renderObject is RenderBox && renderObject.hasSize) {
+      return renderObject.size;
+    }
+    return null;
+  }
+
   Widget _buildOverlay(BuildContext overlayContext) {
     return Stack(
       children: [
@@ -276,6 +284,7 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
               searchHintText: widget.searchHintText,
               isSelectedFn: _isSelected,
               focusScopeNode: _focusScope.node,
+              anchorWidth: _anchorSize?.width,
               matchAnchorWidth: widget.matchAnchorWidth,
               panelConstraints: widget.panelConstraints,
               confirmable: widget.confirmable,

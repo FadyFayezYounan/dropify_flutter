@@ -69,6 +69,52 @@ void main() {
       expect(find.text('Cherry'), findsNothing);
     });
 
+    testWidgets('opens large lazy lists without intrinsic layout errors', (
+      tester,
+    ) async {
+      final manyEntries = List<DropifyEntry<String>>.generate(
+        60,
+        (index) => DropifyEntry(value: 'item-$index', label: 'Item $index'),
+      );
+
+      await DropifyTestApp.pump(
+        tester,
+        RawStaticDropify<String>(
+          entries: manyEntries,
+          anchorBuilder: (context, state) {
+            return const SizedBox(width: 180, height: 40, child: Text('Open'));
+          },
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Item 0'), findsOneWidget);
+      expect(tester.getSize(find.byKey(const Key('dropify.panel'))).width, 180);
+    });
+
+    testWidgets('uses fallback panel width when anchor width matching is off', (
+      tester,
+    ) async {
+      await DropifyTestApp.pump(
+        tester,
+        RawStaticDropify<String>(
+          entries: entries,
+          matchAnchorWidth: false,
+          anchorBuilder: (context, state) {
+            return const SizedBox(width: 180, height: 40, child: Text('Open'));
+          },
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(tester.getSize(find.byKey(const Key('dropify.panel'))).width, 240);
+    });
+
     testWidgets('disabled entry is not selectable', (tester) async {
       final entriesWithDisabled = [
         const DropifyEntry(value: 'a', label: 'A'),
@@ -88,7 +134,7 @@ void main() {
 
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('B'));
+      await tester.tap(find.text('B'), warnIfMissed: false);
       await tester.pumpAndSettle();
 
       expect(selected, isNull);
