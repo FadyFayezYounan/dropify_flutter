@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dropify_flutter/dropify_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -104,6 +106,35 @@ void main() {
     expect(find.text('Apple'), findsNothing);
     expect(find.text('Banana'), findsOneWidget);
   });
+
+  testWidgets('async source fetches on open and publishes data', (
+    tester,
+  ) async {
+    final DropifyController<String> controller =
+        DropifyController<String>.single();
+    final Completer<List<DropifyEntry<String>>> completer =
+        Completer<List<DropifyEntry<String>>>();
+
+    await tester.pumpWidget(
+      _RawHarness.async(
+        controller: controller,
+        fetch: (String query) => completer.future,
+      ),
+    );
+
+    await tester.tap(find.byKey(_HarnessKeys.anchor));
+    await tester.pump();
+
+    expect(controller.status, DropifyStatus.loading);
+
+    completer.complete(<DropifyEntry<String>>[
+      const DropifyEntry<String>(value: 'async', label: 'Async'),
+    ]);
+    await tester.pumpAndSettle();
+
+    expect(controller.status, DropifyStatus.data);
+    expect(find.text('Async'), findsOneWidget);
+  });
 }
 
 abstract final class _HarnessKeys {
@@ -119,17 +150,31 @@ class _RawHarness extends StatelessWidget {
     this.onSelectionChanged,
     this.onQueryChanged,
     this.captureScopedController,
-  }) : isMulti = false;
+  }) : isMulti = false,
+       isAsync = false,
+       fetch = null;
 
   const _RawHarness.multi({required this.controller})
     : isMulti = true,
+      isAsync = false,
+      fetch = null,
+      matcher = null,
+      onSelectionChanged = null,
+      onQueryChanged = null,
+      captureScopedController = null;
+
+  const _RawHarness.async({required this.controller, required this.fetch})
+    : isMulti = false,
+      isAsync = true,
       matcher = null,
       onSelectionChanged = null,
       onQueryChanged = null,
       captureScopedController = null;
 
   final bool isMulti;
+  final bool isAsync;
   final DropifyController<String> controller;
+  final DropifyAsyncFetcher<String>? fetch;
   final DropifyStaticMatcher<String>? matcher;
   final DropifySelectionChanged<String>? onSelectionChanged;
   final ValueChanged<String>? onQueryChanged;
@@ -146,6 +191,13 @@ class _RawHarness extends StatelessWidget {
             staticMatcher: matcher,
             onSelectionChanged: onSelectionChanged,
             onQueryChanged: onQueryChanged,
+            anchorBuilder: _anchorBuilder,
+            bodyBuilder: _bodyBuilder,
+          )
+        : isAsync
+        ? RawDropify<String>(
+            controller: controller,
+            dataSource: AsyncDropifyDataSource<String>(fetch: fetch!),
             anchorBuilder: _anchorBuilder,
             bodyBuilder: _bodyBuilder,
           )

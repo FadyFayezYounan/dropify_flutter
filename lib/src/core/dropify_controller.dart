@@ -85,6 +85,14 @@ abstract class DropifyController<T> extends ChangeNotifier {
   /// Retries the latest failed async or paginated request.
   void retry();
 
+  /// Configures data-source actions supplied by the attached widget.
+  @internal
+  void setDataActions({
+    VoidCallback? refresh,
+    VoidCallback? retry,
+    VoidCallback? loadMore,
+  });
+
   /// Updates the visible entries and status.
   @internal
   void setEntries(
@@ -152,6 +160,9 @@ class _DropifyController<T> extends DropifyController<T> {
   T? _singleValue;
   List<T> _multiValues;
   DropifySelectionRejectionReason? _lastRejectionReason;
+  VoidCallback? _refresh;
+  VoidCallback? _retry;
+  VoidCallback? _loadMore;
   Object? _owner;
 
   @override
@@ -248,17 +259,44 @@ class _DropifyController<T> extends DropifyController<T> {
 
   @override
   void refresh() {
-    throw UnsupportedError('refresh is wired for async and paginated sources.');
+    final VoidCallback? refresh = _refresh;
+    if (refresh == null) {
+      throw UnsupportedError(
+        'refresh is wired for async and paginated sources.',
+      );
+    }
+    refresh();
   }
 
   @override
   void loadMore() {
-    throw UnsupportedError('loadMore is only supported for paginated sources.');
+    final VoidCallback? loadMore = _loadMore;
+    if (loadMore == null) {
+      throw UnsupportedError(
+        'loadMore is only supported for paginated sources.',
+      );
+    }
+    loadMore();
   }
 
   @override
   void retry() {
-    throw UnsupportedError('retry is wired for async and paginated sources.');
+    final VoidCallback? retry = _retry;
+    if (retry == null) {
+      throw UnsupportedError('retry is wired for async and paginated sources.');
+    }
+    retry();
+  }
+
+  @override
+  void setDataActions({
+    VoidCallback? refresh,
+    VoidCallback? retry,
+    VoidCallback? loadMore,
+  }) {
+    _refresh = refresh;
+    _retry = retry;
+    _loadMore = loadMore;
   }
 
   @override

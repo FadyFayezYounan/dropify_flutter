@@ -19,6 +19,8 @@ class DropifyPanel<T> extends StatefulWidget {
     this.searchHint,
     this.panelDecoration,
     this.itemBuilder,
+    this.loadingBuilder,
+    this.errorBuilder,
     this.emptyBuilder,
   });
 
@@ -29,6 +31,8 @@ class DropifyPanel<T> extends StatefulWidget {
   final Decoration? panelDecoration;
   final Widget Function(BuildContext, DropifyEntry<T>, bool, VoidCallback?)?
   itemBuilder;
+  final WidgetBuilder? loadingBuilder;
+  final Widget Function(BuildContext, Object, VoidCallback)? errorBuilder;
   final Widget Function(BuildContext, String)? emptyBuilder;
 
   @override
@@ -120,7 +124,13 @@ class _DropifyPanelState<T> extends State<DropifyPanel<T>> {
       48,
       widget.theme.panelMaxHeight - reservedHeight,
     );
-    final double listHeight = widget.state.entries.isEmpty
+    final bool usesStateContent =
+        widget.state.status == DropifyStatus.loading ||
+        widget.state.status == DropifyStatus.error ||
+        widget.state.status == DropifyStatus.idle;
+    final double listHeight = usesStateContent
+        ? math.min(84, listMaxHeight)
+        : widget.state.entries.isEmpty
         ? math.min(52, listMaxHeight)
         : math.min(widget.state.entries.length * 48, listMaxHeight);
     return Align(
@@ -150,39 +160,51 @@ class _DropifyPanelState<T> extends State<DropifyPanel<T>> {
                     onKeyEvent: _handleKeyEvent,
                     child: SizedBox(
                       height: listHeight,
-                      child: widget.state.entries.isEmpty
-                          ? _EmptyState<T>(
-                              state: widget.state,
-                              builder: widget.emptyBuilder,
-                            )
-                          : ListView.builder(
-                              padding: EdgeInsets.zero,
-                              itemCount: widget.state.entries.length,
-                              itemBuilder: (BuildContext context, int index) {
-                                final DropifyEntry<T> entry =
-                                    widget.state.entries[index];
-                                final bool selected = widget.state.isSelected(
-                                  entry.value,
+                      child: switch (widget.state.status) {
+                        DropifyStatus.loading => _LoadingState<T>(
+                          theme: widget.theme,
+                          builder: widget.loadingBuilder,
+                        ),
+                        DropifyStatus.error => _ErrorState<T>(
+                          state: widget.state,
+                          theme: widget.theme,
+                          builder: widget.errorBuilder,
+                        ),
+                        DropifyStatus.idle => const SizedBox.shrink(),
+                        DropifyStatus.empty => _EmptyState<T>(
+                          state: widget.state,
+                          theme: widget.theme,
+                          builder: widget.emptyBuilder,
+                        ),
+                        DropifyStatus.data => ListView.builder(
+                          padding: EdgeInsets.zero,
+                          itemCount: widget.state.entries.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            final DropifyEntry<T> entry =
+                                widget.state.entries[index];
+                            final bool selected = widget.state.isSelected(
+                              entry.value,
+                            );
+                            final VoidCallback? onSelect = entry.enabled
+                                ? () => widget.state.toggle(entry.value)
+                                : null;
+                            return widget.itemBuilder?.call(
+                                  context,
+                                  entry,
+                                  selected,
+                                  onSelect,
+                                ) ??
+                                _DefaultRow<T>(
+                                  entry: entry,
+                                  state: widget.state,
+                                  selected: selected,
+                                  focused: index == _focusedIndex,
+                                  onSelect: onSelect,
+                                  theme: widget.theme,
                                 );
-                                final VoidCallback? onSelect = entry.enabled
-                                    ? () => widget.state.toggle(entry.value)
-                                    : null;
-                                return widget.itemBuilder?.call(
-                                      context,
-                                      entry,
-                                      selected,
-                                      onSelect,
-                                    ) ??
-                                    _DefaultRow<T>(
-                                      entry: entry,
-                                      state: widget.state,
-                                      selected: selected,
-                                      focused: index == _focusedIndex,
-                                      onSelect: onSelect,
-                                      theme: widget.theme,
-                                    );
-                              },
-                            ),
+                          },
+                        ),
+                      },
                     ),
                   ),
                 ],
@@ -196,9 +218,10 @@ class _DropifyPanelState<T> extends State<DropifyPanel<T>> {
 }
 
 class _EmptyState<T> extends StatelessWidget {
-  const _EmptyState({required this.state, this.builder});
+  const _EmptyState({required this.state, required this.theme, this.builder});
 
   final DropifyState<T> state;
+  final DropifyThemeData theme;
   final Widget Function(BuildContext, String)? builder;
 
   @override
@@ -206,7 +229,61 @@ class _EmptyState<T> extends StatelessWidget {
     return Center(
       child:
           builder?.call(context, state.controller.query) ??
+          theme.defaultEmptyBuilder?.call(context, state.controller.query) ??
           const Text('No results'),
+    );
+  }
+}
+
+class _LoadingState<T> extends StatelessWidget {
+  const _LoadingState({required this.theme, this.builder});
+
+  final DropifyThemeData theme;
+  final WidgetBuilder? builder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child:
+          builder?.call(context) ??
+          theme.defaultLoadingBuilder?.call(context) ??
+          const SizedBox.square(
+            dimension: 32,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+    );
+  }
+}
+
+class _ErrorState<T> extends StatelessWidget {
+  const _ErrorState({required this.state, required this.theme, this.builder});
+
+  final DropifyState<T> state;
+  final DropifyThemeData theme;
+  final Widget Function(BuildContext, Object, VoidCallback)? builder;
+
+  @override
+  Widget build(BuildContext context) {
+    final Object error = state.error ?? 'Unknown error';
+    return Center(
+      child:
+          builder?.call(context, error, state.controller.retry) ??
+          theme.defaultErrorBuilder?.call(
+            context,
+            error,
+            state.controller.retry,
+          ) ??
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text('$error', style: theme.errorTextStyle),
+              TextButton(
+                key: DropifyKeys.retryButton,
+                onPressed: state.controller.retry,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
     );
   }
 }

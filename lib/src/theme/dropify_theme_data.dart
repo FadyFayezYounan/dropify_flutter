@@ -55,6 +55,9 @@ class DropifyThemeData {
     this.disabledOpacity = 0.45,
     this.padding = const EdgeInsets.all(8),
     this.borderRadius = const BorderRadius.all(Radius.circular(8)),
+    this.defaultLoadingBuilder,
+    this.defaultErrorBuilder,
+    this.defaultEmptyBuilder,
   });
 
   /// Default anchor fill color.
@@ -131,6 +134,16 @@ class DropifyThemeData {
 
   /// Default rounded corners.
   final BorderRadius? borderRadius;
+
+  /// Optional loading-state builder for default panels.
+  final WidgetBuilder? defaultLoadingBuilder;
+
+  /// Optional error-state builder for default panels.
+  final Widget Function(BuildContext, Object, VoidCallback)?
+  defaultErrorBuilder;
+
+  /// Optional empty-state builder for default panels.
+  final Widget Function(BuildContext, String)? defaultEmptyBuilder;
 
   /// Light defaults that do not require a Material ancestor.
   factory DropifyThemeData.light() {
@@ -253,6 +266,9 @@ class DropifyThemeData {
     double? disabledOpacity,
     EdgeInsetsGeometry? padding,
     BorderRadius? borderRadius,
+    WidgetBuilder? defaultLoadingBuilder,
+    Widget Function(BuildContext, Object, VoidCallback)? defaultErrorBuilder,
+    Widget Function(BuildContext, String)? defaultEmptyBuilder,
   }) {
     return DropifyThemeData(
       anchorColor: anchorColor ?? this.anchorColor,
@@ -281,6 +297,10 @@ class DropifyThemeData {
       disabledOpacity: disabledOpacity ?? this.disabledOpacity,
       padding: padding ?? this.padding,
       borderRadius: borderRadius ?? this.borderRadius,
+      defaultLoadingBuilder:
+          defaultLoadingBuilder ?? this.defaultLoadingBuilder,
+      defaultErrorBuilder: defaultErrorBuilder ?? this.defaultErrorBuilder,
+      defaultEmptyBuilder: defaultEmptyBuilder ?? this.defaultEmptyBuilder,
     );
   }
 
@@ -332,6 +352,15 @@ class DropifyThemeData {
       disabledOpacity: lerpDouble(a.disabledOpacity, b.disabledOpacity, t)!,
       padding: EdgeInsetsGeometry.lerp(a.padding, b.padding, t),
       borderRadius: BorderRadius.lerp(a.borderRadius, b.borderRadius, t),
+      defaultLoadingBuilder: t < 0.5
+          ? a.defaultLoadingBuilder
+          : b.defaultLoadingBuilder,
+      defaultErrorBuilder: t < 0.5
+          ? a.defaultErrorBuilder
+          : b.defaultErrorBuilder,
+      defaultEmptyBuilder: t < 0.5
+          ? a.defaultEmptyBuilder
+          : b.defaultEmptyBuilder,
     );
   }
 
@@ -363,7 +392,10 @@ class DropifyThemeData {
             other.focusedItemColor == focusedItemColor &&
             other.disabledOpacity == disabledOpacity &&
             other.padding == padding &&
-            other.borderRadius == borderRadius;
+            other.borderRadius == borderRadius &&
+            other.defaultLoadingBuilder == defaultLoadingBuilder &&
+            other.defaultErrorBuilder == defaultErrorBuilder &&
+            other.defaultEmptyBuilder == defaultEmptyBuilder;
   }
 
   @override
@@ -394,6 +426,9 @@ class DropifyThemeData {
       disabledOpacity,
       padding,
       borderRadius,
+      defaultLoadingBuilder,
+      defaultErrorBuilder,
+      defaultEmptyBuilder,
     ]);
   }
 }

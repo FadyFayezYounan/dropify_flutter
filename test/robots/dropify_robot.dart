@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dropify_flutter/dropify_flutter.dart';
 
 // ignore: avoid_relative_lib_imports
+import '../../example/lib/async_demo_keys.dart';
+// ignore: avoid_relative_lib_imports
 import '../../example/lib/raw_demo_keys.dart';
 // ignore: avoid_relative_lib_imports
 import '../../example/lib/static_demo_keys.dart';
@@ -65,6 +67,18 @@ class DropifyRobot {
   /// Selects a default dropdown row by value.
   Future<void> selectDefaultRow(String value) async {
     await tester.tap(find.byKey(DropifyKeys.row(value)));
+    await tester.pumpAndSettle();
+  }
+
+  /// Opens the async dropdown demo from the gallery.
+  Future<void> openAsyncDemo() async {
+    await tester.tap(find.byKey(AsyncDemoKeys.asyncNavTile));
+    await tester.pumpAndSettle();
+  }
+
+  /// Waits for async example requests to settle.
+  Future<void> settleAsyncExample() async {
+    await tester.pump(const Duration(milliseconds: 650));
     await tester.pumpAndSettle();
   }
 }

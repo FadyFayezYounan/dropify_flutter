@@ -59,25 +59,25 @@ Universal Dropify v1 package. Layered API: core RawDropify, concrete widgets, fo
 - [x] Robot journey tests + selectors/seams for static single and multi happy paths.
 - [x] Verify: `dart format . && flutter analyze && flutter test`.
 
-### Phase 3: Async Dropdown
+### Phase 3: Async Dropdown (Complete)
 
 - **Goal**: Debounced async data, stale-response guard, retry states.
-- [ ] `lib/src/internal/debouncer.dart` - cancellable deterministic debounce.
-- [ ] `lib/src/core/raw_dropify.dart` - async fetch-on-open, debounced query, request tokens, dispose safety.
-- [ ] `lib/src/widgets/dropify_async_dropdown.dart` - async single/multi wrappers and state builders.
-- [ ] `lib/src/widgets/_dropify_panel.dart` - loading/error/empty/retry states.
-- [ ] `lib/dropify_flutter.dart` - export async dropdown.
-- [ ] `example/lib/async_page.dart` - deterministic fake async controls.
-- [ ] `example/lib/main.dart` - gallery navigation to async page.
-- [ ] `test/internal/debouncer_test.dart` - debounce behavior.
-- [ ] `test/widgets/dropify_async_dropdown_test.dart` - async states.
-- [ ] `test/journeys/async_dropdown_journey_test.dart` - robot journey.
-- [ ] TDD: fetch-on-open loading -> data -> empty.
-- [ ] TDD: rapid query drops stale response; latest request wins.
-- [ ] TDD: failure sets error, preserves query, retry reruns latest query.
-- [ ] TDD: close/dispose during pending debounce/fetch does not crash or leak notifications.
-- [ ] Robot journey tests + selectors/seams for loading -> search -> select -> error retry.
-- [ ] Verify: `dart format . && flutter analyze && flutter test`.
+- [x] `lib/src/internal/debouncer.dart` - cancellable deterministic debounce.
+- [x] `lib/src/core/raw_dropify.dart` - async fetch-on-open, debounced query, request tokens, dispose safety.
+- [x] `lib/src/widgets/dropify_async_dropdown.dart` - async single/multi wrappers and state builders.
+- [x] `lib/src/widgets/_dropify_panel.dart` - loading/error/empty/retry states.
+- [x] `lib/dropify_flutter.dart` - export async dropdown.
+- [x] `example/lib/async_page.dart` - deterministic fake async controls.
+- [x] `example/lib/main.dart` - gallery navigation to async page.
+- [x] `test/internal/debouncer_test.dart` - debounce behavior.
+- [x] `test/widgets/dropify_async_dropdown_test.dart` - async states.
+- [x] `test/journeys/async_dropdown_journey_test.dart` - robot journey.
+- [x] TDD: fetch-on-open loading -> data -> empty.
+- [x] TDD: rapid query drops stale response; latest request wins.
+- [x] TDD: failure sets error, preserves query, retry reruns latest query.
+- [x] TDD: close/dispose during pending debounce/fetch does not crash or leak notifications.
+- [x] Robot journey tests + selectors/seams for loading -> search -> select -> error retry.
+- [x] Verify: `dart format . && flutter analyze && flutter test`.
 
 ### Phase 4: Paginated Dropdown
 

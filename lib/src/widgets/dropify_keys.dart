@@ -11,6 +11,9 @@ abstract final class DropifyKeys {
   /// The default search field.
   static const Key searchField = ValueKey<String>('dropify-search-field');
 
+  /// The default retry button.
+  static const Key retryButton = ValueKey<String>('dropify-retry-button');
+
   /// Returns the default row key for [value].
   static Key row(Object? value) => ValueKey<String>('dropify-row-$value');
 

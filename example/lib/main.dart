@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'async_demo_keys.dart';
+import 'pages/async_page.dart';
 import 'pages/raw_page.dart';
 import 'pages/static_page.dart';
 import 'raw_demo_keys.dart';
@@ -55,7 +57,16 @@ class DropifyGallery extends StatelessWidget {
               );
             },
           ),
-          const ListTile(title: Text('Async dropdowns land in Phase 3')),
+          ListTile(
+            key: AsyncDemoKeys.asyncNavTile,
+            title: const Text('Async dropdowns'),
+            subtitle: const Text('Loading, search, empty, and retry states'),
+            onTap: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(builder: (_) => const AsyncPage()),
+              );
+            },
+          ),
           const ListTile(title: Text('Paginated dropdowns land in Phase 4')),
           const ListTile(title: Text('Forms land in Phase 5')),
         ],

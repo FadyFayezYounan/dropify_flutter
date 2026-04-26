@@ -132,6 +132,8 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
   DropifyController<T>? _internalController;
   late DropifyController<T> _controller;
   String _lastQuery = '';
+  String? _lastAsyncQuery;
+  int _asyncRequestToken = 0;
   List<T> _lastMultiValues = List<T>.empty();
   T? _lastSingleValue;
 
@@ -158,7 +160,7 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
     }
     if (oldWidget.dataSource != widget.dataSource ||
         oldWidget.staticMatcher != widget.staticMatcher) {
-      _refreshStaticEntries();
+      _initializeDataSource();
     }
   }
 
@@ -184,15 +186,17 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
     }
     _controller.attach(this);
     _controller.addListener(_handleControllerChanged);
+    _configureDataActions();
     _lastQuery = _controller.query;
     _lastSingleValue = _controller.isMulti ? null : _controller.singleValue;
     _lastMultiValues = _controller.isMulti
         ? _controller.multiValues
         : List<T>.empty();
-    _refreshStaticEntries();
+    _initializeDataSource();
   }
 
   void _unbindController() {
+    _controller.setDataActions();
     _controller.removeListener(_handleControllerChanged);
     _controller.detach(this);
     _internalController?.dispose();
@@ -208,8 +212,7 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
 
     if (_lastQuery != _controller.query) {
       _lastQuery = _controller.query;
-      _refreshStaticEntries();
-      _queryDebouncer.run(() => widget.onQueryChanged?.call(_controller.query));
+      _handleQueryChanged();
     }
 
     final bool selectionChanged = _didSelectionChange();
@@ -245,6 +248,59 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
     );
   }
 
+  void _configureDataActions() {
+    final DropifyDataSource<T>? source = widget.dataSource;
+    if (source is AsyncDropifyDataSource<T>) {
+      _controller.setDataActions(
+        refresh: _fetchAsyncNow,
+        retry: _fetchAsyncNow,
+      );
+      return;
+    }
+    _controller.setDataActions();
+  }
+
+  void _initializeDataSource() {
+    _configureDataActions();
+    final DropifyDataSource<T>? source = widget.dataSource;
+    switch (source) {
+      case null:
+        _controller.setEntries(
+          List<DropifyEntry<T>>.empty(),
+          status: DropifyStatus.idle,
+        );
+      case StaticDropifyDataSource<T>():
+        _refreshStaticEntries();
+      case AsyncDropifyDataSource<T>():
+        _lastAsyncQuery = null;
+        _controller.setEntries(
+          List<DropifyEntry<T>>.empty(),
+          status: DropifyStatus.idle,
+        );
+      case PaginatedDropifyDataSource<T>():
+        throw UnimplementedError(
+          'PaginatedDropifyDataSource is wired in a later phase.',
+        );
+    }
+  }
+
+  void _handleQueryChanged() {
+    final DropifyDataSource<T>? source = widget.dataSource;
+    if (source is StaticDropifyDataSource<T>) {
+      _refreshStaticEntries();
+      _queryDebouncer.run(() => widget.onQueryChanged?.call(_controller.query));
+      return;
+    }
+    if (source is AsyncDropifyDataSource<T>) {
+      _queryDebouncer.run(() {
+        widget.onQueryChanged?.call(_controller.query);
+        if (_controller.isOpen) {
+          _fetchAsyncNow();
+        }
+      });
+    }
+  }
+
   void _refreshStaticEntries() {
     final DropifyDataSource<T>? source = widget.dataSource;
     final List<DropifyEntry<T>> entries = switch (source) {
@@ -253,9 +309,7 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
         entries: final List<DropifyEntry<T>> entries,
       ) =>
         _filter(entries),
-      AsyncDropifyDataSource<T>() => throw UnimplementedError(
-        'AsyncDropifyDataSource is wired in a later phase.',
-      ),
+      AsyncDropifyDataSource<T>() => _controller.entries,
       PaginatedDropifyDataSource<T>() => throw UnimplementedError(
         'PaginatedDropifyDataSource is wired in a later phase.',
       ),
@@ -274,9 +328,46 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
         .toList(growable: false);
   }
 
+  Future<void> _fetchAsyncNow() async {
+    final DropifyDataSource<T>? source = widget.dataSource;
+    if (source is! AsyncDropifyDataSource<T>) {
+      return;
+    }
+    final int token = _asyncRequestToken + 1;
+    _asyncRequestToken = token;
+    final String query = _controller.query;
+    _lastAsyncQuery = query;
+    _controller.setEntries(_controller.entries, status: DropifyStatus.loading);
+    try {
+      final List<DropifyEntry<T>> entries = await source.fetch(query);
+      if (!mounted || token != _asyncRequestToken) {
+        return;
+      }
+      _controller.setEntries(
+        entries,
+        status: entries.isEmpty ? DropifyStatus.empty : DropifyStatus.data,
+      );
+    } catch (error) {
+      if (!mounted || token != _asyncRequestToken) {
+        return;
+      }
+      _controller.setEntries(
+        _controller.entries,
+        status: DropifyStatus.error,
+        error: error,
+      );
+    }
+  }
+
   void _handleOpen() {
     if (!_controller.isOpen) {
       _controller.open();
+    }
+    final DropifyDataSource<T>? source = widget.dataSource;
+    if (source is AsyncDropifyDataSource<T> &&
+        source.fetchOnOpen &&
+        (_controller.entries.isEmpty || _lastAsyncQuery != _controller.query)) {
+      _fetchAsyncNow();
     }
     widget.onOpenChanged?.call(true);
   }

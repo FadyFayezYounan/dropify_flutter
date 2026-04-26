@@ -3,49 +3,22 @@ import 'package:flutter/widgets.dart';
 
 import '../core/dropify_controller.dart';
 import '../core/dropify_data_source.dart';
-import '../core/dropify_entry.dart';
 import '../core/dropify_state.dart';
 import '../core/raw_dropify.dart';
 import '../theme/dropify_theme.dart';
 import '../theme/dropify_theme_data.dart';
 import '_dropify_anchor.dart';
 import '_dropify_panel.dart';
+import 'dropify_dropdown.dart';
 
-/// Builds a custom row for a default static Dropify dropdown panel.
-typedef DropifyDropdownItemBuilder<T> =
-    Widget Function(
-      BuildContext context,
-      DropifyEntry<T> entry,
-      bool selected,
-      VoidCallback? onSelect,
-    );
-
-/// Builds a chip for a selected value in a multi-select Dropify dropdown.
-typedef DropifyDropdownChipBuilder<T> =
-    Widget Function(
-      BuildContext context,
-      DropifyEntry<T> entry,
-      VoidCallback? onDeleted,
-    );
-
-/// Builds the empty state for a default Dropify dropdown panel.
-typedef DropifyDropdownEmptyBuilder =
-    Widget Function(BuildContext context, String query);
-
-/// Builds the loading state for a default Dropify dropdown panel.
-typedef DropifyDropdownLoadingBuilder = Widget Function(BuildContext context);
-
-/// Builds the error state for a default Dropify dropdown panel.
-typedef DropifyDropdownErrorBuilder =
-    Widget Function(BuildContext context, Object error, VoidCallback retry);
-
-/// A searchable static dropdown built on [RawDropify].
-class DropifyDropdown<T> extends StatefulWidget {
-  /// Creates a single-select static dropdown.
-  const DropifyDropdown({
+/// A searchable async dropdown built on [RawDropify].
+class DropifyAsyncDropdown<T> extends StatefulWidget {
+  /// Creates a single-select async dropdown.
+  const DropifyAsyncDropdown({
     super.key,
     this.controller,
-    required this.entries,
+    required this.fetch,
+    this.fetchOnOpen = true,
     this.initialValue,
     ValueChanged<T?>? onChanged,
     this.label,
@@ -56,11 +29,13 @@ class DropifyDropdown<T> extends StatefulWidget {
     this.itemBuilder,
     this.anchorBuilder,
     this.panelDecoration,
+    this.loadingBuilder,
+    this.errorBuilder,
     this.emptyBuilder,
-    this.staticMatcher,
     this.theme,
     this.enabled = true,
     this.focusNode,
+    this.queryDebounce = const Duration(milliseconds: 300),
   }) : _isMulti = false,
        initialValues = const <Never>[],
        minSelection = null,
@@ -70,11 +45,12 @@ class DropifyDropdown<T> extends StatefulWidget {
        _onSingleChanged = onChanged,
        _onMultiChanged = null;
 
-  /// Creates a multi-select static dropdown.
-  const DropifyDropdown.multi({
+  /// Creates a multi-select async dropdown.
+  const DropifyAsyncDropdown.multi({
     super.key,
     this.controller,
-    required this.entries,
+    required this.fetch,
+    this.fetchOnOpen = true,
     this.initialValues = const <Never>[],
     ValueChanged<List<T>>? onChanged,
     this.minSelection,
@@ -89,11 +65,13 @@ class DropifyDropdown<T> extends StatefulWidget {
     this.itemBuilder,
     this.anchorBuilder,
     this.panelDecoration,
+    this.loadingBuilder,
+    this.errorBuilder,
     this.emptyBuilder,
-    this.staticMatcher,
     this.theme,
     this.enabled = true,
     this.focusNode,
+    this.queryDebounce = const Duration(milliseconds: 300),
   }) : _isMulti = true,
        initialValue = null,
        _onSingleChanged = null,
@@ -102,8 +80,11 @@ class DropifyDropdown<T> extends StatefulWidget {
   /// Optional external controller.
   final DropifyController<T>? controller;
 
-  /// Entries available to the dropdown.
-  final List<DropifyEntry<T>> entries;
+  /// Fetches entries for the current query.
+  final DropifyAsyncFetcher<T> fetch;
+
+  /// Whether opening the dropdown triggers the first fetch.
+  final bool fetchOnOpen;
 
   /// Initial selected value for internally controlled single dropdowns.
   final T? initialValue;
@@ -147,11 +128,14 @@ class DropifyDropdown<T> extends StatefulWidget {
   /// Overrides the default panel decoration.
   final Decoration? panelDecoration;
 
-  /// Builds the default panel empty state.
-  final DropifyDropdownEmptyBuilder? emptyBuilder;
+  /// Builds the loading state for the default panel.
+  final DropifyDropdownLoadingBuilder? loadingBuilder;
 
-  /// Overrides static filtering.
-  final DropifyStaticMatcher<T>? staticMatcher;
+  /// Builds the error state for the default panel.
+  final DropifyDropdownErrorBuilder? errorBuilder;
+
+  /// Builds the empty state for the default panel.
+  final DropifyDropdownEmptyBuilder? emptyBuilder;
 
   /// Per-widget theme override.
   final DropifyThemeData? theme;
@@ -162,18 +146,24 @@ class DropifyDropdown<T> extends StatefulWidget {
   /// Optional focus node for the default anchor.
   final FocusNode? focusNode;
 
+  /// Debounce applied before async query fetches.
+  final Duration queryDebounce;
+
   final bool _isMulti;
   final ValueChanged<T?>? _onSingleChanged;
   final ValueChanged<List<T>>? _onMultiChanged;
 
   @override
-  State<DropifyDropdown<T>> createState() => _DropifyDropdownState<T>();
+  State<DropifyAsyncDropdown<T>> createState() =>
+      _DropifyAsyncDropdownState<T>();
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties.add(IterableProperty<DropifyEntry<T>>('entries', entries));
     properties.add(FlagProperty('isMulti', value: _isMulti, ifTrue: 'multi'));
+    properties.add(
+      FlagProperty('fetchOnOpen', value: fetchOnOpen, ifFalse: 'manual fetch'),
+    );
     properties.add(
       FlagProperty('searchEnabled', value: searchEnabled, ifFalse: 'no search'),
     );
@@ -183,10 +173,13 @@ class DropifyDropdown<T> extends StatefulWidget {
     properties.add(StringProperty('label', label, defaultValue: null));
     properties.add(StringProperty('hintText', hintText, defaultValue: null));
     properties.add(StringProperty('errorText', errorText, defaultValue: null));
+    properties.add(
+      DiagnosticsProperty<Duration>('queryDebounce', queryDebounce),
+    );
   }
 }
 
-class _DropifyDropdownState<T> extends State<DropifyDropdown<T>> {
+class _DropifyAsyncDropdownState<T> extends State<DropifyAsyncDropdown<T>> {
   DropifyController<T>? _internalController;
   late DropifyController<T> _controller;
 
@@ -197,7 +190,7 @@ class _DropifyDropdownState<T> extends State<DropifyDropdown<T>> {
   }
 
   @override
-  void didUpdateWidget(DropifyDropdown<T> oldWidget) {
+  void didUpdateWidget(DropifyAsyncDropdown<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller ||
         oldWidget._isMulti != widget._isMulti ||
@@ -238,15 +231,16 @@ class _DropifyDropdownState<T> extends State<DropifyDropdown<T>> {
         widget.theme ??
         DropifyTheme.maybeOf(context) ??
         DropifyThemeData.light();
-    final StaticDropifyDataSource<T> dataSource = StaticDropifyDataSource<T>(
-      entries: widget.entries,
+    final AsyncDropifyDataSource<T> dataSource = AsyncDropifyDataSource<T>(
+      fetch: widget.fetch,
+      fetchOnOpen: widget.fetchOnOpen,
     );
     if (widget._isMulti) {
       return RawDropify<T>.multi(
         controller: _controller,
         dataSource: dataSource,
-        staticMatcher: widget.staticMatcher,
         closeOnSelect: widget.closeOnSelect,
+        queryDebounce: widget.queryDebounce,
         onSelectionChanged: _handleSelectionChanged,
         anchorBuilder:
             (
@@ -264,8 +258,8 @@ class _DropifyDropdownState<T> extends State<DropifyDropdown<T>> {
     return RawDropify<T>(
       controller: _controller,
       dataSource: dataSource,
-      staticMatcher: widget.staticMatcher,
       closeOnSelect: widget.closeOnSelect,
+      queryDebounce: widget.queryDebounce,
       onSelectionChanged: _handleSelectionChanged,
       anchorBuilder:
           (
@@ -290,7 +284,7 @@ class _DropifyDropdownState<T> extends State<DropifyDropdown<T>> {
     return widget.anchorBuilder?.call(context, controller, child) ??
         DropifyAnchor<T>(
           controller: controller,
-          entries: widget.entries,
+          entries: controller.entries,
           theme: theme,
           enabled: widget.enabled,
           label: widget.label,
@@ -313,6 +307,8 @@ class _DropifyDropdownState<T> extends State<DropifyDropdown<T>> {
       searchHint: widget.searchHint,
       panelDecoration: widget.panelDecoration,
       itemBuilder: widget.itemBuilder,
+      loadingBuilder: widget.loadingBuilder,
+      errorBuilder: widget.errorBuilder,
       emptyBuilder: widget.emptyBuilder,
     );
   }
