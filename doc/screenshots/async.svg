@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" role="img" aria-label="Async Dropify dropdown screenshot">
-  <rect width="640" height="360" fill="#eef2ff"/>
-  <text x="48" y="56" font-family="Arial" font-size="28" font-weight="700" fill="#312e81">Async dropdown</text>
-  <rect x="48" y="88" width="380" height="54" rx="10" fill="#ffffff" stroke="#c7d2fe"/>
-  <text x="68" y="121" font-family="Arial" font-size="16" fill="#111827">Search remote fruit</text>
-  <rect x="48" y="154" width="380" height="96" rx="10" fill="#ffffff" stroke="#c7d2fe"/>
-  <text x="68" y="208" font-family="Arial" font-size="16" fill="#4f46e5">Loading, empty, error, and retry states</text>
-</svg>
