@@ -99,21 +99,21 @@ Universal Dropify v1 package. Layered API: core RawDropify, concrete widgets, fo
 - [x] Robot journey tests + selectors/seams for scroll-load-select-retry.
 - [x] Verify: `dart format . && flutter analyze && flutter test`.
 
-### Phase 5: Form Field
+### Phase 5: Form Field (Complete)
 
 - **Goal**: One form API over static, async, paginated sources.
-- [ ] `lib/src/widgets/dropify_form_field.dart` - `DropifyFormField<T>`, `.multi`, `DropifyFormSource.entries/async/paginated`.
-- [ ] `lib/src/widgets/_dropify_anchor.dart` - validation error display and semantics.
-- [ ] `lib/dropify_flutter.dart` - export form field/source.
-- [ ] `example/lib/form_page.dart` - validation, save, static/async/paginated forms.
-- [ ] `example/lib/main.dart` - gallery navigation to form page.
-- [ ] `test/widgets/dropify_form_field_test.dart` - form contracts.
-- [ ] `test/journeys/form_dropdown_journey_test.dart` - robot journey.
-- [ ] TDD: `didChange`, `validator`, `onSaved`, `autovalidateMode` match `FormField` contracts.
-- [ ] TDD: `DropifyFormSource.entries(...)` selects static widget; async/paginated route correctly.
-- [ ] TDD: validation errors appear in anchor and semantics.
-- [ ] Robot journey tests + selectors/seams for validation failure -> correction -> submit/save.
-- [ ] Verify: `dart format . && flutter analyze && flutter test`.
+- [x] `lib/src/widgets/dropify_form_field.dart` - `DropifyFormField<T>`, `.multi`, `DropifyFormSource.entries/async/paginated`.
+- [x] `lib/src/widgets/_dropify_anchor.dart` - validation error display and semantics.
+- [x] `lib/dropify_flutter.dart` - export form field/source.
+- [x] `example/lib/form_page.dart` - validation, save, static/async/paginated forms.
+- [x] `example/lib/main.dart` - gallery navigation to form page.
+- [x] `test/widgets/dropify_form_field_test.dart` - form contracts.
+- [x] `test/journeys/form_dropdown_journey_test.dart` - robot journey.
+- [x] TDD: `didChange`, `validator`, `onSaved`, `autovalidateMode` match `FormField` contracts.
+- [x] TDD: `DropifyFormSource.entries(...)` selects static widget; async/paginated route correctly.
+- [x] TDD: validation errors appear in anchor and semantics.
+- [x] Robot journey tests + selectors/seams for validation failure -> correction -> submit/save.
+- [x] Verify: `dart format . && flutter analyze && flutter test`.
 
 ### Phase 6: Polish, Docs, A11y, Publish
 

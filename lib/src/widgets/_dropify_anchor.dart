@@ -46,66 +46,85 @@ class DropifyAnchor<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<DropifyEntry<T>> selectedEntries = _selectedEntries();
-    return Focus(
-      focusNode: focusNode,
-      child: Opacity(
-        opacity: enabled ? 1 : theme.disabledOpacity,
-        child: GestureDetector(
-          key: DropifyKeys.anchor,
-          behavior: HitTestBehavior.opaque,
-          onTap: enabled
-              ? (controller.isOpen ? controller.close : controller.open)
-              : null,
-          child: DecoratedBox(
-            decoration: theme.anchorDecoration,
-            child: Padding(
-              padding: theme.anchorPadding,
-              child: Row(
-                textDirection: Directionality.of(context),
-                children: <Widget>[
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      spacing: 4,
-                      children: <Widget>[
-                        if (label != null)
-                          Text(label!, style: theme.labelTextStyle),
-                        if (controller.isMulti)
-                          _ChipWrap<T>(
-                            controller: controller,
-                            selectedEntries: selectedEntries,
-                            hintText: hintText,
-                            theme: theme,
-                            chipBuilder: chipBuilder,
-                          )
-                        else
-                          Text(
-                            selectedEntries.isEmpty
-                                ? (hintText ?? theme.hintText)
-                                : selectedEntries.first.label,
-                            overflow: TextOverflow.ellipsis,
-                            style: selectedEntries.isEmpty
-                                ? theme.hintTextStyle
-                                : theme.textStyle,
-                          ),
-                        if (errorText != null)
-                          Text(errorText!, style: theme.errorTextStyle),
-                      ],
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      button: true,
+      enabled: enabled,
+      label: label,
+      value: _semanticValue(selectedEntries),
+      hint: errorText,
+      liveRegion: errorText != null,
+      child: Focus(
+        focusNode: focusNode,
+        child: Opacity(
+          opacity: enabled ? 1 : theme.disabledOpacity,
+          child: GestureDetector(
+            key: DropifyKeys.anchor,
+            behavior: HitTestBehavior.opaque,
+            onTap: enabled
+                ? (controller.isOpen ? controller.close : controller.open)
+                : null,
+            child: DecoratedBox(
+              decoration: theme.anchorDecoration,
+              child: Padding(
+                padding: theme.anchorPadding,
+                child: Row(
+                  textDirection: Directionality.of(context),
+                  children: <Widget>[
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        spacing: 4,
+                        children: <Widget>[
+                          if (label != null)
+                            Text(label!, style: theme.labelTextStyle),
+                          if (controller.isMulti)
+                            _ChipWrap<T>(
+                              controller: controller,
+                              selectedEntries: selectedEntries,
+                              hintText: hintText,
+                              theme: theme,
+                              chipBuilder: chipBuilder,
+                            )
+                          else
+                            Text(
+                              selectedEntries.isEmpty
+                                  ? (hintText ?? theme.hintText)
+                                  : selectedEntries.first.label,
+                              overflow: TextOverflow.ellipsis,
+                              style: selectedEntries.isEmpty
+                                  ? theme.hintTextStyle
+                                  : theme.textStyle,
+                            ),
+                          if (errorText != null)
+                            Text(errorText!, style: theme.errorTextStyle),
+                        ],
+                      ),
                     ),
-                  ),
-                  AnimatedRotation(
-                    turns: controller.isOpen ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 150),
-                    child: Icon(theme.chevronIcon, size: 20),
-                  ),
-                ],
+                    AnimatedRotation(
+                      turns: controller.isOpen ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 150),
+                      child: Icon(theme.chevronIcon, size: 20),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  String _semanticValue(List<DropifyEntry<T>> selectedEntries) {
+    if (selectedEntries.isEmpty) {
+      return hintText ?? theme.hintText;
+    }
+    return selectedEntries
+        .map((DropifyEntry<T> entry) => entry.label)
+        .join(', ');
   }
 
   List<DropifyEntry<T>> _selectedEntries() {

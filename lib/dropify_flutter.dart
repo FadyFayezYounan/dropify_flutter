@@ -7,5 +7,6 @@ export 'src/theme/dropify_theme.dart';
 export 'src/theme/dropify_theme_data.dart';
 export 'src/widgets/dropify_async_dropdown.dart';
 export 'src/widgets/dropify_dropdown.dart';
+export 'src/widgets/dropify_form_field.dart';
 export 'src/widgets/dropify_keys.dart';
 export 'src/widgets/dropify_paginated_dropdown.dart';

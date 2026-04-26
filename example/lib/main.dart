@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'async_demo_keys.dart';
+import 'form_demo_keys.dart';
 import 'paginated_demo_keys.dart';
 import 'pages/async_page.dart';
+import 'pages/form_page.dart';
 import 'pages/paginated_page.dart';
 import 'pages/raw_page.dart';
 import 'pages/static_page.dart';
@@ -79,7 +81,16 @@ class DropifyGallery extends StatelessWidget {
               );
             },
           ),
-          const ListTile(title: Text('Forms land in Phase 5')),
+          ListTile(
+            key: FormDemoKeys.formNavTile,
+            title: const Text('Form dropdowns'),
+            subtitle: const Text('Validation, save, static, async, paginated'),
+            onTap: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(builder: (_) => const FormPage()),
+              );
+            },
+          ),
         ],
       ),
     );
