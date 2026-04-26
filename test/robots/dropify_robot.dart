@@ -11,6 +11,8 @@ import '../../example/lib/paginated_demo_keys.dart';
 import '../../example/lib/raw_demo_keys.dart';
 // ignore: avoid_relative_lib_imports
 import '../../example/lib/static_demo_keys.dart';
+// ignore: avoid_relative_lib_imports
+import '../../example/lib/theme_demo_keys.dart';
 
 /// Robot actions for Dropify example journeys.
 class DropifyRobot {
@@ -29,6 +31,12 @@ class DropifyRobot {
   /// Opens the raw single dropdown.
   Future<void> openRawSingle() async {
     await tester.tap(find.byKey(RawDemoKeys.singleAnchor));
+    await tester.pumpAndSettle();
+  }
+
+  /// Opens the raw multi dropdown.
+  Future<void> openRawMulti() async {
+    await tester.tap(find.byKey(RawDemoKeys.multiAnchor));
     await tester.pumpAndSettle();
   }
 
@@ -107,6 +115,18 @@ class DropifyRobot {
   /// Submits the form demo.
   Future<void> submitFormDemo() async {
     await tester.tap(find.byKey(FormDemoKeys.submitButton));
+    await tester.pumpAndSettle();
+  }
+
+  /// Opens the theming dropdown demo from the gallery.
+  Future<void> openThemeDemo() async {
+    await tester.tap(find.byKey(ThemeDemoKeys.themeNavTile));
+    await tester.pumpAndSettle();
+  }
+
+  /// Selects the custom theme in the theming demo.
+  Future<void> selectCustomTheme() async {
+    await tester.tap(find.byKey(ThemeDemoKeys.customButton));
     await tester.pumpAndSettle();
   }
 }

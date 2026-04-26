@@ -8,8 +8,10 @@ import 'pages/form_page.dart';
 import 'pages/paginated_page.dart';
 import 'pages/raw_page.dart';
 import 'pages/static_page.dart';
+import 'pages/theming_page.dart';
 import 'raw_demo_keys.dart';
 import 'static_demo_keys.dart';
+import 'theme_demo_keys.dart';
 
 void main() {
   runApp(const DropifyExampleApp());
@@ -88,6 +90,16 @@ class DropifyGallery extends StatelessWidget {
             onTap: () {
               Navigator.of(context).push<void>(
                 MaterialPageRoute<void>(builder: (_) => const FormPage()),
+              );
+            },
+          ),
+          ListTile(
+            key: ThemeDemoKeys.themeNavTile,
+            title: const Text('Theming'),
+            subtitle: const Text('Light, dark, and custom DropifyTheme data'),
+            onTap: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(builder: (_) => const ThemingPage()),
               );
             },
           ),

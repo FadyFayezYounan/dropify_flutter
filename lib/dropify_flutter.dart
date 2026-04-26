@@ -1,3 +1,17 @@
+/// A universal dropdown toolkit for Flutter.
+///
+/// Dropify exposes a layered API: [RawDropify] for custom dropdown chrome,
+/// concrete widgets for static, async, and paginated data, and
+/// [DropifyFormField] for `Form` integration.
+///
+/// See also:
+///
+///  * [DropifyDropdown], for local static entries.
+///  * [DropifyAsyncDropdown], for debounced async search.
+///  * [DropifyPaginatedDropdown], for incremental page loading.
+///  * [DropifyTheme], for inherited visual defaults.
+library;
+
 export 'src/core/dropify_controller.dart' hide DropifyControllerScope;
 export 'src/core/dropify_data_source.dart';
 export 'src/core/dropify_entry.dart';

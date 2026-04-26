@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../core/dropify_controller.dart';
@@ -18,6 +19,12 @@ class DropifySearchField<T> extends StatefulWidget {
 
   @override
   State<DropifySearchField<T>> createState() => _DropifySearchFieldState<T>();
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(StringProperty('hintText', hintText, defaultValue: null));
+  }
 }
 
 class _DropifySearchFieldState<T> extends State<DropifySearchField<T>> {
@@ -61,14 +68,19 @@ class _DropifySearchFieldState<T> extends State<DropifySearchField<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      key: DropifyKeys.searchField,
-      controller: _textController,
-      autofocus: true,
-      decoration: widget.theme.searchDecoration.copyWith(
-        hintText: widget.hintText ?? widget.theme.searchHintText,
+    final String effectiveHint = widget.hintText ?? widget.theme.searchHintText;
+    return Semantics(
+      label: effectiveHint,
+      textField: true,
+      child: TextField(
+        key: DropifyKeys.searchField,
+        controller: _textController,
+        autofocus: true,
+        decoration: widget.theme.searchDecoration.copyWith(
+          hintText: effectiveHint,
+        ),
+        onChanged: widget.controller.setQuery,
       ),
-      onChanged: widget.controller.setQuery,
     );
   }
 }

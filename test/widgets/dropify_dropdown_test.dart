@@ -133,6 +133,46 @@ void main() {
     expect(selected, 'apple');
   });
 
+  testWidgets('keyboard traversal skips disabled rows and escape closes', (
+    tester,
+  ) async {
+    String? selected;
+    const List<DropifyEntry<String>> entries = <DropifyEntry<String>>[
+      DropifyEntry<String>(value: 'apple', label: 'Apple'),
+      DropifyEntry<String>(value: 'disabled', label: 'Disabled', enabled: false),
+      DropifyEntry<String>(value: 'banana', label: 'Banana'),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DropifyDropdown<String>(
+            entries: entries,
+            searchEnabled: false,
+            onChanged: (String? value) {
+              selected = value;
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(DropifyKeys.anchor));
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+
+    expect(selected, 'banana');
+
+    await tester.tap(find.byKey(DropifyKeys.anchor));
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(DropifyKeys.panel), findsNothing);
+  });
+
   testWidgets('long chips and constrained panel avoid layout exceptions', (
     tester,
   ) async {

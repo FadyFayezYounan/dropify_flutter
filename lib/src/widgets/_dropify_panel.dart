@@ -68,10 +68,15 @@ class _DropifyPanelState<T> extends State<DropifyPanel<T>> {
         !widget.state.entries[_focusedIndex].enabled) {
       _focusedIndex = _firstEnabledIndex();
     }
+    if (oldWidget.state.status != widget.state.status ||
+        oldWidget.state.entries.length != widget.state.entries.length ||
+        oldWidget.state.controller.query != widget.state.controller.query) {
+      _announceResults();
+    }
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    if (widget.searchEnabled || event is! KeyDownEvent) {
+    if (event is! KeyDownEvent) {
       return KeyEventResult.ignored;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
@@ -89,7 +94,30 @@ class _DropifyPanelState<T> extends State<DropifyPanel<T>> {
       }
       return KeyEventResult.handled;
     }
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
+      widget.state.controller.close();
+      return KeyEventResult.handled;
+    }
     return KeyEventResult.ignored;
+  }
+
+  void _announceResults() {
+    final String message = switch (widget.state.status) {
+      DropifyStatus.loading => 'Loading results',
+      DropifyStatus.error => 'Error loading results',
+      DropifyStatus.empty => 'No results',
+      DropifyStatus.data => '${widget.state.entries.length} results available',
+      DropifyStatus.idle => '',
+    };
+    if (message.isEmpty) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      SemanticsService.announce(message, Directionality.of(context));
+    });
   }
 
   void _moveFocus(int direction) {
@@ -167,7 +195,7 @@ class _DropifyPanelState<T> extends State<DropifyPanel<T>> {
                       hintText: widget.searchHint,
                     ),
                   Focus(
-                    autofocus: !widget.searchEnabled,
+                    autofocus: true,
                     onKeyEvent: _handleKeyEvent,
                     child: SizedBox(
                       height: listHeight,
@@ -317,11 +345,15 @@ class _EmptyState<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child:
-          builder?.call(context, state.controller.query) ??
-          theme.defaultEmptyBuilder?.call(context, state.controller.query) ??
-          const Text('No results'),
+    return Semantics(
+      liveRegion: true,
+      label: 'No results',
+      child: Center(
+        child:
+            builder?.call(context, state.controller.query) ??
+            theme.defaultEmptyBuilder?.call(context, state.controller.query) ??
+            const Text('No results'),
+      ),
     );
   }
 }
@@ -334,14 +366,18 @@ class _LoadingState<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child:
-          builder?.call(context) ??
-          theme.defaultLoadingBuilder?.call(context) ??
-          const SizedBox.square(
-            dimension: 32,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
+    return Semantics(
+      liveRegion: true,
+      label: 'Loading results',
+      child: Center(
+        child:
+            builder?.call(context) ??
+            theme.defaultLoadingBuilder?.call(context) ??
+            const SizedBox.square(
+              dimension: 32,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+      ),
     );
   }
 }
@@ -356,25 +392,29 @@ class _ErrorState<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Object error = state.error ?? 'Unknown error';
-    return Center(
-      child:
-          builder?.call(context, error, state.controller.retry) ??
-          theme.defaultErrorBuilder?.call(
-            context,
-            error,
-            state.controller.retry,
-          ) ??
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text('$error', style: theme.errorTextStyle),
-              TextButton(
-                key: DropifyKeys.retryButton,
-                onPressed: state.controller.retry,
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
+    return Semantics(
+      liveRegion: true,
+      label: 'Error loading results',
+      child: Center(
+        child:
+            builder?.call(context, error, state.controller.retry) ??
+            theme.defaultErrorBuilder?.call(
+              context,
+              error,
+              state.controller.retry,
+            ) ??
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text('$error', style: theme.errorTextStyle),
+                TextButton(
+                  key: DropifyKeys.retryButton,
+                  onPressed: state.controller.retry,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+      ),
     );
   }
 }

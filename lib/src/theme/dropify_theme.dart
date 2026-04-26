@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import 'dropify_theme_data.dart';
 
@@ -10,9 +10,9 @@ class DropifyTheme extends InheritedWidget {
   /// Theme data for descendants.
   final DropifyThemeData data;
 
-  /// Returns the nearest Dropify theme, or light defaults when none exists.
+  /// Returns the nearest Dropify theme, or Material-derived defaults.
   static DropifyThemeData of(BuildContext context) {
-    return maybeOf(context) ?? DropifyThemeData.light();
+    return maybeOf(context) ?? DropifyThemeData.fromMaterial(context);
   }
 
   /// Returns the nearest Dropify theme, if one exists.

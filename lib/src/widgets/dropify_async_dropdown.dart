@@ -11,7 +11,28 @@ import '_dropify_anchor.dart';
 import '_dropify_panel.dart';
 import 'dropify_dropdown.dart';
 
-/// A searchable async dropdown built on [RawDropify].
+/// A searchable dropdown whose entries are fetched asynchronously.
+///
+/// The dropdown debounces query changes, ignores stale responses, and renders
+/// loading, empty, error, and retry states through the default panel.
+///
+/// {@tool snippet}
+/// ```dart
+/// DropifyAsyncDropdown<String>(
+///   fetch: (query) async => [
+///     DropifyEntry(value: query, label: query),
+///   ],
+///   onChanged: (value) {},
+/// )
+/// ```
+/// {@end-tool}
+///
+/// See also:
+///
+///  * [DropifyDropdown], for local static entries.
+///  * [DropifyPaginatedDropdown], for page-based loading.
+///  * [DropifyFormField], for `Form` integration.
+///  * [RawDropify], for fully custom dropdown chrome.
 class DropifyAsyncDropdown<T> extends StatefulWidget {
   /// Creates a single-select async dropdown.
   const DropifyAsyncDropdown({
@@ -227,10 +248,8 @@ class _DropifyAsyncDropdownState<T> extends State<DropifyAsyncDropdown<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final DropifyThemeData effectiveTheme =
-        widget.theme ??
-        DropifyTheme.maybeOf(context) ??
-        DropifyThemeData.light();
+    final DropifyThemeData effectiveTheme = widget.theme ??
+        DropifyTheme.of(context);
     final AsyncDropifyDataSource<T> dataSource = AsyncDropifyDataSource<T>(
       fetch: widget.fetch,
       fetchOnOpen: widget.fetchOnOpen,

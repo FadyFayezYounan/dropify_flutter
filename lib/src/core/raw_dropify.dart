@@ -28,7 +28,33 @@ typedef DropifyStaticMatcher<T> =
 /// Reports the current single or multi selection.
 typedef DropifySelectionChanged<T> = void Function(T? value, List<T> values);
 
-/// A raw dropdown primitive built on Flutter's [RawMenuAnchor].
+/// The primitive dropdown layer that owns overlay and data-source state.
+///
+/// Use [RawDropify] when the default Dropify anchor or panel is not the right
+/// UI for your app. The widget still provides controller attachment,
+/// open/close lifecycle, query state, selection helpers, async retry, paging,
+/// and [RawMenuAnchor] positioning.
+///
+/// {@tool snippet}
+/// ```dart
+/// RawDropify<String>(
+///   dataSource: const StaticDropifyDataSource(entries: [
+///     DropifyEntry(value: 'apple', label: 'Apple'),
+///   ]),
+///   anchorBuilder: (context, controller, child) => TextButton(
+///     onPressed: controller.open,
+///     child: const Text('Open'),
+///   ),
+///   bodyBuilder: (context, state) => Text('${state.entries.length} items'),
+/// )
+/// ```
+/// {@end-tool}
+///
+/// See also:
+///
+///  * [DropifyDropdown], for the default static dropdown chrome.
+///  * [DropifyAsyncDropdown], for debounced async search.
+///  * [DropifyPaginatedDropdown], for page-based loading.
 class RawDropify<T> extends StatefulWidget {
   /// Creates a single-selection raw Dropify widget.
   const RawDropify({

@@ -23,5 +23,11 @@ void main() {
     await robot.selectRow('banana');
 
     expect(find.text('banana'), findsOneWidget);
+
+    await robot.openRawMulti();
+    await robot.selectRow('apple');
+    await robot.selectRow('coconut');
+
+    expect(find.text('apple, coconut'), findsOneWidget);
   });
 }

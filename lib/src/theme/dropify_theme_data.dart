@@ -3,6 +3,23 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 
 /// Visual defaults shared by Dropify widgets.
+///
+/// A [DropifyThemeData] can be provided to [DropifyTheme] for inherited
+/// defaults or passed directly to an individual dropdown. Use
+/// [DropifyThemeData.fromMaterial] to bridge from the ambient Material theme.
+///
+/// {@tool snippet}
+/// ```dart
+/// DropifyTheme(
+///   data: DropifyThemeData.fromMaterial(context),
+///   child: DropifyDropdown<String>(entries: entries),
+/// )
+/// ```
+/// {@end-tool}
+///
+/// See also:
+///
+///  * [DropifyTheme], which applies this data to a subtree.
 @immutable
 class DropifyThemeData {
   /// Creates Dropify theme data.
@@ -219,9 +236,11 @@ class DropifyThemeData {
       errorTextStyle:
           theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error) ??
           TextStyle(color: theme.colorScheme.error, fontSize: 12),
-      searchDecoration: const InputDecoration(
+      searchDecoration: InputDecoration(
         border: OutlineInputBorder(),
         isDense: true,
+        fillColor: theme.colorScheme.surface,
+        focusColor: theme.colorScheme.primary,
       ),
       anchorDecoration: BoxDecoration(
         color: theme.colorScheme.surface,
@@ -324,6 +343,7 @@ class DropifyThemeData {
       ),
       chipTextStyle: TextStyle.lerp(a.chipTextStyle, b.chipTextStyle, t),
       errorTextStyle: TextStyle.lerp(a.errorTextStyle, b.errorTextStyle, t)!,
+      searchDecoration: t < 0.5 ? a.searchDecoration : b.searchDecoration,
       anchorDecoration: Decoration.lerp(
         a.anchorDecoration,
         b.anchorDecoration,
@@ -347,6 +367,9 @@ class DropifyThemeData {
         t,
       ),
       panelMaxHeight: lerpDouble(a.panelMaxHeight, b.panelMaxHeight, t)!,
+      chevronIcon: t < 0.5 ? a.chevronIcon : b.chevronIcon,
+      hintText: t < 0.5 ? a.hintText : b.hintText,
+      searchHintText: t < 0.5 ? a.searchHintText : b.searchHintText,
       chipBackground: Color.lerp(a.chipBackground, b.chipBackground, t)!,
       focusedItemColor: Color.lerp(a.focusedItemColor, b.focusedItemColor, t)!,
       disabledOpacity: lerpDouble(a.disabledOpacity, b.disabledOpacity, t)!,

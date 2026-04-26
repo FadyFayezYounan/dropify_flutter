@@ -1,39 +1,97 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# Dropify Flutter
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
-
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
-
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+Dropify is a universal Flutter dropdown package for static lists, debounced async search, paginated results, multi-select chips, raw custom overlays, and `Form` integration through one consistent API.
 
 ## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+![Static dropdown](doc/screenshots/static.svg)
+![Async dropdown](doc/screenshots/async.svg)
+![Paginated dropdown](doc/screenshots/paginated.svg)
+![Form dropdown](doc/screenshots/form.svg)
+![Theming dropdown](doc/screenshots/theming.svg)
+![Raw dropdown](doc/screenshots/raw.svg)
 
-## Getting started
+- Static, async, and paginated dropdown widgets.
+- Single and multi-select modes with value-based selection identity.
+- Debounced async queries, retry states, stale-response protection, and pagination footer states.
+- `DropifyFormField` for validation, saving, and autovalidation.
+- `DropifyTheme` and `DropifyThemeData.fromMaterial(context)` for inherited styling.
+- Stable keys for widget and journey tests.
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+## Install
 
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
-
-```dart
-const like = 'sample';
+```yaml
+dependencies:
+  dropify_flutter: ^0.1.0
 ```
 
-## Additional information
+```dart
+import 'package:dropify_flutter/dropify_flutter.dart';
+```
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+## Static
+
+```dart
+DropifyDropdown<String>(
+  entries: const [
+    DropifyEntry(value: 'apple', label: 'Apple'),
+    DropifyEntry(value: 'banana', label: 'Banana'),
+  ],
+  label: 'Fruit',
+  onChanged: (value) {},
+)
+```
+
+## Async
+
+```dart
+DropifyAsyncDropdown<String>(
+  fetch: (query) async => [
+    DropifyEntry(value: query, label: query),
+  ],
+  label: 'Remote fruit',
+  onChanged: (value) {},
+)
+```
+
+## Paginated
+
+```dart
+DropifyPaginatedDropdown<String>(
+  firstPageKey: 1,
+  pageSize: 20,
+  fetchPage: (pageKey, query) async => DropifyPage(
+    entries: [DropifyEntry(value: '$pageKey', label: 'Page $pageKey')],
+    nextPageKey: pageKey + 1,
+  ),
+)
+```
+
+## Form
+
+```dart
+DropifyFormField<String>(
+  source: DropifyFormSource.entries(
+    entries: const [DropifyEntry(value: 'apple', label: 'Apple')],
+  ),
+  validator: (value) => value == null ? 'Choose a fruit' : null,
+  onSaved: (value) {},
+)
+```
+
+## Theming
+
+```dart
+DropifyTheme(
+  data: DropifyThemeData.fromMaterial(context).copyWith(
+    panelMaxHeight: 360,
+  ),
+  child: DropifyDropdown<String>(entries: entries),
+)
+```
+
+## Prior Art
+
+Dropify builds on Flutter's `RawMenuAnchor`, `MenuController`, and Material `DropdownMenu` interaction patterns. Its paginated API is inspired by `infinite_scroll_pagination` and common async search flows.
+
+API documentation is available on pub.dev after publishing.

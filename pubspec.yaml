@@ -1,11 +1,19 @@
 name: dropify_flutter
-description: "A new Flutter package project."
-version: 0.0.1
-homepage:
+description: "A universal Flutter dropdown package for static, async, paginated, multi-select, and form use cases."
+version: 0.1.0
+homepage: https://github.com/FadyFayezYounan/dropify_flutter
+repository: https://github.com/FadyFayezYounan/dropify_flutter
+issue_tracker: https://github.com/FadyFayezYounan/dropify_flutter/issues
+topics:
+  - dropdown
+  - select
+  - picker
+  - form
+  - pagination
 
 environment:
   sdk: ^3.10.3
-  flutter: ">=1.17.0"
+  flutter: ">=3.27.0"
 
 dependencies:
   flutter:

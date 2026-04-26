@@ -39,7 +39,30 @@ typedef DropifyDropdownLoadingBuilder = Widget Function(BuildContext context);
 typedef DropifyDropdownErrorBuilder =
     Widget Function(BuildContext context, Object error, VoidCallback retry);
 
-/// A searchable static dropdown built on [RawDropify].
+/// A searchable dropdown for an in-memory list of [DropifyEntry] objects.
+///
+/// Use this widget when all selectable values are already available locally.
+/// Static entries are filtered with a case-insensitive label matcher unless
+/// [staticMatcher] is supplied.
+///
+/// {@tool snippet}
+/// ```dart
+/// DropifyDropdown<String>(
+///   entries: const [
+///     DropifyEntry(value: 'apple', label: 'Apple'),
+///     DropifyEntry(value: 'banana', label: 'Banana'),
+///   ],
+///   onChanged: (value) {},
+/// )
+/// ```
+/// {@end-tool}
+///
+/// See also:
+///
+///  * [DropifyAsyncDropdown], for data fetched from an async callback.
+///  * [DropifyPaginatedDropdown], for incrementally loaded data.
+///  * [DropifyFormField], for `Form` integration.
+///  * [RawDropify], for fully custom dropdown chrome.
 class DropifyDropdown<T> extends StatefulWidget {
   /// Creates a single-select static dropdown.
   const DropifyDropdown({
@@ -234,10 +257,8 @@ class _DropifyDropdownState<T> extends State<DropifyDropdown<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final DropifyThemeData effectiveTheme =
-        widget.theme ??
-        DropifyTheme.maybeOf(context) ??
-        DropifyThemeData.light();
+    final DropifyThemeData effectiveTheme = widget.theme ??
+        DropifyTheme.of(context);
     final StaticDropifyDataSource<T> dataSource = StaticDropifyDataSource<T>(
       entries: widget.entries,
     );

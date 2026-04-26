@@ -51,6 +51,7 @@ class DropifyAnchor<T> extends StatelessWidget {
       excludeSemantics: true,
       button: true,
       enabled: enabled,
+      expanded: controller.isOpen,
       label: label,
       value: _semanticValue(selectedEntries),
       hint: errorText,

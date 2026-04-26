@@ -79,6 +79,27 @@ class DropifyPaginatedFormSource<T> extends DropifyFormSource<T> {
 }
 
 /// A [FormField] adapter for static, async, and paginated Dropify widgets.
+///
+/// Select the backing widget with [DropifyFormSource.entries],
+/// [DropifyFormSource.async], or [DropifyFormSource.paginated]. Validation,
+/// saving, and autovalidation follow Flutter's standard [FormField] contract.
+///
+/// {@tool snippet}
+/// ```dart
+/// DropifyFormField<String>(
+///   source: DropifyFormSource.entries(entries: const [
+///     DropifyEntry(value: 'apple', label: 'Apple'),
+///   ]),
+///   validator: (value) => value == null ? 'Choose a fruit' : null,
+/// )
+/// ```
+/// {@end-tool}
+///
+/// See also:
+///
+///  * [DropifyDropdown], for static dropdowns outside a form.
+///  * [DropifyAsyncDropdown], for async dropdowns outside a form.
+///  * [DropifyPaginatedDropdown], for paginated dropdowns outside a form.
 class DropifyFormField<T> extends StatelessWidget {
   /// Creates a single-select Dropify form field.
   const DropifyFormField({

@@ -21,7 +21,29 @@ typedef DropifyNewPageErrorBuilder =
 /// Builds a footer after a paginated dropdown reaches the end.
 typedef DropifyNoMoreItemsBuilder = Widget Function(BuildContext context);
 
-/// A searchable paginated dropdown built on [RawDropify].
+/// A searchable dropdown that loads entries one page at a time.
+///
+/// Use this widget for large or remote result sets. It handles first-page
+/// loading, next-page loading, page-level retry, no-more-items footers, and
+/// query resets through [DropifyPage] results.
+///
+/// {@tool snippet}
+/// ```dart
+/// DropifyPaginatedDropdown<String>(
+///   fetchPage: (pageKey, query) async => DropifyPage(
+///     entries: [DropifyEntry(value: '$pageKey', label: 'Page $pageKey')],
+///     nextPageKey: pageKey + 1,
+///   ),
+/// )
+/// ```
+/// {@end-tool}
+///
+/// See also:
+///
+///  * [DropifyDropdown], for local static entries.
+///  * [DropifyAsyncDropdown], for non-paginated async search.
+///  * [DropifyFormField], for `Form` integration.
+///  * [RawDropify], for fully custom dropdown chrome.
 class DropifyPaginatedDropdown<T> extends StatefulWidget {
   /// Creates a single-select paginated dropdown.
   const DropifyPaginatedDropdown({
@@ -257,10 +279,8 @@ class _DropifyPaginatedDropdownState<T>
 
   @override
   Widget build(BuildContext context) {
-    final DropifyThemeData effectiveTheme =
-        widget.theme ??
-        DropifyTheme.maybeOf(context) ??
-        DropifyThemeData.light();
+    final DropifyThemeData effectiveTheme = widget.theme ??
+        DropifyTheme.of(context);
     final PaginatedDropifyDataSource<T> dataSource =
         PaginatedDropifyDataSource<T>(
           fetchPage: widget.fetchPage,
