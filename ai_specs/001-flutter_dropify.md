@@ -48,6 +48,9 @@ export 'src/core/raw_dropify.dart' show RawDropify;
 export 'src/core/dropify_controller.dart' show DropifyController;
 export 'src/core/dropify_entry.dart' show DropifyEntry;
 export 'src/core/dropify_selection.dart' show DropifySelectionMode;
+export 'src/core/dropify_cancel_token.dart'
+    show DropifyCancelToken, DropifyCancelledException;
+export 'src/core/dropify_paging_state.dart' show DropifyPagingState;
 
 // Specialized (Layer 2)
 export 'src/widgets/raw_static_dropify.dart' show RawStaticDropify;
@@ -66,9 +69,10 @@ export 'src/theme/dropify_theme.dart' show DropifyTheme;
 export 'src/theme/dropify_theme_data.dart' show DropifyThemeData;
 
 // Re-export so consumers don't need to import infinite_scroll_pagination directly
-// for type signatures (they still need it to build PagingController instances).
+// for the value type used in their own state. Includes Defaulted/Omit so users
+// can subclass DropifyPagingState in their own state code if they need extra fields.
 export 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart'
-    show PagingController, PagingState, PagingListener;
+    show PagingState, PagingStateBase, Defaulted, Omit;
 ```
 
 ---
@@ -85,6 +89,8 @@ lib/
       dropify_entry.dart                     # DropifyEntry<T>
       dropify_selection.dart                 # DropifySelectionMode enum
       dropify_intents.dart                   # ActivateItemIntent, etc. (keyboard)
+      dropify_cancel_token.dart              # DropifyCancelToken + DropifyCancelledException
+      dropify_paging_state.dart              # DropifyPagingState<PageKey, T> (extends PagingStateBase)
     internal/
       _dropify_anchor.dart                   # anchor surface (uses RawMenuAnchor)
       _dropify_panel.dart                    # panel chrome: header (search) + body slot + footer
@@ -462,7 +468,7 @@ class DropifyAsyncError<T>     extends DropifyAsyncState<T> {
 
 ```dart
 typedef DropifyAsyncFetcher<T> =
-    Future<List<T>> Function(String query, {required CancelToken cancel});
+    Future<List<T>> Function(String query, {required DropifyCancelToken cancel});
 
 class RawAsyncDropify<T> extends StatefulWidget {
   const RawAsyncDropify({
@@ -484,8 +490,9 @@ class RawAsyncDropify<T> extends StatefulWidget {
 
 ### 10.3 Behavior
 
-- On open: if `loadOnOpen && (cache miss for current query)`, dispatch `fetcher(query)`. Otherwise emit cached data.
-- On search change: debounce per `RawDropify.searchDebounce`, then fetch. **Always cancels** the in-flight request (via `CancelToken` passed to fetcher).
+- On open: if `loadOnOpen && (cache miss for current query)`, dispatch `fetcher(query, cancel: token)`. Otherwise emit cached data.
+- On search change: debounce per `RawDropify.searchDebounce`, then fetch. **Always cancels** the in-flight request via `token.cancel()` before issuing the next one.
+- On widget dispose, panel close (when `keepAliveOnClose: false`), or another fetch starting: the previous `DropifyCancelToken` is cancelled.
 - Cache keyed by `query` string; cleared on widget dispose. `cacheItems: false` disables.
 - When data is present and a refetch starts, transitions to `DropifyAsyncRefreshing(staleItems)` so the panel can show the old list with a small spinner.
 - `loadingBuilder` / `errorBuilder` / `emptyBuilder` resolve in this order: instance arg → `DropifyThemeData` → built-in default.
@@ -493,78 +500,285 @@ class RawAsyncDropify<T> extends StatefulWidget {
 
 ### 10.4 Cancel token
 
-A small internal type:
+Defined once in `lib/src/core/dropify_cancel_token.dart` and reused by both async and paginated layers:
 
 ```dart
-class CancelToken {
-  bool get isCancelled;
-  void throwIfCancelled();
+class DropifyCancelToken {
+  DropifyCancelToken();
+
+  bool _cancelled = false;
+  final Completer<void> _completer = Completer<void>();
+
+  bool get isCancelled => _cancelled;
+  Future<void> get whenCancelled => _completer.future;
+
+  void cancel() {
+    if (_cancelled) {
+      return;
+    }
+    _cancelled = true;
+    _completer.complete();
+  }
+
+  void throwIfCancelled() {
+    if (_cancelled) {
+      throw const DropifyCancelledException();
+    }
+  }
+}
+
+class DropifyCancelledException implements Exception {
+  const DropifyCancelledException();
+  @override
+  String toString() => 'DropifyCancelledException: operation cancelled';
 }
 ```
 
-If users prefer `package:dio`'s `CancelToken`, they can ignore this and just check `isCancelled` at await boundaries — the contract is identical at the call site.
+If users prefer `package:dio`'s `CancelToken`, they can wire `DropifyCancelToken.whenCancelled.then((_) => dioToken.cancel())` at the call site — the contract is intentionally trivial.
 
 ---
 
 ## 11. Layer 2c — `RawPaginatedDropify`
 
-Paginated fetch using `infinite_scroll_pagination: ^5.1.1`. **Reuses `PagingState` directly** — no new state type.
+Paginated fetch using `infinite_scroll_pagination: ^5.1.1`. **The user owns the `PagingState`** and the `fetchNextPage` callback — `RawPaginatedDropify` is a pure consumer of both. No `PagingController` is involved.
 
 ### 11.1 API
 
 ```dart
 class RawPaginatedDropify<PageKey, T> extends StatefulWidget {
   const RawPaginatedDropify({
-    required this.pagingController,        // user-owned PagingController<PageKey, T>
+    required this.state,                   // PagingState<PageKey, T> — owned by caller
+    required this.fetchNextPage,           // Future<void> Function() or VoidCallback
     required this.anchorBuilder,
     required this.itemBuilder,             // (ctx, item, index, selected, onTap) => Widget
     this.firstPageProgressBuilder,
     this.newPageProgressBuilder,
-    this.firstPageErrorBuilder,            // receives retry callback
+    this.firstPageErrorBuilder,            // receives retry callback (= fetchNextPage)
     this.newPageErrorBuilder,
     this.noItemsFoundBuilder,
     this.noMoreItemsBuilder,
     this.invisibleItemsThreshold = 3,
-    this.refreshOnSearch = true,           // calls pagingController.refresh() when query changes
+    this.onSearchChanged,                  // void Function(String query) — caller resets/refetches
     this.keyOf,
     // …passes through RawDropify args; searchable defaults to true here too…
   });
 
   // .multi constructor analogous
+
+  final PagingState<PageKey, T> state;
+  final FutureOr<void> Function() fetchNextPage;
+  final void Function(String query)? onSearchChanged;
+  // …
 }
 ```
 
-### 11.2 Behavior
+### 11.2 Caller responsibilities
 
-- Panel body is essentially:
+The caller (typically a `StatefulWidget`, but a `Bloc` / `Cubit` / `Notifier` / `ChangeNotifier` works just as well) holds the paging state, mutates it on transitions, and feeds it back into `RawPaginatedDropify` on each rebuild. The recommended state type is `DropifyPagingState<PageKey, T>` (defined in §11.5), which extends `PagingStateBase` and bakes in two fields the package always needs: `search` and `cancelToken`. This mirrors the cancel-aware pattern from `BlocPagingState` in the user-supplied example.
+
+A canonical `setState`-based caller:
+
+```dart
+class _MyScreenState extends State<MyScreen> {
+  DropifyPagingState<int, Country> _state = DropifyPagingState();
+
+  Future<void> _fetchNextPage() async {
+    final current = _state;
+    if (current.isLoading || !current.hasNextPage) {
+      return;
+    }
+
+    // Compute next page key per the v5.1.1 contract.
+    final pageKey = current.lastPageIsEmpty ? null : current.nextIntPageKey;
+    if (pageKey == null) {
+      setState(() => _state = current.copyWith(hasNextPage: false));
+      return;
+    }
+
+    // Cancel any in-flight fetch from a previous call before issuing a new one.
+    current.cancelToken?.cancel();
+    final token = DropifyCancelToken();
+
+    setState(() => _state = current.copyWith(
+      isLoading:   true,
+      error:       null,
+      cancelToken: token,
+    ));
+
+    try {
+      final items = await api.searchCountries(
+        current.search,
+        page: pageKey,
+        cancel: token,
+      );
+      if (token.isCancelled) {
+        return;
+      }
+      final isLast = items.isEmpty;
+      setState(() => _state = _state.copyWith(
+        isLoading:   false,
+        error:       null,
+        hasNextPage: !isLast,
+        pages:       [...?_state.pages, items],
+        keys:        [...?_state.keys, pageKey],
+        cancelToken: null,
+      ));
+    } catch (e) {
+      if (!token.isCancelled) {
+        setState(() => _state = _state.copyWith(
+          isLoading:   false,
+          error:       e,
+          cancelToken: null,
+        ));
+      }
+    }
+  }
+
+  void _onSearchChanged(String q) {
+    // Cancel pending fetch, reset pages, preserve search.
+    _state.cancelToken?.cancel();
+    setState(() => _state = _state.reset().copyWith(search: q));
+    _fetchNextPage();
+  }
+
+  @override
+  void dispose() {
+    _state.cancelToken?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => RawPaginatedDropify<int, Country>(
+    state:           _state,
+    fetchNextPage:   _fetchNextPage,
+    onSearchChanged: _onSearchChanged,
+    anchorBuilder:   ...,
+    itemBuilder:     ...,
+  );
+}
+```
+
+A bloc-based equivalent ships in `example/lib/pages/paginated_page.dart` to demonstrate that the same `DropifyPagingState` works as a `Bloc<PagingEvent, DropifyPagingState<int, Country>>` state without modification.
+
+### 11.3 Internal behavior
+
+- The panel body wraps the user's `state` and `fetchNextPage` into a `PagedListView` directly:
 
   ```dart
-  PagingListener<PageKey, T>(
-    controller: pagingController,
-    builder: (context, state, fetchNextPage) => PagedListView<PageKey, T>(
-      state: state,
-      fetchNextPage: fetchNextPage,
-      builderDelegate: PagedChildBuilderDelegate<T>(
-        itemBuilder: (ctx, item, i) => itemBuilder(ctx, item, i, isSelected(item), () => onTap(item)),
-        firstPageProgressIndicatorBuilder: firstPageProgressBuilder ?? _themeFallback,
-        newPageProgressIndicatorBuilder:   newPageProgressBuilder   ?? _themeFallback,
-        firstPageErrorIndicatorBuilder:    firstPageErrorBuilder    ?? _themeFallback,
-        newPageErrorIndicatorBuilder:      newPageErrorBuilder      ?? _themeFallback,
-        noItemsFoundIndicatorBuilder:      noItemsFoundBuilder      ?? _themeFallback,
-        noMoreItemsIndicatorBuilder:       noMoreItemsBuilder       ?? _themeFallback,
-      ),
+  PagedListView<PageKey, T>(
+    state: widget.state,
+    fetchNextPage: widget.fetchNextPage,
+    builderDelegate: PagedChildBuilderDelegate<T>(
+      invisibleItemsThreshold: widget.invisibleItemsThreshold,
+      itemBuilder: (ctx, item, i) =>
+          widget.itemBuilder(ctx, item, i, isSelected(item), () => onTap(item)),
+      firstPageProgressIndicatorBuilder: _resolve(widget.firstPageProgressBuilder, theme.firstPageProgressBuilder, _defaults.firstPageProgress),
+      newPageProgressIndicatorBuilder:   _resolve(widget.newPageProgressBuilder,   theme.newPageProgressBuilder,   _defaults.newPageProgress),
+      firstPageErrorIndicatorBuilder:    _resolveError(widget.firstPageErrorBuilder, theme.firstPageErrorBuilder, _defaults.firstPageError, retry: widget.fetchNextPage),
+      newPageErrorIndicatorBuilder:      _resolveError(widget.newPageErrorBuilder,   theme.newPageErrorBuilder,   _defaults.newPageError,   retry: widget.fetchNextPage),
+      noItemsFoundIndicatorBuilder:      _resolve(widget.noItemsFoundBuilder, theme.noResultsBuilder, _defaults.noResults),
+      noMoreItemsIndicatorBuilder:       _resolve(widget.noMoreItemsBuilder,  theme.noMoreItemsBuilder, _defaults.noMoreItems),
     ),
   )
   ```
 
-- The user **owns** `pagingController` (constructs and disposes it). The widget does not auto-dispose.
-- The user's `fetchPage` closure receives the page key; if they need to honor the search query, they read it from a captured `searchController` or pass it via their own `ValueListenable` and call `pagingController.refresh()` on change.
-- When `refreshOnSearch: true`, `RawPaginatedDropify` listens to its own search query and calls `pagingController.refresh()` after debounce.
-- When `loadOnOpen: true` (inherited via `RawDropify`'s anchor lifecycle), the widget calls `pagingController.refresh()` once on first open if the current `PagingState.pages` is null.
+- **No internal state** for pagination — `RawPaginatedDropify` does not call `setState` to mutate `PagingState`. It only reads.
+- **Search**: when the search query changes (after debounce), the widget calls `onSearchChanged?.call(query)`. It is the caller's responsibility to reset their local `PagingState` and trigger a fresh `fetchNextPage()`. If `onSearchChanged` is null, the search field is still rendered but query changes have no side effect — useful when search is purely cosmetic / handled out-of-band.
+- **`loadOnOpen` semantics**: on first open, if `state.pages == null`, `RawPaginatedDropify` calls `fetchNextPage()` once. Disable by passing `loadOnOpen: false` (inherited from `RawDropify`).
+- **Retry**: the error builders receive a `VoidCallback retry` that simply calls `widget.fetchNextPage` again — the caller's `fetchNextPage` is expected to be retry-safe (clear `error` then attempt fetch).
 
-### 11.3 Why expose `PagingController`?
+### 11.4 Why expose `PagingState` directly?
 
-The user retains full power over their pagination logic (custom keys, cursor pagination, cache layering, request deduplication). Hiding it would force re-implementing the package internally.
+- The caller already manages the source of truth (search query, user-specific filters, custom cursor logic). Forcing them to construct a `PagingController` would mean dropify owns state the caller really owns.
+- It mirrors `PagedListView`'s own simplest contract (`state` + `fetchNextPage`), so users who already know `infinite_scroll_pagination` find the API obvious.
+- It avoids a second source of truth: only one widget tree holds the state, and dropify is a pure consumer.
+
+### 11.5 `DropifyPagingState<PageKey, T>` — recommended state type
+
+A first-class `PagingStateBase` subclass shipped with the package. It adds the two fields every dropify-paginated caller needs:
+
+- `search`: the current query string used to scope fetches.
+- `cancelToken`: a `DropifyCancelToken?` representing an in-flight fetch that should be cancelled on the next state mutation (search change, refresh, or dispose).
+
+```dart
+@immutable
+final class DropifyPagingState<PageKey, T> extends PagingStateBase<PageKey, T> {
+  DropifyPagingState({
+    super.pages,
+    super.keys,
+    super.error,
+    super.hasNextPage,
+    super.isLoading,
+    this.search,
+    this.cancelToken,
+  });
+
+  final String? search;
+  final DropifyCancelToken? cancelToken;
+
+  @override
+  DropifyPagingState<PageKey, T> copyWith({
+    Defaulted<List<List<T>>?>? pages       = const Omit(),
+    Defaulted<List<PageKey>?>? keys        = const Omit(),
+    Defaulted<Object?>?         error       = const Omit(),
+    Defaulted<bool>?            hasNextPage = const Omit(),
+    Defaulted<bool>?            isLoading   = const Omit(),
+    Defaulted<String?>          search      = const Omit(),
+    Defaulted<DropifyCancelToken?> cancelToken = const Omit(),
+  }) {
+    return DropifyPagingState<PageKey, T>(
+      pages:       pages       is Omit ? this.pages       : pages       as List<List<T>>?,
+      keys:        keys        is Omit ? this.keys        : keys        as List<PageKey>?,
+      error:       error       is Omit ? this.error       : error,
+      hasNextPage: hasNextPage is Omit ? this.hasNextPage : hasNextPage as bool,
+      isLoading:   isLoading   is Omit ? this.isLoading   : isLoading   as bool,
+      search:      search      is Omit ? this.search      : search      as String?,
+      cancelToken: cancelToken is Omit ? this.cancelToken : cancelToken as DropifyCancelToken?,
+    );
+  }
+
+  /// Reset all paging fields to their initial values while preserving [search]
+  /// and minting a fresh [cancelToken]. The previous token is **not** cancelled
+  /// here — callers should cancel it before calling [reset] if a fetch is
+  /// in-flight (see the §11.2 example).
+  @override
+  DropifyPagingState<PageKey, T> reset() {
+    return DropifyPagingState<PageKey, T>(
+      pages:       null,
+      keys:        null,
+      error:       null,
+      hasNextPage: true,
+      isLoading:   false,
+      search:      search,
+      cancelToken: DropifyCancelToken(),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is DropifyPagingState<PageKey, T>
+        && super == other
+        && search == other.search
+        && cancelToken == other.cancelToken;
+  }
+
+  @override
+  int get hashCode => Object.hash(super.hashCode, search, cancelToken);
+}
+```
+
+**Cancellation contract:**
+
+| Mutation | Caller does | Why |
+|----------|-------------|-----|
+| Search changes | `state.cancelToken?.cancel(); state.reset().copyWith(search: q);` then `fetchNextPage()` | Discard stale fetch; new query owns its own token. |
+| Pull-to-refresh / explicit refresh | `state.cancelToken?.cancel(); state.reset();` then `fetchNextPage()` | Same as above, search preserved by `reset()`. |
+| New page fetch starts | `current.cancelToken?.cancel();` then `copyWith(cancelToken: newToken, isLoading: true)` | Defensive: ensures only one fetch is alive at a time. |
+| Widget / bloc disposal | `state.cancelToken?.cancel()` in `dispose` / `close` | Prevents `setState` after dispose and lets the API client free network resources. |
+
+After `await fetchFn(...)` returns, the caller **must check `token.isCancelled`** before mutating state — if cancelled, drop the result silently. The §11.2 example shows the canonical `try / cancel-check / catch / cancel-check` shape.
+
+`RawPaginatedDropify` accepts the parent type `PagingState<PageKey, T>`, so callers can still pass a plain `PagingState()` if they don't want cancellation. `DropifyPagingState` is strictly recommended for production use.
 
 ---
 
@@ -615,10 +829,14 @@ Same shape as `DropifyDropdown<T>` but with:
 ### 12.3 `DropifyPaginatedDropdown<PageKey, T>`
 
 Same shape but with:
-- `required PagingController<PageKey, T> pagingController`
+- `required PagingState<PageKey, T> state`
+- `required FutureOr<void> Function() fetchNextPage`
+- `void Function(String query)? onSearchChanged`
 - `required String Function(T) itemLabelBuilder`
 - All paginated slot builders optional.
 - `searchable` defaults to **`true`**.
+
+The themed wrapper does not own pagination state either — the caller still manages `PagingState` exactly as in §11.2. Layer 3 only adds default theming for the anchor and item rows.
 
 ---
 
@@ -750,10 +968,10 @@ Why this approach: avoids a parallel `DropifyFormField` widget and keeps validat
 |--------|--------|-------|-----------|
 | Default `searchable` | `false` | `true` | `true` |
 | Sticky | yes | yes | yes |
-| Source | client `matcher` | server fetch | server fetch via `PagingController.refresh()` |
+| Source | client `matcher` | server fetch | caller-owned via `onSearchChanged` callback |
 | Debounce | none (instant) | `searchDebounce` (default 300 ms) | `searchDebounce` (default 300 ms) |
 | Empty behavior | `noResultsBuilder` when filtered list is empty | `DropifyAsyncEmpty(hasQuery: true)` | `noItemsFoundBuilder` |
-| Reset | clearing query restores full list | clearing query refetches with `''` | clearing query refreshes |
+| Reset | clearing query restores full list | clearing query refetches with `''` | `onSearchChanged('')` fires; caller resets `PagingState` and refetches |
 | `searchController` | optional — exposed at `RawDropify` level | same | same |
 
 Default matcher (`_defaultMatcher`):
@@ -801,7 +1019,7 @@ Single-screen-per-variant under `example/lib/pages/`. Each demo page shows: a mi
 |------|--------------|
 | `static_page.dart` | `DropifyDropdown` with country list (50 entries), single, with search. |
 | `async_page.dart` | `DropifyAsyncDropdown` with simulated 500 ms fake API + search; shows loading / error retry / empty / no-results states (toggle to inject errors). |
-| `paginated_page.dart` | `DropifyPaginatedDropdown` with fake paginated API (page size 20, 200 total items); user-owned `PagingController`; demonstrates retry, refresh-on-search. |
+| `paginated_page.dart` | `DropifyPaginatedDropdown` with fake paginated API (page size 20, 200 total items, optional injected error). Caller uses `DropifyPagingState<int, Country>` + `DropifyCancelToken`, demonstrating cancel-on-search, cancel-on-dispose, retry, no-more-items. A second variant on the same page wires the same state to a tiny `Bloc` to prove the state type works with bloc unchanged. |
 | `multi_select_page.dart` | Multi (live) + multi (confirmable). Shows `clear` button, `showClearButton`, footer style. |
 | `themed_page.dart` | One screen with `DropifyTheme` overrides — custom panel decoration, rounded entries, custom selected icon, dark vs light. Shows applying via `DropifyTheme` widget *and* via `ThemeData.extensions`. |
 | `validation_page.dart` | Inside a `Form`: required-single, "must select at least 2" multi, custom `errorTextBuilder`, `Form.validate()` from a button. |
@@ -818,6 +1036,8 @@ Single-screen-per-variant under `example/lib/pages/`. Each demo page shows: a mi
 - `debouncer_test.dart` — `fake_async` based; verifies coalescing, cancel, and disposed state.
 - `dropify_controller_test.dart` — single/multi state changes, `isSelected` honors `keyOf` / `equals`, attach/detach lifecycle, `clear`, `notifyListeners`.
 - `dropify_entry_test.dart` — equality, `searchableText` fallback chain.
+- `dropify_cancel_token_test.dart` — `cancel()` is idempotent, `isCancelled` flips, `whenCancelled` completes once, `throwIfCancelled` throws `DropifyCancelledException` after cancellation and is a no-op before.
+- `dropify_paging_state_test.dart` — defaults match `PagingState()`; `copyWith` honors `Omit` semantics for every field including `search` and `cancelToken`; `reset()` clears pages/keys/error/isLoading, sets `hasNextPage: true`, **preserves `search`**, and **mints a fresh `cancelToken`** distinct from the previous one (`identical(...) == false`); equality and `hashCode` cover `search` and `cancelToken`.
 
 ### 18.2 Widget (`test/widgets/`)
 
@@ -826,7 +1046,7 @@ For each widget: anchor renders, opens on tap, closes on outside tap, closes on 
 Specifics:
 
 - `raw_async_dropify_test.dart` — uses `Completer<List<T>>` to drive state transitions; asserts loading→data→empty→error→retry; cache hit on re-open same query; cache miss on changed query; cancellation when query changes mid-flight.
-- `raw_paginated_dropify_test.dart` — wires a fake `PagingController` with `getNextPageKey` / `fetchPage`; asserts `firstPageProgress`, `newPageProgress`, `firstPageError` + retry, `newPageError`, `noItemsFound`, `noMoreItems`. Asserts `refresh()` is called when search changes if `refreshOnSearch: true`.
+- `raw_paginated_dropify_test.dart` — uses a stateful host that owns `DropifyPagingState<int, T>` and a `fetchNextPage` driven by a `Completer`. Asserts each state shape renders the right slot: `firstPageProgress` (pages == null + isLoading), `newPageProgress` (has pages + isLoading), `firstPageError` + retry, `newPageError`, `noItemsFound` (pages exists, all empty), `noMoreItems` (`hasNextPage == false`). Asserts `onSearchChanged` fires after debounce on query change and is **not** called when search is cleared without a prior query. Cancellation behavior: when search changes mid-fetch, the previous `DropifyCancelToken.isCancelled` flips to `true` before the next fetch resolves, and the late result is dropped without mutating state.
 - Confirmable multi: stage→cancel discards, stage→apply commits.
 
 ### 18.3 Theme (`test/theme/`)
@@ -847,11 +1067,11 @@ Each phase is a self-contained branch / PR. Tests added with code (TDD on the pu
 
 | # | Phase | Deliverables | Definition of done |
 |---|-------|--------------|--------------------|
-| 1 | **Skeleton & theme** | `DropifyThemeData`, `DropifyTheme`, `ThemeExtension`, `_defaultMatcher`, `_Debouncer`, `DropifyEntry`, `DropifyController`, `DropifySelectionMode`, `DropifyValue`. | Unit tests in §18.1 pass. No widgets yet. |
+| 1 | **Skeleton, theme & paging primitives** | `DropifyThemeData`, `DropifyTheme`, `ThemeExtension`, `_defaultMatcher`, `_Debouncer`, `DropifyEntry`, `DropifyController`, `DropifySelectionMode`, `DropifyValue`, `DropifyCancelToken`, `DropifyCancelledException`, `DropifyPagingState`. | Unit tests in §18.1 pass (incl. cancel-token + paging-state tests). No widgets yet. |
 | 2 | **Layer 1 — `RawDropify`** | `RawDropify` (single + multi ctors), `_DropifyAnchor`, `_DropifyPanel`, `_DropifySearchField`, `_DropifyFocusScope`. Uses `RawMenuAnchor`. Validation via internal `FormField`. Confirmable footer. Clear button. | Widget tests cover open/close, single/multi select, search, validation, confirmable, clear, keyboard. |
 | 3 | **Layer 2a — `RawStaticDropify`** | The widget + tests. Default `entryBuilder`. | Static page in example app works end-to-end. |
-| 4 | **Layer 2b — `RawAsyncDropify`** | The widget + `DropifyAsyncState` + `CancelToken` + tests with `Completer`-driven fakes. | Async page in example app works (loading / data / empty / error / retry / refreshing). |
-| 5 | **Layer 2c — `RawPaginatedDropify`** | The widget + tests with fake `PagingController`. Honors `refreshOnSearch`. | Paginated page in example app works (first page progress, next page progress, error retry, no more items, refresh-on-search). |
+| 4 | **Layer 2b — `RawAsyncDropify`** | The widget + `DropifyAsyncState` + `DropifyAsyncFetcher` (uses `DropifyCancelToken` from phase 1) + tests with `Completer`-driven fakes. | Async page in example app works (loading / data / empty / error / retry / refreshing); aborted fetches do not mutate state after cancellation. |
+| 5 | **Layer 2c — `RawPaginatedDropify`** | The widget + tests with caller-owned `DropifyPagingState` + `Completer`-driven `fetchNextPage`. Wires `onSearchChanged` debounce. | Paginated page in example app works end-to-end with cancel-on-search and cancel-on-dispose proven via tests. |
 | 6 | **Layer 3 — themed widgets** | `DropifyDropdown`, `DropifyAsyncDropdown`, `DropifyPaginatedDropdown`. Default themed anchor (Material surface, label, hint, error, chevron, clear). | Themed page in example app shows all three; theme overrides round-trip. |
 | 7 | **Polish & a11y** | Semantics audit, type-ahead-into-search, focus restoration on close, README + dartdoc + topics, `flutter analyze` & `dart format` green, `pub publish --dry-run` clean. | Ready for `v0.1.0`. |
 
