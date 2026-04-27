@@ -279,7 +279,7 @@ class _PaginatedBodyState<PageKey, T>
   Widget build(BuildContext context) {
     final theme = DropifyTheme.of(context);
     return PagedListView<PageKey, T>(
-      shrinkWrap: true,
+      // shrinkWrap: true,
       state: widget.state,
       fetchNextPage: () => unawaited(Future<void>.sync(widget.fetchNextPage)),
       builderDelegate: PagedChildBuilderDelegate<T>(
