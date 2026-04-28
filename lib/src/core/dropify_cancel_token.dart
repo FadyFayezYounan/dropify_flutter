@@ -1,7 +1,7 @@
 import 'dart:async';
 
 /// A lightweight cancellation token passed to async Dropify fetchers.
-class DropifyCancelToken {
+final class DropifyCancelToken {
   /// Creates a cancellation token.
   DropifyCancelToken();
 
