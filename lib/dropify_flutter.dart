@@ -1,3 +1,23 @@
+/// Universal dropdown widgets for static, async, and paginated Flutter data.
+///
+/// Import this library when building Dropify dropdowns:
+///
+/// ```dart
+/// import 'package:dropify_flutter/dropify_flutter.dart';
+/// ```
+///
+/// The package is organized in layers. [RawDropify] provides the unstyled
+/// overlay, selection, search, validation, and controller core. The raw
+/// specialized widgets add static, async, or paginated data behavior. The
+/// themed widgets provide Material-oriented defaults through [DropifyThemeData].
+///
+/// See also:
+///
+///  * [DropifyDropdown], a Material-styled dropdown for in-memory entries.
+///  * [DropifyAsyncDropdown], a Material-styled dropdown for debounced async
+///    search.
+///  * [DropifyPaginatedDropdown], a Material-styled dropdown for caller-owned
+///    paginated state.
 library;
 
 export 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart'

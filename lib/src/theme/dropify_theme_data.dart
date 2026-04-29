@@ -4,10 +4,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Package-specific styling and state-slot defaults for Dropify widgets.
+///
+/// The themed dropdown widgets resolve these values from the nearest
+/// [DropifyTheme], then from `ThemeData.extensions`, then from
+/// [DropifyThemeData.fromMaterial]. Null fields allow lower-priority theme
+/// layers to provide the effective value.
 @immutable
 class DropifyThemeData extends ThemeExtension<DropifyThemeData>
     with Diagnosticable {
   /// Creates Dropify theme data.
+  ///
+  /// All fields are optional so partial themes can be layered with
+  /// [DropifyTheme] and [merge].
   const DropifyThemeData({
     this.anchorDecorationTheme,
     this.trailingIcon,
@@ -57,6 +65,9 @@ class DropifyThemeData extends ThemeExtension<DropifyThemeData>
   });
 
   /// Creates Material 3-oriented defaults from [theme].
+  ///
+  /// The returned value provides defaults for anchor, panel, search, entry,
+  /// async state, paging footer, and confirmable multi-select footer styling.
   factory DropifyThemeData.fromMaterial(ThemeData theme) {
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
@@ -160,16 +171,37 @@ class DropifyThemeData extends ThemeExtension<DropifyThemeData>
     );
   }
 
+  /// Decoration applied to the default themed anchor.
   final InputDecorationTheme? anchorDecorationTheme;
+
+  /// Icon shown at the trailing edge of the closed anchor.
   final IconData? trailingIcon;
+
+  /// Icon shown by the clear affordance.
   final IconData? clearIcon;
+
+  /// Text style for selected values in the anchor.
   final TextStyle? anchorValueTextStyle;
+
+  /// Text style for hint text in the anchor.
   final TextStyle? anchorHintTextStyle;
+
+  /// Text style for validation error text in the anchor.
   final TextStyle? anchorErrorTextStyle;
+
+  /// Padding inside the default themed anchor.
   final EdgeInsetsGeometry? anchorPadding;
+
+  /// Decoration applied to the dropdown panel surface.
   final BoxDecoration? panelDecoration;
+
+  /// Padding inside the dropdown panel.
   final EdgeInsetsGeometry? panelPadding;
+
+  /// Maximum height of the dropdown panel.
   final double? panelMaxHeight;
+
+  /// Material elevation for the dropdown panel surface.
   final double? panelElevation;
 
   /// Explicit Material color for the dropdown panel surface.
@@ -190,38 +222,98 @@ class DropifyThemeData extends ThemeExtension<DropifyThemeData>
   /// Explicit clipping behavior for the dropdown panel surface.
   final Clip? panelClipBehavior;
 
+  /// Duration used by panel animations.
   final Duration? animationDuration;
+
+  /// Curve used by panel animations.
   final Curve? animationCurve;
+
+  /// Decoration for the search text field.
   final InputDecoration? searchInputDecoration;
+
+  /// Padding around the search text field.
   final EdgeInsetsGeometry? searchFieldPadding;
+
+  /// Text style for search input.
   final TextStyle? searchTextStyle;
+
+  /// Icon shown in the search field.
   final IconData? searchIcon;
+
+  /// Icon shown by the search clear affordance.
   final IconData? searchClearIcon;
+
+  /// Text style for enabled entries.
   final TextStyle? entryTextStyle;
+
+  /// Text style for disabled entries.
   final TextStyle? entryDisabledTextStyle;
+
+  /// Decoration applied to selected entries.
   final BoxDecoration? entrySelectedDecoration;
+
+  /// Decoration applied to hovered entries.
   final BoxDecoration? entryHoverDecoration;
+
+  /// Decoration applied to focused entries.
   final BoxDecoration? entryFocusDecoration;
+
+  /// Padding inside each entry row.
   final EdgeInsetsGeometry? entryPadding;
+
+  /// Icon shown for selected entries.
   final IconData? entrySelectedIcon;
+
+  /// Spacing between entry row children.
   final double? entrySpacing;
+
+  /// Optional divider inserted between entries by themed builders.
   final Divider? entryDivider;
+
+  /// Builder for async loading states.
   final WidgetBuilder? loadingBuilder;
+
+  /// Builder for async error states.
   final Widget Function(BuildContext, Object error, VoidCallback retry)?
   errorBuilder;
+
+  /// Builder for async empty states.
+  ///
+  /// The boolean argument is true when the current query is not empty.
   final Widget Function(BuildContext, bool hasQuery)? emptyBuilder;
+
+  /// Builder for static no-results states.
   final WidgetBuilder? noResultsBuilder;
+
+  /// Builder for paginated first-page loading states.
   final WidgetBuilder? firstPageProgressBuilder;
+
+  /// Builder for paginated next-page loading footers.
   final WidgetBuilder? newPageProgressBuilder;
+
+  /// Builder for paginated first-page error states.
   final Widget Function(BuildContext, Object, VoidCallback)?
   firstPageErrorBuilder;
+
+  /// Builder for paginated next-page error footers.
   final Widget Function(BuildContext, Object, VoidCallback)?
   newPageErrorBuilder;
+
+  /// Builder for paginated no-more-items footers.
   final WidgetBuilder? noMoreItemsBuilder;
+
+  /// Button style for confirmable multi-select apply actions.
   final ButtonStyle? confirmButtonStyle;
+
+  /// Button style for confirmable multi-select cancel actions.
   final ButtonStyle? cancelButtonStyle;
+
+  /// Padding around confirmable multi-select and paging footers.
   final EdgeInsetsGeometry? footerPadding;
 
+  /// Returns a copy of this theme with the given fields replaced.
+  ///
+  /// Null arguments leave the corresponding field unchanged.
   @override
   DropifyThemeData copyWith({
     InputDecorationTheme? anchorDecorationTheme,

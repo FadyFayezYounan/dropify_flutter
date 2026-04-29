@@ -3,14 +3,23 @@ import 'package:flutter/foundation.dart';
 import 'dropify_selection.dart';
 
 /// Controls Dropify selection and open state.
+///
+/// A controller can open, close, clear, and replace selection from outside a
+/// Dropify widget. When a controller is passed to a widget, the caller owns its
+/// disposal.
 class DropifyController<T> extends ChangeNotifier {
   /// Creates a single-selection controller.
+  ///
+  /// The optional [initialValue] is used until the selection is replaced or
+  /// cleared.
   DropifyController.single({T? initialValue})
     : _mode = DropifySelectionMode.single,
       _value = initialValue,
       _values = <T>{};
 
   /// Creates a multi-selection controller.
+  ///
+  /// The optional [initialValues] are copied into the controller.
   DropifyController.multi({Set<T>? initialValues})
     : _mode = DropifySelectionMode.multi,
       _values = {...?initialValues};
@@ -66,6 +75,8 @@ class DropifyController<T> extends ChangeNotifier {
   }
 
   /// Replaces the selected single value.
+  ///
+  /// This method asserts when called on a multi-selection controller.
   void setValue(T? value) {
     assert(_mode == DropifySelectionMode.single);
     if (_value == value) {
@@ -76,6 +87,8 @@ class DropifyController<T> extends ChangeNotifier {
   }
 
   /// Replaces the selected multi values.
+  ///
+  /// This method asserts when called on a single-selection controller.
   void setValues(Set<T> values) {
     assert(_mode == DropifySelectionMode.multi);
     if (setEquals(_values, values)) {
@@ -86,6 +99,8 @@ class DropifyController<T> extends ChangeNotifier {
   }
 
   /// Toggles a multi value using the active identity rules.
+  ///
+  /// This method asserts when called on a single-selection controller.
   void toggle(T item) {
     assert(_mode == DropifySelectionMode.multi);
     setValues(_identity.toggled(_values, item));
@@ -101,11 +116,15 @@ class DropifyController<T> extends ChangeNotifier {
   }
 
   /// Opens the dropdown panel.
+  ///
+  /// Calling this before the controller is attached to a widget is a no-op.
   void open() {
     _openRequest?.call();
   }
 
   /// Closes the dropdown panel.
+  ///
+  /// Calling this before the controller is attached to a widget is a no-op.
   void close() {
     _closeRequest?.call();
   }

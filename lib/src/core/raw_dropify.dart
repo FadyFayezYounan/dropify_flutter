@@ -11,16 +11,25 @@ import 'dropify_selection.dart';
 import 'dropify_value.dart';
 
 /// Builds the closed Dropify anchor.
+///
+/// The builder receives a [DropifyAnchorState] with the committed selection,
+/// enabled state, validation error text, and actions for opening, closing, and
+/// clearing the dropdown.
 typedef AnchorBuilder<T> =
     Widget Function(BuildContext context, DropifyAnchorState<T> state);
 
 /// Builds the open Dropify panel body.
+///
+/// The builder receives a [DropifyPanelState] with selection helpers, the
+/// current search query, and the panel focus node. Panel builders should use
+/// [DropifyPanelState.select], [DropifyPanelState.toggle], and
+/// [DropifyPanelState.close] instead of managing overlay state directly.
 typedef PanelBuilder<T> =
     Widget Function(BuildContext context, DropifyPanelState<T> state);
 
-/// State passed to [AnchorBuilder].
+/// Configuration and actions passed to [AnchorBuilder].
 class DropifyAnchorState<T> {
-  /// Creates anchor state.
+  /// Creates anchor state for a Dropify anchor builder.
   const DropifyAnchorState({
     required this.mode,
     required this.value,
@@ -37,9 +46,15 @@ class DropifyAnchorState<T> {
   final DropifySelectionMode mode;
 
   /// The selected single value.
+  ///
+  /// Null when nothing is selected or when [mode] is
+  /// [DropifySelectionMode.multi].
   final T? value;
 
   /// The selected multi values.
+  ///
+  /// Empty when nothing is selected or when [mode] is
+  /// [DropifySelectionMode.single].
   final Set<T> values;
 
   /// Whether the panel is open.
@@ -51,19 +66,22 @@ class DropifyAnchorState<T> {
   /// Current form validation error text, if any.
   final String? errorText;
 
-  /// Opens the panel.
+  /// Opens the panel if [enabled] is true.
   final VoidCallback open;
 
   /// Closes the panel.
   final VoidCallback close;
 
   /// Clears selection, or null when clearing is unavailable.
+  ///
+  /// This is null when the widget is disabled, no value is selected, or the
+  /// owning widget was not configured to show a clear affordance.
   final VoidCallback? clear;
 }
 
-/// State passed to [PanelBuilder].
+/// Configuration and actions passed to [PanelBuilder].
 class DropifyPanelState<T> {
-  /// Creates panel state.
+  /// Creates panel state for a Dropify panel builder.
   const DropifyPanelState({
     required this.mode,
     required this.value,
@@ -91,10 +109,12 @@ class DropifyPanelState<T> {
   /// Whether an item is selected.
   final bool Function(T item) isSelected;
 
-  /// Toggles a multi item.
+  /// Toggles a multi-selection item.
+  ///
+  /// In confirmable multi-selection mode, this updates the staged selection.
   final void Function(T item) toggle;
 
-  /// Selects a single item.
+  /// Selects a single item and closes the panel.
   final void Function(T item) select;
 
   /// Closes the panel.
@@ -105,8 +125,19 @@ class DropifyPanelState<T> {
 }
 
 /// The unstyled Dropify dropdown core.
+///
+/// [RawDropify] owns menu anchoring, open and close behavior, search text,
+/// selection state, form validation, and controller attachment. It does not
+/// impose item rendering. Callers provide [anchorBuilder] for the closed control
+/// and [panelBuilder] for the open panel body.
+///
+/// Use this widget for fully custom dropdown UI. Use `RawStaticDropify`,
+/// `RawAsyncDropify`, or `RawPaginatedDropify` when you want Dropify to provide
+/// data behavior as well.
 class RawDropify<T> extends StatefulWidget {
   /// Creates a single-selection Dropify core.
+  ///
+  /// The [panelBuilder] and [anchorBuilder] arguments are required.
   const RawDropify({
     super.key,
     required this.panelBuilder,
@@ -143,6 +174,9 @@ class RawDropify<T> extends StatefulWidget {
        cancelLabel = null;
 
   /// Creates a multi-selection Dropify core.
+  ///
+  /// When [confirmable] is false, toggles are committed immediately. When
+  /// [confirmable] is true, toggles are staged until the user applies them.
   const RawDropify.multi({
     super.key,
     required this.panelBuilder,
@@ -183,6 +217,9 @@ class RawDropify<T> extends StatefulWidget {
   final DropifySelectionMode selectionMode;
 
   /// Optional external controller.
+  ///
+  /// If null, [RawDropify] creates and disposes an internal controller. If a
+  /// controller is supplied, the caller owns its disposal.
   final DropifyController<T>? controller;
 
   /// Initial single value.
@@ -204,6 +241,9 @@ class RawDropify<T> extends StatefulWidget {
   final AnchorBuilder<T> anchorBuilder;
 
   /// Optional search text controller.
+  ///
+  /// If null, [RawDropify] creates and disposes an internal controller. If a
+  /// controller is supplied, the caller owns its disposal.
   final TextEditingController? searchController;
 
   /// Whether search is shown.
@@ -213,6 +253,8 @@ class RawDropify<T> extends StatefulWidget {
   final String? searchHintText;
 
   /// Debounce duration advertised to specialized widgets.
+  ///
+  /// Defaults to 300 milliseconds.
   final Duration searchDebounce;
 
   /// Whether the clear affordance is exposed.
@@ -230,7 +272,7 @@ class RawDropify<T> extends StatefulWidget {
   /// Whether to use the root overlay.
   final bool useRootOverlay;
 
-  /// Whether outside taps are consumed.
+  /// Whether outside taps are consumed by the menu overlay.
   final bool consumeOutsideTaps;
 
   /// Whether interactions are enabled.
@@ -240,6 +282,8 @@ class RawDropify<T> extends StatefulWidget {
   final bool autofocus;
 
   /// Optional anchor focus node.
+  ///
+  /// If null, the underlying Material anchor creates its own focus node.
   final FocusNode? focusNode;
 
   /// Called when the panel opens.
@@ -257,10 +301,14 @@ class RawDropify<T> extends StatefulWidget {
   /// Optional validation error builder.
   final Widget Function(BuildContext, String error)? errorTextBuilder;
 
-  /// Stable identity callback.
+  /// Returns a stable identity key for a value.
+  ///
+  /// Use this when new object instances can represent the same logical item.
   final Object Function(T item)? keyOf;
 
-  /// Custom equality callback.
+  /// Compares two values for selection identity.
+  ///
+  /// Prefer [keyOf] when a stable identity key is available.
   final bool Function(T a, T b)? equals;
 
   /// Whether multi-select stages changes until Apply.

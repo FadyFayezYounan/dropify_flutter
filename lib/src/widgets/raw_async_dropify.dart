@@ -12,6 +12,10 @@ import '../internal/_dropify_menu_scroll_shell.dart';
 import '../theme/dropify_theme.dart';
 
 /// Fetches async Dropify items for [query].
+///
+/// The [cancel] token is cancelled when a replacement request starts or when
+/// the widget is disposed. Fetchers should avoid committing expensive work after
+/// cancellation.
 typedef DropifyAsyncFetcher<T> =
     Future<List<T>> Function(
       String query, {
@@ -19,6 +23,9 @@ typedef DropifyAsyncFetcher<T> =
     });
 
 /// Builds async Dropify items.
+///
+/// The [onTap] callback selects or toggles the item according to the active
+/// selection mode.
 typedef DropifyAsyncItemBuilder<T> =
     Widget Function(
       BuildContext context,
@@ -27,7 +34,7 @@ typedef DropifyAsyncItemBuilder<T> =
       VoidCallback onTap,
     );
 
-/// Async dropdown state.
+/// The loading state for an async Dropify dropdown.
 sealed class DropifyAsyncState<T> {
   const DropifyAsyncState();
 }
@@ -44,35 +51,56 @@ final class DropifyAsyncLoading<T> extends DropifyAsyncState<T> {
 
 /// A refresh is loading while [staleItems] remain visible.
 final class DropifyAsyncRefreshing<T> extends DropifyAsyncState<T> {
+  /// Creates a refreshing state with stale visible items.
   const DropifyAsyncRefreshing(this.staleItems);
 
+  /// Items from the previous successful request.
   final List<T> staleItems;
 }
 
 /// Async data loaded successfully.
 final class DropifyAsyncData<T> extends DropifyAsyncState<T> {
+  /// Creates a successful async data state.
   const DropifyAsyncData(this.items);
 
+  /// The items returned by the latest successful request.
   final List<T> items;
 }
 
 /// Async data loaded with no items.
 final class DropifyAsyncEmpty<T> extends DropifyAsyncState<T> {
+  /// Creates an empty async state.
+  ///
+  /// The [hasQuery] argument is true when the empty result came from a non-empty
+  /// search query.
   const DropifyAsyncEmpty({required this.hasQuery});
 
+  /// Whether the empty result belongs to a non-empty search query.
   final bool hasQuery;
 }
 
 /// Async data failed to load.
 final class DropifyAsyncError<T> extends DropifyAsyncState<T> {
+  /// Creates an async error state.
   const DropifyAsyncError(this.error, this.stackTrace);
 
+  /// The error thrown by the latest request.
   final Object error;
+
+  /// The stack trace associated with [error], if available.
   final StackTrace? stackTrace;
 }
 
 /// A raw dropdown backed by an async search fetcher.
+///
+/// This widget adds debounced fetching, cancellation, stale-result protection,
+/// retry, per-instance caching, and async state-slot builders to [RawDropify].
+/// It does not provide a Material-styled anchor; callers provide
+/// [anchorBuilder].
 class RawAsyncDropify<T> extends StatefulWidget {
+  /// Creates a single-selection async dropdown.
+  ///
+  /// The [fetcher], [anchorBuilder], and [itemBuilder] arguments are required.
   const RawAsyncDropify({
     super.key,
     required this.fetcher,
@@ -103,6 +131,10 @@ class RawAsyncDropify<T> extends StatefulWidget {
        confirmLabel = null,
        cancelLabel = null;
 
+  /// Creates a multi-selection async dropdown.
+  ///
+  /// When [confirmable] is false, toggles are emitted immediately. When
+  /// [confirmable] is true, toggles are staged until the user applies them.
   const RawAsyncDropify.multi({
     super.key,
     required this.fetcher,
@@ -134,33 +166,96 @@ class RawAsyncDropify<T> extends StatefulWidget {
        onChanged = null,
        onChangedMulti = onChanged;
 
+  /// Fetches items for the current search query.
   final DropifyAsyncFetcher<T> fetcher;
+
+  /// Builds the closed anchor.
   final AnchorBuilder<T> anchorBuilder;
+
+  /// Builds each loaded item row.
   final DropifyAsyncItemBuilder<T> itemBuilder;
+
+  /// Builds the initial loading state.
   final WidgetBuilder? loadingBuilder;
+
+  /// Builds an error state with a retry callback.
   final Widget Function(BuildContext, Object error, VoidCallback retry)?
   errorBuilder;
+
+  /// Builds the empty state.
+  ///
+  /// The boolean argument is true when the current query is not empty.
   final Widget Function(BuildContext, bool hasQuery)? emptyBuilder;
+
+  /// The active selection mode for this widget instance.
   final DropifySelectionMode selectionMode;
+
+  /// An optional external controller for selection and open state.
   final DropifyController<T>? controller;
+
+  /// The initially selected value for single-selection dropdowns.
   final T? initialValue;
+
+  /// The initially selected values for multi-selection dropdowns.
   final Set<T>? initialValues;
+
+  /// Called when single selection changes.
   final ValueChanged<T?>? onChanged;
+
+  /// Called when multi selection changes.
   final ValueChanged<Set<T>>? onChangedMulti;
+
+  /// Optional search text controller owned by the caller.
   final TextEditingController? searchController;
+
+  /// Whether the panel includes a search field.
+  ///
+  /// Defaults to true.
   final bool searchable;
+
+  /// Hint text for the search field.
   final String? searchHintText;
+
+  /// The debounce duration before running [fetcher].
+  ///
+  /// Defaults to 300 milliseconds.
   final Duration searchDebounce;
+
+  /// Whether a clear button is shown when a value is selected.
   final bool showClearButton;
+
+  /// Whether the dropdown accepts user interaction.
   final bool enabled;
+
+  /// Validates the current Dropify value when used inside a [Form].
   final FormFieldValidator<DropifyValue<T>>? validator;
+
+  /// Controls when validation runs.
   final AutovalidateMode? autovalidateMode;
+
+  /// Returns a stable identity key for a value.
   final Object Function(T item)? keyOf;
+
+  /// Compares two values for selection identity.
   final bool Function(T a, T b)? equals;
+
+  /// Whether the first request starts when the panel opens.
+  ///
+  /// Defaults to true.
   final bool loadOnOpen;
+
+  /// Whether fetched items are cached for this widget instance.
+  ///
+  /// Defaults to true.
   final bool cacheItems;
+
+  /// Whether multi-selection changes are staged until applied.
   final bool confirmable;
+
+  /// The label for the confirm button in confirmable multi-selection.
   final String? confirmLabel;
+
+  /// The label for the cancel button in confirmable multi-selection.
   final String? cancelLabel;
 
   @override

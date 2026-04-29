@@ -12,6 +12,9 @@ import '../internal/_dropify_menu_scroll_shell.dart';
 import '../theme/dropify_theme.dart';
 
 /// Builds paginated Dropify items.
+///
+/// The [index] is the flattened index across loaded pages. The [onTap] callback
+/// selects or toggles the item according to the active selection mode.
 typedef DropifyPaginatedItemBuilder<T> =
     Widget Function(
       BuildContext context,
@@ -22,7 +25,16 @@ typedef DropifyPaginatedItemBuilder<T> =
     );
 
 /// A raw dropdown backed by caller-owned paging state.
+///
+/// This widget consumes [PagingState] and requests pages through
+/// [fetchNextPage]. It never mutates the supplied state; callers remain
+/// responsible for storing pages, errors, loading flags, search, and
+/// cancellation metadata.
 class RawPaginatedDropify<PageKey, T> extends StatefulWidget {
+  /// Creates a single-selection paginated dropdown.
+  ///
+  /// The [state], [fetchNextPage], [anchorBuilder], and [itemBuilder] arguments
+  /// are required.
   const RawPaginatedDropify({
     super.key,
     required this.state,
@@ -58,6 +70,10 @@ class RawPaginatedDropify<PageKey, T> extends StatefulWidget {
        confirmLabel = null,
        cancelLabel = null;
 
+  /// Creates a multi-selection paginated dropdown.
+  ///
+  /// When [confirmable] is false, toggles are emitted immediately. When
+  /// [confirmable] is true, toggles are staged until the user applies them.
   const RawPaginatedDropify.multi({
     super.key,
     required this.state,
@@ -94,39 +110,104 @@ class RawPaginatedDropify<PageKey, T> extends StatefulWidget {
        onChanged = null,
        onChangedMulti = onChanged;
 
+  /// The caller-owned paging state to render.
   final PagingState<PageKey, T> state;
+
+  /// Requests the next page from the caller.
   final FutureOr<void> Function() fetchNextPage;
+
+  /// Builds the closed anchor.
   final AnchorBuilder<T> anchorBuilder;
+
+  /// Builds each loaded item row.
   final DropifyPaginatedItemBuilder<T> itemBuilder;
+
+  /// Builds the first-page loading state.
   final WidgetBuilder? firstPageProgressBuilder;
+
+  /// Builds the next-page loading footer.
   final WidgetBuilder? newPageProgressBuilder;
+
+  /// Builds the first-page error state with retry.
   final Widget Function(BuildContext, Object, VoidCallback)?
   firstPageErrorBuilder;
+
+  /// Builds the next-page error footer with retry.
   final Widget Function(BuildContext, Object, VoidCallback)?
   newPageErrorBuilder;
+
+  /// Builds the state shown when loaded pages contain no items.
   final WidgetBuilder? noItemsFoundBuilder;
+
+  /// Builds the footer shown when there are no more pages.
   final WidgetBuilder? noMoreItemsBuilder;
+
+  /// Number of invisible trailing items that trigger [fetchNextPage].
+  ///
+  /// Defaults to 3.
   final int invisibleItemsThreshold;
+
+  /// Called with the debounced search query.
   final void Function(String query)? onSearchChanged;
+
+  /// The active selection mode for this widget instance.
   final DropifySelectionMode selectionMode;
+
+  /// An optional external controller for selection and open state.
   final DropifyController<T>? controller;
+
+  /// The initially selected value for single-selection dropdowns.
   final T? initialValue;
+
+  /// The initially selected values for multi-selection dropdowns.
   final Set<T>? initialValues;
+
+  /// Called when single selection changes.
   final ValueChanged<T?>? onChanged;
+
+  /// Called when multi selection changes.
   final ValueChanged<Set<T>>? onChangedMulti;
+
+  /// Optional search text controller owned by the caller.
   final TextEditingController? searchController;
+
+  /// Whether the panel includes a search field.
   final bool searchable;
+
+  /// Hint text for the search field.
   final String? searchHintText;
+
+  /// Debounce duration before [onSearchChanged] is called.
   final Duration searchDebounce;
+
+  /// Whether a clear button is shown when a value is selected.
   final bool showClearButton;
+
+  /// Whether the dropdown accepts user interaction.
   final bool enabled;
+
+  /// Validates the current Dropify value when used inside a [Form].
   final FormFieldValidator<DropifyValue<T>>? validator;
+
+  /// Controls when validation runs.
   final AutovalidateMode? autovalidateMode;
+
+  /// Returns a stable identity key for a value.
   final Object Function(T item)? keyOf;
+
+  /// Compares two values for selection identity.
   final bool Function(T a, T b)? equals;
+
+  /// Whether the first page is requested when the panel opens.
   final bool loadOnOpen;
+
+  /// Whether multi-selection changes are staged until applied.
   final bool confirmable;
+
+  /// The label for the confirm button in confirmable multi-selection.
   final String? confirmLabel;
+
+  /// The label for the cancel button in confirmable multi-selection.
   final String? cancelLabel;
 
   @override

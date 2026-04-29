@@ -10,6 +10,8 @@ import '../internal/_dropify_menu_scroll_shell.dart';
 import '../theme/dropify_theme.dart';
 
 /// Builds a static Dropify entry.
+///
+/// The [onTap] callback is null when the entry is disabled.
 typedef DropifyEntryBuilder<T> =
     Widget Function(
       BuildContext context,
@@ -19,8 +21,14 @@ typedef DropifyEntryBuilder<T> =
     );
 
 /// A raw dropdown backed by in-memory [DropifyEntry] values.
+///
+/// This widget adds static entry filtering, disabled entry handling, empty
+/// state rendering, and large-list presentation to [RawDropify]. It does not
+/// provide a Material-styled anchor; callers provide [anchorBuilder].
 class RawStaticDropify<T> extends StatelessWidget {
   /// Creates a single-selection static dropdown.
+  ///
+  /// The [entries] and [anchorBuilder] arguments are required.
   const RawStaticDropify({
     super.key,
     required this.entries,
@@ -52,6 +60,9 @@ class RawStaticDropify<T> extends StatelessWidget {
        cancelLabel = null;
 
   /// Creates a multi-selection static dropdown.
+  ///
+  /// When [confirmable] is false, toggles are emitted immediately. When
+  /// [confirmable] is true, toggles are staged until the user applies them.
   const RawStaticDropify.multi({
     super.key,
     required this.entries,
@@ -83,32 +94,90 @@ class RawStaticDropify<T> extends StatelessWidget {
        onChanged = null,
        onChangedMulti = onChanged;
 
+  /// The in-memory entries shown by the dropdown.
   final List<DropifyEntry<T>> entries;
+
+  /// Builds the closed anchor.
   final AnchorBuilder<T> anchorBuilder;
+
+  /// Builds each filtered entry row.
+  ///
+  /// If null, a default row using [DropifyTheme] values is used.
   final DropifyEntryBuilder<T>? entryBuilder;
+
+  /// Returns whether [entry] matches the current search query.
+  ///
+  /// If null, Dropify performs a case-insensitive contains match over the
+  /// entry's effective search text.
   final bool Function(DropifyEntry<T> entry, String query)? matcher;
+
+  /// The active selection mode for this widget instance.
   final DropifySelectionMode selectionMode;
+
+  /// An optional external controller for selection and open state.
   final DropifyController<T>? controller;
+
+  /// The initially selected value for single-selection dropdowns.
   final T? initialValue;
+
+  /// The initially selected values for multi-selection dropdowns.
   final Set<T>? initialValues;
+
+  /// Called when single selection changes.
   final ValueChanged<T?>? onChanged;
+
+  /// Called when multi selection changes.
   final ValueChanged<Set<T>>? onChangedMulti;
+
+  /// Optional search text controller owned by the caller.
   final TextEditingController? searchController;
+
+  /// Whether the panel includes a search field.
   final bool searchable;
+
+  /// Hint text for the search field.
   final String? searchHintText;
+
+  /// Debounce duration passed through to [RawDropify].
   final Duration searchDebounce;
+
+  /// Whether a clear button is shown when a value is selected.
   final bool showClearButton;
+
+  /// Whether the panel width matches the anchor width.
   final bool matchAnchorWidth;
+
+  /// Additional constraints for the dropdown panel.
   final BoxConstraints? panelConstraints;
+
+  /// Whether the dropdown accepts user interaction.
   final bool enabled;
+
+  /// Validates the current Dropify value when used inside a [Form].
   final FormFieldValidator<DropifyValue<T>>? validator;
+
+  /// Controls when validation runs.
   final AutovalidateMode? autovalidateMode;
+
+  /// Builds validation error text.
   final Widget Function(BuildContext, String error)? errorTextBuilder;
+
+  /// Returns a stable identity key for a value.
   final Object Function(T item)? keyOf;
+
+  /// Compares two values for selection identity.
   final bool Function(T a, T b)? equals;
+
+  /// Whether multi-selection changes are staged until applied.
   final bool confirmable;
+
+  /// The label for the confirm button in confirmable multi-selection.
   final String? confirmLabel;
+
+  /// The label for the cancel button in confirmable multi-selection.
   final String? cancelLabel;
+
+  /// Builds the state shown when filtering produces no entries.
   final WidgetBuilder? noResultsBuilder;
 
   @override

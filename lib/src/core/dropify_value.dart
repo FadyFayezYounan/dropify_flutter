@@ -1,6 +1,20 @@
 import 'package:flutter/foundation.dart';
 
 /// The value passed to Dropify form validators.
+///
+/// Validators can pattern match this sealed type to handle single and
+/// multi-selection widgets with one callback.
+///
+/// ```dart
+/// validator: (value) {
+///   return switch (value) {
+///     DropifySingleValue<String>(value: final selected) =>
+///       selected == null ? 'Choose one' : null,
+///     DropifyMultiValue<String>(values: final selected) =>
+///       selected.isEmpty ? 'Choose at least one' : null,
+///   };
+/// }
+/// ```
 @immutable
 sealed class DropifyValue<T> {
   /// Creates a validation value.

@@ -7,8 +7,26 @@ import '../core/dropify_value.dart';
 import 'raw_static_dropify.dart';
 import '_dropify_themed_helpers.dart';
 
-/// A Material-styled static Dropify dropdown.
+/// A Material-styled dropdown backed by in-memory [DropifyEntry] values.
+///
+/// Use this widget when every option is available locally. The dropdown can
+/// render a search field, disabled entries, clear affordances, form validation,
+/// and single or multi-selection flows.
+///
+/// The [entries] list is filtered locally when [searchable] is true. To provide
+/// a custom row builder or matcher, use [RawStaticDropify].
+///
+/// See also:
+///
+///  * [RawStaticDropify], which provides static dropdown behavior without the
+///    Material-styled anchor.
+///  * [DropifyAsyncDropdown], for debounced remote search.
+///  * [DropifyPaginatedDropdown], for caller-owned paginated results.
 class DropifyDropdown<T> extends StatelessWidget {
+  /// Creates a single-selection static dropdown.
+  ///
+  /// The [entries] argument is required. The [searchable] argument defaults to
+  /// false and [showClearButton] defaults to false.
   const DropifyDropdown({
     super.key,
     required this.entries,
@@ -35,6 +53,10 @@ class DropifyDropdown<T> extends StatelessWidget {
        confirmLabel = null,
        cancelLabel = null;
 
+  /// Creates a multi-selection static dropdown.
+  ///
+  /// When [confirmable] is false, toggles are emitted immediately. When
+  /// [confirmable] is true, toggles are staged until the user applies them.
   const DropifyDropdown.multi({
     super.key,
     required this.entries,
@@ -62,28 +84,97 @@ class DropifyDropdown<T> extends StatelessWidget {
        onChanged = null,
        onChangedMulti = onChanged;
 
+  /// The options shown by the dropdown.
+  ///
+  /// Disabled entries remain visible but cannot be selected.
   final List<DropifyEntry<T>> entries;
+
+  /// The active selection mode for this widget instance.
   final DropifySelectionMode selectionMode;
+
+  /// An optional external controller for selection and open state.
+  ///
+  /// If null, the widget creates and disposes its own controller.
   final DropifyController<T>? controller;
+
+  /// The initially selected value for single-selection dropdowns.
   final T? initialValue;
+
+  /// The initially selected values for multi-selection dropdowns.
   final Set<T>? initialValues;
+
+  /// Called when single selection changes.
   final ValueChanged<T?>? onChanged;
+
+  /// Called when multi selection changes.
   final ValueChanged<Set<T>>? onChangedMulti;
+
+  /// The label displayed by the default themed anchor.
   final String? label;
+
+  /// The hint text displayed when no value is selected.
   final String? hintText;
+
+  /// Helper text displayed below the anchor.
   final String? helperText;
+
+  /// An optional icon displayed before the selected value or hint.
   final Widget? prefixIcon;
+
+  /// Whether the panel includes a search field.
+  ///
+  /// Defaults to false.
   final bool searchable;
+
+  /// Hint text for the search field.
+  ///
+  /// If null, the theme-provided search decoration is used.
   final String? searchHintText;
+
+  /// Whether a clear button is shown when a value is selected.
+  ///
+  /// Defaults to false.
   final bool showClearButton;
+
+  /// Whether the dropdown accepts user interaction.
+  ///
+  /// Defaults to true.
   final bool enabled;
+
+  /// Validates the current Dropify value when used inside a [Form].
   final FormFieldValidator<DropifyValue<T>>? validator;
+
+  /// Controls when validation runs.
   final AutovalidateMode? autovalidateMode;
+
+  /// Builds the visible label for an item value.
+  ///
+  /// If null, each entry's [DropifyEntry.label] or value string is used.
   final String Function(T item)? itemLabelBuilder;
+
+  /// Returns a stable identity key for a value.
+  ///
+  /// Use this when new object instances can represent the same logical item.
   final Object Function(T item)? keyOf;
+
+  /// Compares two values for selection identity.
+  ///
+  /// Prefer [keyOf] when a stable identity key is available.
   final bool Function(T a, T b)? equals;
+
+  /// Whether multi-selection changes are staged until applied.
+  ///
+  /// Defaults to false.
   final bool confirmable;
+
+  /// The label for the confirm button in confirmable multi-selection.
+  ///
+  /// If null, the default visible copy is used.
   final String? confirmLabel;
+
+  /// The label for the cancel button in confirmable multi-selection.
+  ///
+  /// If null, the default visible copy is used.
   final String? cancelLabel;
 
   @override

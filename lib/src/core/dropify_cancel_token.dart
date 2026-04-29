@@ -1,6 +1,10 @@
 import 'dart:async';
 
 /// A lightweight cancellation token passed to async Dropify fetchers.
+///
+/// Dropify cancels the active token when a replacement request starts or when
+/// the owning async dropdown is disposed. Fetchers can inspect [isCancelled],
+/// await [whenCancelled], or call [throwIfCancelled].
 final class DropifyCancelToken {
   /// Creates a cancellation token.
   DropifyCancelToken();
@@ -15,6 +19,8 @@ final class DropifyCancelToken {
   Future<void> get whenCancelled => _completer.future;
 
   /// Requests cancellation.
+  ///
+  /// Calling this method more than once has no additional effect.
   void cancel() {
     if (_cancelled) {
       return;

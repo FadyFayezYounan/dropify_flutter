@@ -6,8 +6,21 @@ import '../core/dropify_value.dart';
 import 'raw_async_dropify.dart';
 import '_dropify_themed_helpers.dart';
 
-/// A Material-styled async Dropify dropdown.
+/// A Material-styled dropdown backed by a debounced async fetcher.
+///
+/// Use this widget when options are loaded from a remote search, database, or
+/// other asynchronous source. The fetcher receives a [DropifyCancelToken] so
+/// replacement searches can cancel old work and stale results can be ignored.
+///
+/// See also:
+///
+///  * [RawAsyncDropify], which exposes custom async item and state builders.
+///  * [DropifyDropdown], for in-memory entries.
+///  * [DropifyPaginatedDropdown], for caller-owned paginated results.
 class DropifyAsyncDropdown<T> extends StatelessWidget {
+  /// Creates a single-selection async dropdown.
+  ///
+  /// The [fetcher] and [itemLabelBuilder] arguments are required.
   const DropifyAsyncDropdown({
     super.key,
     required this.fetcher,
@@ -34,6 +47,10 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
        confirmLabel = null,
        cancelLabel = null;
 
+  /// Creates a multi-selection async dropdown.
+  ///
+  /// When [confirmable] is true, selected values are staged until the user
+  /// applies them.
   const DropifyAsyncDropdown.multi({
     super.key,
     required this.fetcher,
@@ -61,28 +78,82 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
        onChanged = null,
        onChangedMulti = onChanged;
 
+  /// Fetches items for the current search query.
+  ///
+  /// Replacement fetches cancel the previous token. Cancelled and stale
+  /// completions do not update visible state.
   final DropifyAsyncFetcher<T> fetcher;
+
+  /// Builds the visible label for an item value.
   final String Function(T item) itemLabelBuilder;
+
+  /// The active selection mode for this widget instance.
   final DropifySelectionMode selectionMode;
+
+  /// An optional external controller for selection and open state.
   final DropifyController<T>? controller;
+
+  /// The initially selected value for single-selection dropdowns.
   final T? initialValue;
+
+  /// The initially selected values for multi-selection dropdowns.
   final Set<T>? initialValues;
+
+  /// Called when single selection changes.
   final ValueChanged<T?>? onChanged;
+
+  /// Called when multi selection changes.
   final ValueChanged<Set<T>>? onChangedMulti;
+
+  /// The label displayed by the default themed anchor.
   final String? label;
+
+  /// The hint text displayed when no value is selected.
   final String? hintText;
+
+  /// Helper text displayed below the anchor.
   final String? helperText;
+
+  /// An optional icon displayed before the selected value or hint.
   final Widget? prefixIcon;
+
+  /// Whether the panel includes a search field.
+  ///
+  /// Defaults to true.
   final bool searchable;
+
+  /// Hint text for the search field.
   final String? searchHintText;
+
+  /// Whether a clear button is shown when a value is selected.
+  ///
+  /// Defaults to false.
   final bool showClearButton;
+
+  /// Whether the dropdown accepts user interaction.
+  ///
+  /// Defaults to true.
   final bool enabled;
+
+  /// Validates the current Dropify value when used inside a [Form].
   final FormFieldValidator<DropifyValue<T>>? validator;
+
+  /// Controls when validation runs.
   final AutovalidateMode? autovalidateMode;
+
+  /// Returns a stable identity key for a value.
   final Object Function(T item)? keyOf;
+
+  /// Compares two values for selection identity.
   final bool Function(T a, T b)? equals;
+
+  /// Whether multi-selection changes are staged until applied.
   final bool confirmable;
+
+  /// The label for the confirm button in confirmable multi-selection.
   final String? confirmLabel;
+
+  /// The label for the cancel button in confirmable multi-selection.
   final String? cancelLabel;
 
   @override
