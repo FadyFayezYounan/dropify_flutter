@@ -47,17 +47,17 @@ Thin static slice first, then theme, async, paginated, journeys.
 - [x] TDD: non-representable decoration stays legacy when no explicit fields.
 - [x] Verify: `dart format . && flutter analyze && flutter test`
 
-### Phase 3: Async Bodies
+### Phase 3: Async Bodies (Complete)
 
 - **Goal**: async loaded/refreshing rows lazy; state bodies direct.
-- [ ] `lib/src/widgets/raw_async_dropify.dart` - wrap data/refreshing lists in shell; controller into `ListView.builder`; direct idle/loading/empty/error.
-- [ ] `test/widgets/dropify_async_dropdown_test.dart` - deterministic fetchers; cache, debounce, retry, cancellation, stale-result tests.
-- [ ] `test/helpers/dropify_fixtures.dart` - completer-backed async fixtures.
-- [ ] TDD: loaded async data uses lazy list shell; single/multi selection unchanged.
-- [ ] TDD: refreshing keeps stale rows plus progress; loading/empty/error show no fake scrollbar.
-- [ ] TDD: cancelled or older generation results never render.
-- [ ] Robot journey tests + async seam via controlled `Completer`; open, loading, resolve, select, retry.
-- [ ] Verify: `dart format . && flutter analyze && flutter test`
+- [x] `lib/src/widgets/raw_async_dropify.dart` - wrap data/refreshing lists in shell; controller into `ListView.builder`; direct idle/loading/empty/error.
+- [x] `test/widgets/dropify_async_dropdown_test.dart` - deterministic fetchers; cache, debounce, retry, cancellation, stale-result tests.
+- [x] `test/helpers/dropify_fixtures.dart` - completer-backed async fixtures.
+- [x] TDD: loaded async data uses lazy list shell; single/multi selection unchanged.
+- [x] TDD: refreshing keeps stale rows plus progress; loading/empty/error show no fake scrollbar.
+- [x] TDD: cancelled or older generation results never render.
+- [x] Robot journey tests + async seam via controlled `Completer`; open, loading, resolve, select, retry.
+- [x] Verify: `dart format . && flutter analyze && flutter test`
 
 ### Phase 4: Paginated Bodies
 

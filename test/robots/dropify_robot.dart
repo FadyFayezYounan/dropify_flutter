@@ -6,9 +6,13 @@ class DropifyRobot {
 
   final WidgetTester tester;
 
-  Future<void> openDropdown() async {
+  Future<void> openDropdown({bool settle = true}) async {
     await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump();
+    }
   }
 
   Future<void> enterSearch(String query) async {

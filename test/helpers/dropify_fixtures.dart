@@ -1,4 +1,34 @@
+import 'dart:async';
+
 import 'package:dropify_flutter/dropify_flutter.dart';
+
+class ControlledStringFetcher {
+  final requests = <ControlledStringRequest>[];
+
+  Future<List<String>> call(
+    String query, {
+    required DropifyCancelToken cancel,
+  }) {
+    final request = ControlledStringRequest(query: query, cancel: cancel);
+    requests.add(request);
+    return request.future;
+  }
+}
+
+class ControlledStringRequest {
+  ControlledStringRequest({required this.query, required this.cancel});
+
+  final String query;
+  final DropifyCancelToken cancel;
+  final _completer = Completer<List<String>>();
+
+  Future<List<String>> get future => _completer.future;
+
+  void complete(List<String> items) => _completer.complete(items);
+
+  void fail(Object error) =>
+      _completer.completeError(error, StackTrace.current);
+}
 
 const fruitEntries = <DropifyEntry<String>>[
   DropifyEntry(value: 'apple', label: 'Apple'),

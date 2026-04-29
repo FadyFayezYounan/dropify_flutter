@@ -8,6 +8,7 @@ import '../core/dropify_selection.dart';
 import '../core/dropify_value.dart';
 import '../core/raw_dropify.dart';
 import '../internal/_debouncer.dart';
+import '../internal/_dropify_menu_scroll_shell.dart';
 import '../theme/dropify_theme.dart';
 
 /// Fetches async Dropify items for [query].
@@ -413,20 +414,24 @@ class _ItemsList<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: EdgeInsets.zero,
-      shrinkWrap: true,
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return itemBuilder(context, item, state.isSelected(item), () {
-          if (state.mode == DropifySelectionMode.single) {
-            state.select(item);
-          } else {
-            state.toggle(item);
-          }
-        });
-      },
+    return DropifyMenuScrollShell(
+      builder: (context, controller) => ListView.builder(
+        controller: controller,
+        primary: false,
+        padding: EdgeInsets.zero,
+        shrinkWrap: false,
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return itemBuilder(context, item, state.isSelected(item), () {
+            if (state.mode == DropifySelectionMode.single) {
+              state.select(item);
+            } else {
+              state.toggle(item);
+            }
+          });
+        },
+      ),
     );
   }
 }
