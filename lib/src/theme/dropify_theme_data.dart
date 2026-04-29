@@ -20,6 +20,12 @@ class DropifyThemeData extends ThemeExtension<DropifyThemeData>
     this.panelPadding,
     this.panelMaxHeight,
     this.panelElevation,
+    this.panelColor,
+    this.panelShadowColor,
+    this.panelSurfaceTintColor,
+    this.panelShape,
+    this.panelSide,
+    this.panelClipBehavior,
     this.animationDuration,
     this.animationCurve,
     this.searchInputDecoration,
@@ -68,12 +74,19 @@ class DropifyThemeData extends ThemeExtension<DropifyThemeData>
       panelDecoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: kElevationToShadow[3],
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       panelPadding: const EdgeInsets.symmetric(vertical: 4),
       panelMaxHeight: 320,
       panelElevation: 3,
+      panelColor: colorScheme.surface,
+      panelShadowColor: colorScheme.shadow,
+      panelSurfaceTintColor: colorScheme.surfaceTint,
+      panelShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      panelSide: BorderSide(color: colorScheme.outlineVariant),
+      panelClipBehavior: Clip.none,
       animationDuration: const Duration(milliseconds: 120),
       animationCurve: Curves.easeOut,
       searchInputDecoration: const InputDecoration(
@@ -153,6 +166,25 @@ class DropifyThemeData extends ThemeExtension<DropifyThemeData>
   final EdgeInsetsGeometry? panelPadding;
   final double? panelMaxHeight;
   final double? panelElevation;
+
+  /// Explicit Material color for the dropdown panel surface.
+  final Color? panelColor;
+
+  /// Explicit Material shadow color for the dropdown panel surface.
+  final Color? panelShadowColor;
+
+  /// Explicit Material surface tint color for the dropdown panel surface.
+  final Color? panelSurfaceTintColor;
+
+  /// Explicit Material shape for the dropdown panel surface.
+  final OutlinedBorder? panelShape;
+
+  /// Explicit Material border side applied to [panelShape].
+  final BorderSide? panelSide;
+
+  /// Explicit clipping behavior for the dropdown panel surface.
+  final Clip? panelClipBehavior;
+
   final Duration? animationDuration;
   final Curve? animationCurve;
   final InputDecoration? searchInputDecoration;
@@ -198,6 +230,12 @@ class DropifyThemeData extends ThemeExtension<DropifyThemeData>
     EdgeInsetsGeometry? panelPadding,
     double? panelMaxHeight,
     double? panelElevation,
+    Color? panelColor,
+    Color? panelShadowColor,
+    Color? panelSurfaceTintColor,
+    OutlinedBorder? panelShape,
+    BorderSide? panelSide,
+    Clip? panelClipBehavior,
     Duration? animationDuration,
     Curve? animationCurve,
     InputDecoration? searchInputDecoration,
@@ -240,6 +278,13 @@ class DropifyThemeData extends ThemeExtension<DropifyThemeData>
       panelPadding: panelPadding ?? this.panelPadding,
       panelMaxHeight: panelMaxHeight ?? this.panelMaxHeight,
       panelElevation: panelElevation ?? this.panelElevation,
+      panelColor: panelColor ?? this.panelColor,
+      panelShadowColor: panelShadowColor ?? this.panelShadowColor,
+      panelSurfaceTintColor:
+          panelSurfaceTintColor ?? this.panelSurfaceTintColor,
+      panelShape: panelShape ?? this.panelShape,
+      panelSide: panelSide ?? this.panelSide,
+      panelClipBehavior: panelClipBehavior ?? this.panelClipBehavior,
       animationDuration: animationDuration ?? this.animationDuration,
       animationCurve: animationCurve ?? this.animationCurve,
       searchInputDecoration:
@@ -297,6 +342,12 @@ class DropifyThemeData extends ThemeExtension<DropifyThemeData>
       panelPadding: child.panelPadding,
       panelMaxHeight: child.panelMaxHeight,
       panelElevation: child.panelElevation,
+      panelColor: child.panelColor,
+      panelShadowColor: child.panelShadowColor,
+      panelSurfaceTintColor: child.panelSurfaceTintColor,
+      panelShape: child.panelShape,
+      panelSide: child.panelSide,
+      panelClipBehavior: child.panelClipBehavior,
       animationDuration: child.animationDuration,
       animationCurve: child.animationCurve,
       searchInputDecoration: child.searchInputDecoration,
@@ -366,6 +417,22 @@ class DropifyThemeData extends ThemeExtension<DropifyThemeData>
       ),
       panelMaxHeight: ui.lerpDouble(panelMaxHeight, other.panelMaxHeight, t),
       panelElevation: ui.lerpDouble(panelElevation, other.panelElevation, t),
+      panelColor: Color.lerp(panelColor, other.panelColor, t),
+      panelShadowColor: Color.lerp(panelShadowColor, other.panelShadowColor, t),
+      panelSurfaceTintColor: Color.lerp(
+        panelSurfaceTintColor,
+        other.panelSurfaceTintColor,
+        t,
+      ),
+      panelShape: _lerpOutlinedBorder(panelShape, other.panelShape, t),
+      panelSide: panelSide == null && other.panelSide == null
+          ? null
+          : BorderSide.lerp(
+              panelSide ?? BorderSide.none,
+              other.panelSide ?? BorderSide.none,
+              t,
+            ),
+      panelClipBehavior: t < 0.5 ? panelClipBehavior : other.panelClipBehavior,
       searchTextStyle: TextStyle.lerp(
         searchTextStyle,
         other.searchTextStyle,
@@ -428,6 +495,15 @@ class _DropifyStateMessage extends StatelessWidget {
       ),
     );
   }
+}
+
+OutlinedBorder? _lerpOutlinedBorder(
+  OutlinedBorder? a,
+  OutlinedBorder? b,
+  double t,
+) {
+  final shape = ShapeBorder.lerp(a, b, t);
+  return shape is OutlinedBorder ? shape : null;
 }
 
 class _DropifyErrorMessage extends StatelessWidget {

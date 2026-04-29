@@ -83,8 +83,14 @@ DropifyFormField<String>(
 
 ```dart
 DropifyTheme(
-  data: DropifyThemeData.fromMaterial(context).copyWith(
+  data: DropifyThemeData.fromMaterial(Theme.of(context)).copyWith(
     panelMaxHeight: 360,
+    panelColor: Theme.of(context).colorScheme.surface,
+    panelElevation: 6,
+    panelShape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+    ),
+    panelClipBehavior: Clip.antiAlias,
   ),
   child: DropifyDropdown<String>(entries: entries),
 )

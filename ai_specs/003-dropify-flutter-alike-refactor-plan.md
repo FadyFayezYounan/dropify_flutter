@@ -34,18 +34,18 @@ Thin static slice first, then theme, async, paginated, journeys.
 - [x] Robot journey tests + selectors/seams for static single-select via `dropify.anchor`, `dropify.search.field`, visible row labels.
 - [x] Verify: `dart format . && flutter analyze && flutter test`
 
-### Phase 2: Theme Compatibility
+### Phase 2: Theme Compatibility (Complete)
 
 - **Goal**: Material chrome tokens without `panelDecoration` breakage.
-- [ ] `lib/src/theme/dropify_theme_data.dart` - add needed fields; constructor, `copyWith`, `merge`, `lerp`, `fromMaterial`, dartdoc.
-- [ ] `lib/src/internal/_dropify_panel.dart` - explicit token precedence; simple decoration mapping; legacy decoration fallback.
-- [ ] `test/internal/dropify_panel_test.dart` - panel Material/theme assertions; padding, clip, sticky header/footer.
-- [ ] `test/public_api_test.dart` - additive public theme field expectations if applicable.
-- [ ] `README.md` - theming snippet only if fields added.
-- [ ] TDD: explicit panel fields override conflicting `panelDecoration`.
-- [ ] TDD: representable `panelDecoration` maps without double painting.
-- [ ] TDD: non-representable decoration stays legacy when no explicit fields.
-- [ ] Verify: `dart format . && flutter analyze && flutter test`
+- [x] `lib/src/theme/dropify_theme_data.dart` - add needed fields; constructor, `copyWith`, `merge`, `lerp`, `fromMaterial`, dartdoc.
+- [x] `lib/src/internal/_dropify_panel.dart` - explicit token precedence; simple decoration mapping; legacy decoration fallback.
+- [x] `test/internal/dropify_panel_test.dart` - panel Material/theme assertions; padding, clip, sticky header/footer.
+- [x] `test/public_api_test.dart` - additive public theme field expectations if applicable.
+- [x] `README.md` - theming snippet only if fields added.
+- [x] TDD: explicit panel fields override conflicting `panelDecoration`.
+- [x] TDD: representable `panelDecoration` maps without double painting.
+- [x] TDD: non-representable decoration stays legacy when no explicit fields.
+- [x] Verify: `dart format . && flutter analyze && flutter test`
 
 ### Phase 3: Async Bodies
 
