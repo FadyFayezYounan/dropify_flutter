@@ -39,6 +39,39 @@ void main() {
     expect(find.text('Banana'), findsOneWidget);
   });
 
+  testWidgets('confirmable multi-select journey cancels and applies', (
+    tester,
+  ) async {
+    final robot = DropifyRobot(tester);
+    Set<String>? selected;
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        DropifyDropdown<String>.multi(
+          entries: fruitEntries,
+          hintText: 'Pick fruit',
+          confirmable: true,
+          itemLabelBuilder: _fruitLabel,
+          onChanged: (values) => selected = values,
+        ),
+      ),
+    );
+
+    await robot.openDropdown();
+    await robot.selectItem('Apple');
+    await robot.cancelMultiSelect();
+    robot.expectPanelClosed();
+    expect(selected, isNull);
+
+    await robot.openDropdown();
+    await robot.selectItem('Apple');
+    await robot.selectItem('Banana');
+    await robot.applyMultiSelect();
+
+    expect(selected, {'apple', 'banana'});
+    robot.expectPanelClosed();
+  });
+
   testWidgets('async journey retries, resolves, selects, and closes', (
     tester,
   ) async {

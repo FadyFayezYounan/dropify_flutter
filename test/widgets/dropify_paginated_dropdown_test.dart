@@ -1,5 +1,6 @@
 import 'package:dropify_flutter/dropify_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
@@ -161,6 +162,88 @@ void main() {
     await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
     await tester.pump();
     expect(find.byKey(const ValueKey<String>('noMoreItems')), findsOneWidget);
+  });
+
+  testWidgets('paginated outside tap and Escape close panel', (tester) async {
+    await _pumpRawPaginated(
+      tester,
+      state: DropifyPagingState<int, String>(
+        pages: const [
+          <String>['Alpha'],
+        ],
+        keys: const [0],
+        hasNextPage: false,
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey<String>('dropify.panel')), findsOneWidget);
+
+    await tester.tapAt(const Offset(790, 590));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey<String>('dropify.panel')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey<String>('dropify.panel')), findsNothing);
+  });
+
+  testWidgets('paginated controller and validation keep working', (
+    tester,
+  ) async {
+    final formKey = GlobalKey<FormState>();
+    final controller = DropifyController<String>.single();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        Form(
+          key: formKey,
+          child: DropifyPaginatedDropdown<int, String>(
+            state: DropifyPagingState<int, String>(
+              pages: const [
+                <String>['Alpha'],
+              ],
+              keys: const [0],
+              hasNextPage: false,
+            ),
+            fetchNextPage: () {},
+            controller: controller,
+            itemLabelBuilder: (item) => item,
+            searchable: false,
+            validator: (value) =>
+                value is DropifySingleValue<String> && value.value == null
+                ? 'Required'
+                : null,
+          ),
+        ),
+      ),
+    );
+
+    expect(formKey.currentState!.validate(), isFalse);
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('dropify.validation.error')),
+      findsOneWidget,
+    );
+
+    controller.open();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey<String>('dropify.panel')), findsOneWidget);
+    await tester.tap(find.text('Alpha'));
+    await tester.pumpAndSettle();
+
+    expect(controller.value, 'Alpha');
+    expect(formKey.currentState!.validate(), isTrue);
+
+    controller.open();
+    await tester.pumpAndSettle();
+    controller.close();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey<String>('dropify.panel')), findsNothing);
   });
 }
 

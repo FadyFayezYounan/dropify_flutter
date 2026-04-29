@@ -71,19 +71,19 @@ Thin static slice first, then theme, async, paginated, journeys.
 - [x] Robot journey tests + paginated seam via local harness; open, first load, next page, search.
 - [x] Verify: `dart format . && flutter analyze && flutter test`
 
-### Phase 5: Non-Regression Journeys
+### Phase 5: Non-Regression Journeys (Complete)
 
 - **Goal**: overlay, forms, multi-select, accessibility preserved end-to-end.
-- [ ] `test/robots/dropify_robot.dart` - key-first helpers: open, search, select, apply, cancel, assert panel state.
-- [ ] `test/journeys/dropify_menu_body_journey_test.dart` - static, async, paginated, confirmable multi-select journeys.
-- [ ] `test/widgets/dropify_static_dropdown_test.dart` - confirmable cancel/apply; disabled rows; identity via `keyOf`/`equals`.
-- [ ] `test/widgets/dropify_paginated_dropdown_test.dart` - outside tap, Escape, validation/controller non-regression where paginated risk exists.
-- [ ] `test/helpers/dropify_fixtures.dart` - stable data and test-only row key builders where raw widgets expose builders.
-- [ ] TDD: outside tap and Escape close without committing staged values.
-- [ ] TDD: confirmable Cancel discards; Apply commits and calls `onChangedMulti`.
-- [ ] TDD: horizontal clamp, above placement, `alignmentOffset`, `panelMaxHeight`, `matchAnchorWidth` preserved.
-- [ ] Robot journey tests + selectors/seams for confirmable multi-select; text rows only where public themed widgets lack row-key seam.
-- [ ] Verify: `dart format . && flutter analyze && flutter test`
+- [x] `test/robots/dropify_robot.dart` - key-first helpers: open, search, select, apply, cancel, assert panel state.
+- [x] `test/journeys/dropify_menu_body_journey_test.dart` - static, async, paginated, confirmable multi-select journeys.
+- [x] `test/widgets/dropify_static_dropdown_test.dart` - confirmable cancel/apply; disabled rows; identity via `keyOf`/`equals`.
+- [x] `test/widgets/dropify_paginated_dropdown_test.dart` - outside tap, Escape, validation/controller non-regression where paginated risk exists.
+- [x] `test/helpers/dropify_fixtures.dart` - stable data and test-only row key builders where raw widgets expose builders.
+- [x] TDD: outside tap and Escape close without committing staged values.
+- [x] TDD: confirmable Cancel discards; Apply commits and calls `onChangedMulti`.
+- [x] TDD: horizontal clamp, above placement, `alignmentOffset`, `panelMaxHeight`, `matchAnchorWidth` preserved.
+- [x] Robot journey tests + selectors/seams for confirmable multi-select; text rows only where public themed widgets lack row-key seam.
+- [x] Verify: `dart format . && flutter analyze && flutter test`
 
 ## Risks / Out of scope
 

@@ -1,5 +1,6 @@
 import 'package:dropify_flutter/dropify_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/dropify_fixtures.dart';
@@ -133,6 +134,201 @@ void main() {
     expect(selected, isNull);
     expect(find.byKey(const ValueKey<String>('dropify.panel')), findsOneWidget);
   });
+
+  testWidgets(
+    'confirmable multi-select cancel, outside tap, Escape, and apply',
+    (tester) async {
+      Set<String>? selected;
+
+      await tester.pumpWidget(
+        dropifyTestApp(
+          DropifyDropdown<String>.multi(
+            entries: fruitEntries,
+            hintText: 'Pick fruit',
+            confirmable: true,
+            itemLabelBuilder: _fruitLabel,
+            onChanged: (values) => selected = values,
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Apple'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('dropify.multi.cancel')),
+      );
+      await tester.pumpAndSettle();
+      expect(selected, isNull);
+      expect(find.byKey(const ValueKey<String>('dropify.panel')), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Apple'));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(790, 590));
+      await tester.pumpAndSettle();
+      expect(selected, isNull);
+
+      await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Apple'));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(selected, isNull);
+
+      await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Apple'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('dropify.multi.apply')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(selected, {'apple'});
+      expect(find.byKey(const ValueKey<String>('dropify.panel')), findsNothing);
+    },
+  );
+
+  testWidgets('static selection identity honors keyOf and equals', (
+    tester,
+  ) async {
+    final initial = _TestFruit(1, 'Initial apple');
+    _TestFruit? selected;
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        RawStaticDropify<_TestFruit>(
+          entries: const [
+            DropifyEntry(value: _TestFruit(1, 'Apple'), label: 'Apple'),
+            DropifyEntry(value: _TestFruit(2, 'Banana'), label: 'Banana'),
+          ],
+          initialValue: initial,
+          keyOf: (item) => item.id,
+          equals: (a, b) => a.id == b.id,
+          onChanged: (value) => selected = value,
+          anchorBuilder: (context, state) => TextButton(
+            key: const ValueKey<String>('dropify.anchor'),
+            onPressed: state.open,
+            child: Text(state.value?.label ?? 'Open'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.selectedIcon')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Banana'));
+    await tester.pumpAndSettle();
+
+    expect(selected?.id, 2);
+  });
+
+  testWidgets('overlay placement clamps, offsets, max height, and width', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 120,
+              child: RawDropify<String>(
+                initialValue: 'value',
+                alignmentOffset: const Offset(12, 8),
+                panelConstraints: const BoxConstraints(maxHeight: 80),
+                anchorBuilder: _rawAnchorBuilder,
+                panelBuilder: _largePanelBuilder,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    final anchorRect = tester.getRect(
+      find.byKey(const ValueKey<String>('dropify.anchor')),
+    );
+    final panelRect = tester.getRect(
+      find.byKey(const ValueKey<String>('dropify.panel')),
+    );
+    expect(panelRect.left, anchorRect.left + 12);
+    expect(panelRect.top, anchorRect.bottom + 8);
+    expect(panelRect.width, anchorRect.width);
+    expect(panelRect.height, lessThanOrEqualTo(80));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.bottomRight,
+            child: SizedBox(
+              width: 160,
+              child: RawDropify<String>(
+                initialValue: 'value',
+                alignmentOffset: const Offset(40, 4),
+                panelConstraints: const BoxConstraints(maxHeight: 120),
+                anchorBuilder: _rawAnchorBuilder,
+                panelBuilder: _largePanelBuilder,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    final bottomAnchorRect = tester.getRect(
+      find.byKey(const ValueKey<String>('dropify.anchor')),
+    );
+    final bottomPanelRect = tester.getRect(
+      find.byKey(const ValueKey<String>('dropify.panel')),
+    );
+    expect(bottomPanelRect.left, greaterThanOrEqualTo(0));
+    expect(bottomPanelRect.right, lessThanOrEqualTo(800));
+    expect(bottomPanelRect.bottom, lessThanOrEqualTo(bottomAnchorRect.top));
+  });
+}
+
+@immutable
+class _TestFruit {
+  const _TestFruit(this.id, this.label);
+
+  final int id;
+  final String label;
+}
+
+Widget _rawAnchorBuilder(
+  BuildContext context,
+  DropifyAnchorState<String> state,
+) {
+  return TextButton(
+    key: const ValueKey<String>('dropify.anchor'),
+    onPressed: state.open,
+    child: const Text('Open'),
+  );
+}
+
+Widget _largePanelBuilder(
+  BuildContext context,
+  DropifyPanelState<String> state,
+) {
+  return const SizedBox(width: 240, height: 240, child: Text('Panel body'));
 }
 
 Future<void> _pumpRawStaticDropdown(

@@ -570,38 +570,43 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
               child: TapRegion(
                 groupId: info.tapRegionGroupId,
                 onTapOutside: (_) => _close(),
-                child: Shortcuts(
-                  shortcuts: const <ShortcutActivator, Intent>{
-                    SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
-                  },
-                  child: Actions(
-                    actions: <Type, Action<Intent>>{
-                      DismissIntent: CallbackAction<DismissIntent>(
-                        onInvoke: (_) {
-                          _close();
-                          return null;
-                        },
-                      ),
+                child: Focus(
+                  focusNode: _panelFocusNode,
+                  autofocus: true,
+                  child: Shortcuts(
+                    shortcuts: const <ShortcutActivator, Intent>{
+                      SingleActivator(LogicalKeyboardKey.escape):
+                          DismissIntent(),
                     },
-                    child: DropifyPanel(
-                      anchorWidth: info.anchorRect.width,
-                      matchAnchorWidth: widget.matchAnchorWidth,
-                      constraints: panelConstraints,
-                      searchable: widget.searchable,
-                      searchController: _searchController,
-                      searchHintText: widget.searchHintText,
-                      onSearchChanged: (query) {
-                        setState(() {});
-                        widget.onSearchChanged?.call(query);
+                    child: Actions(
+                      actions: <Type, Action<Intent>>{
+                        DismissIntent: CallbackAction<DismissIntent>(
+                          onInvoke: (_) {
+                            _close();
+                            return null;
+                          },
+                        ),
                       },
-                      confirmable:
-                          widget.confirmable &&
-                          widget.selectionMode == DropifySelectionMode.multi,
-                      confirmLabel: widget.confirmLabel,
-                      cancelLabel: widget.cancelLabel,
-                      onApply: () => _apply(field),
-                      onCancel: _close,
-                      child: widget.panelBuilder(context, panelState),
+                      child: DropifyPanel(
+                        anchorWidth: info.anchorRect.width,
+                        matchAnchorWidth: widget.matchAnchorWidth,
+                        constraints: panelConstraints,
+                        searchable: widget.searchable,
+                        searchController: _searchController,
+                        searchHintText: widget.searchHintText,
+                        onSearchChanged: (query) {
+                          setState(() {});
+                          widget.onSearchChanged?.call(query);
+                        },
+                        confirmable:
+                            widget.confirmable &&
+                            widget.selectionMode == DropifySelectionMode.multi,
+                        confirmLabel: widget.confirmLabel,
+                        cancelLabel: widget.cancelLabel,
+                        onApply: () => _apply(field),
+                        onCancel: _close,
+                        child: widget.panelBuilder(context, panelState),
+                      ),
                     ),
                   ),
                 ),

@@ -28,6 +28,18 @@ class DropifyRobot {
     await tester.pumpAndSettle();
   }
 
+  Future<void> cancelMultiSelect() async {
+    await tester.tap(
+      find.byKey(const ValueKey<String>('dropify.multi.cancel')),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> applyMultiSelect() async {
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.multi.apply')));
+    await tester.pumpAndSettle();
+  }
+
   void expectPanelOpen() {
     expect(find.byKey(const ValueKey<String>('dropify.panel')), findsOneWidget);
   }

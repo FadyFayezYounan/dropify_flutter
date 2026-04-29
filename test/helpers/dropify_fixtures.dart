@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dropify_flutter/dropify_flutter.dart';
+import 'package:flutter/material.dart';
 
 class ControlledStringFetcher {
   final requests = <ControlledStringRequest>[];
@@ -45,4 +46,31 @@ Future<List<String>> fakeStringFetcher(
       .map((entry) => entry.value)
       .where((value) => value.contains(query))
       .toList(growable: false);
+}
+
+Widget keyedStringItemBuilder(
+  BuildContext context,
+  String item,
+  bool selected,
+  VoidCallback onTap,
+) {
+  return InkWell(
+    key: ValueKey<String>('dropify.test.row.$item'),
+    onTap: onTap,
+    child: SizedBox(height: 40, child: Text(item)),
+  );
+}
+
+Widget keyedPaginatedStringItemBuilder(
+  BuildContext context,
+  String item,
+  int index,
+  bool selected,
+  VoidCallback onTap,
+) {
+  return InkWell(
+    key: ValueKey<String>('dropify.test.pageRow.$index.$item'),
+    onTap: onTap,
+    child: SizedBox(height: 40, child: Text(item)),
+  );
 }
