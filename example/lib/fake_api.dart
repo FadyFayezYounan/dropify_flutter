@@ -9,17 +9,21 @@ class Country {
   final String name;
 }
 
-const countries = <Country>[
-  Country('eg', 'Egypt'),
-  Country('us', 'United States'),
-  Country('gb', 'United Kingdom'),
-  Country('fr', 'France'),
-  Country('de', 'Germany'),
-  Country('jp', 'Japan'),
-  Country('br', 'Brazil'),
-  Country('ca', 'Canada'),
-  Country('au', 'Australia'),
-  Country('in', 'India'),
+final countries = <Country>[
+  const Country('eg', 'Egypt'),
+  const Country('us', 'United States'),
+  const Country('gb', 'United Kingdom'),
+  const Country('fr', 'France'),
+  const Country('de', 'Germany'),
+  const Country('jp', 'Japan'),
+  const Country('br', 'Brazil'),
+  const Country('ca', 'Canada'),
+  const Country('au', 'Australia'),
+  const Country('in', 'India'),
+  ...List.generate(
+    100,
+    (index) => Country('dummy_$index', 'Dummy Country ${index + 1}'),
+  ),
 ];
 
 Future<List<Country>> searchCountries(
