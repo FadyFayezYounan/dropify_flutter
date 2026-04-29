@@ -1,8 +1,11 @@
 import 'dart:async';
 
-class DropifyDebouncer {
+/// A debouncer that delays the execution of a callback.
+final class DropifyDebouncer {
+  /// Creates a new debouncer with the specified delay.
   DropifyDebouncer(this.delay);
 
+  /// The delay between calls.
   final Duration delay;
   Timer? _timer;
 
