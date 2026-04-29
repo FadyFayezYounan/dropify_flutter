@@ -81,6 +81,30 @@ void main() {
     expect(selected, 'Remote Banana');
     robot.expectPanelClosed();
   });
+
+  testWidgets('paginated journey loads pages and delegates search', (
+    tester,
+  ) async {
+    final controller = DropifyPaginatedHarnessController();
+    final robot = DropifyRobot(tester);
+
+    await tester.pumpWidget(
+      dropifyTestApp(DropifyPaginatedHarness(controller: controller)),
+    );
+
+    await robot.openDropdown();
+    robot.expectPanelOpen();
+    expect(find.text('Alpha'), findsOneWidget);
+    expect(controller.fetchNextPageCalls, greaterThanOrEqualTo(1));
+
+    await tester.pumpAndSettle();
+    expect(find.text('Gamma'), findsOneWidget);
+
+    await robot.enterSearch('ga');
+
+    expect(controller.searchQueries, const ['ga']);
+    expect(controller.pagingState.search, 'ga');
+  });
 }
 
 String _fruitLabel(String value) {

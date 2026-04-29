@@ -59,17 +59,17 @@ Thin static slice first, then theme, async, paginated, journeys.
 - [x] Robot journey tests + async seam via controlled `Completer`; open, loading, resolve, select, retry.
 - [x] Verify: `dart format . && flutter analyze && flutter test`
 
-### Phase 4: Paginated Bodies
+### Phase 4: Paginated Bodies (Complete)
 
 - **Goal**: `PagedListView` shell participation; caller-owned paging intact.
-- [ ] `lib/src/widgets/raw_paginated_dropify.dart` - shell around `PagedListView`; pass `scrollController`; `primary: false`; zero padding; no nested scrollable.
-- [ ] `test/widgets/dropify_paginated_dropdown_test.dart` - fetch, first/new page states, errors, no items, no more, search callback.
-- [ ] `test/helpers/dropify_test_app.dart` - paginated harness with caller-owned `PagingState` transitions.
-- [ ] TDD: opening defers first fetch and never mutates paging state internally.
-- [ ] TDD: `fetchNextPage` remains caller-owned; delegate state builders still resolve.
-- [ ] TDD: search calls `onSearchChanged`; caller resets/refetches.
-- [ ] Robot journey tests + paginated seam via local harness; open, first load, next page, search.
-- [ ] Verify: `dart format . && flutter analyze && flutter test`
+- [x] `lib/src/widgets/raw_paginated_dropify.dart` - shell around `PagedListView`; pass `scrollController`; `primary: false`; zero padding; no nested scrollable.
+- [x] `test/widgets/dropify_paginated_dropdown_test.dart` - fetch, first/new page states, errors, no items, no more, search callback.
+- [x] `test/helpers/dropify_test_app.dart` - paginated harness with caller-owned `PagingState` transitions.
+- [x] TDD: opening defers first fetch and never mutates paging state internally.
+- [x] TDD: `fetchNextPage` remains caller-owned; delegate state builders still resolve.
+- [x] TDD: search calls `onSearchChanged`; caller resets/refetches.
+- [x] Robot journey tests + paginated seam via local harness; open, first load, next page, search.
+- [x] Verify: `dart format . && flutter analyze && flutter test`
 
 ### Phase 5: Non-Regression Journeys
 

@@ -8,6 +8,7 @@ import '../core/dropify_selection.dart';
 import '../core/dropify_value.dart';
 import '../core/raw_dropify.dart';
 import '../internal/_debouncer.dart';
+import '../internal/_dropify_menu_scroll_shell.dart';
 import '../theme/dropify_theme.dart';
 
 /// Builds paginated Dropify items.
@@ -278,47 +279,52 @@ class _PaginatedBodyState<PageKey, T>
   @override
   Widget build(BuildContext context) {
     final theme = DropifyTheme.of(context);
-    return PagedListView<PageKey, T>(
-      // shrinkWrap: true,
-      state: widget.state,
-      fetchNextPage: () => unawaited(Future<void>.sync(widget.fetchNextPage)),
-      builderDelegate: PagedChildBuilderDelegate<T>(
-        invisibleItemsThreshold: widget.invisibleItemsThreshold,
-        itemBuilder: (context, item, index) {
-          return widget.itemBuilder(
-            context,
-            item,
-            index,
-            widget.panelState.isSelected(item),
-            () {
-              if (widget.panelState.mode == DropifySelectionMode.single) {
-                widget.panelState.select(item);
-              } else {
-                widget.panelState.toggle(item);
-              }
-            },
-          );
-        },
-        firstPageProgressIndicatorBuilder:
-            widget.firstPageProgressBuilder ?? theme.firstPageProgressBuilder,
-        newPageProgressIndicatorBuilder:
-            widget.newPageProgressBuilder ?? theme.newPageProgressBuilder,
-        firstPageErrorIndicatorBuilder: (context) {
-          final error = widget.state.error ?? 'Unknown error';
-          return (widget.firstPageErrorBuilder ?? theme.firstPageErrorBuilder)
-                  ?.call(context, error, widget.fetchNextPage) ??
-              Center(child: Text(error.toString()));
-        },
-        newPageErrorIndicatorBuilder: (context) {
-          final error = widget.state.error ?? 'Unknown error';
-          return (widget.newPageErrorBuilder ?? theme.newPageErrorBuilder)
-                  ?.call(context, error, widget.fetchNextPage) ??
-              Center(child: Text(error.toString()));
-        },
-        noItemsFoundIndicatorBuilder:
-            widget.noItemsFoundBuilder ?? theme.noResultsBuilder,
-        noMoreItemsIndicatorBuilder:
-            widget.noMoreItemsBuilder ?? theme.noMoreItemsBuilder,
+    return DropifyMenuScrollShell(
+      builder: (context, controller) => PagedListView<PageKey, T>(
+        scrollController: controller,
+        primary: false,
+        shrinkWrap: false,
+        padding: EdgeInsets.zero,
+        state: widget.state,
+        fetchNextPage: () => unawaited(Future<void>.sync(widget.fetchNextPage)),
+        builderDelegate: PagedChildBuilderDelegate<T>(
+          invisibleItemsThreshold: widget.invisibleItemsThreshold,
+          itemBuilder: (context, item, index) {
+            return widget.itemBuilder(
+              context,
+              item,
+              index,
+              widget.panelState.isSelected(item),
+              () {
+                if (widget.panelState.mode == DropifySelectionMode.single) {
+                  widget.panelState.select(item);
+                } else {
+                  widget.panelState.toggle(item);
+                }
+              },
+            );
+          },
+          firstPageProgressIndicatorBuilder:
+              widget.firstPageProgressBuilder ?? theme.firstPageProgressBuilder,
+          newPageProgressIndicatorBuilder:
+              widget.newPageProgressBuilder ?? theme.newPageProgressBuilder,
+          firstPageErrorIndicatorBuilder: (context) {
+            final error = widget.state.error ?? 'Unknown error';
+            return (widget.firstPageErrorBuilder ?? theme.firstPageErrorBuilder)
+                    ?.call(context, error, widget.fetchNextPage) ??
+                Center(child: Text(error.toString()));
+          },
+          newPageErrorIndicatorBuilder: (context) {
+            final error = widget.state.error ?? 'Unknown error';
+            return (widget.newPageErrorBuilder ?? theme.newPageErrorBuilder)
+                    ?.call(context, error, widget.fetchNextPage) ??
+                Center(child: Text(error.toString()));
+          },
+          noItemsFoundIndicatorBuilder:
+              widget.noItemsFoundBuilder ?? theme.noResultsBuilder,
+          noMoreItemsIndicatorBuilder:
+              widget.noMoreItemsBuilder ?? theme.noMoreItemsBuilder,
+        ),
       ),
     );
   }
