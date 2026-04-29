@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../internal/_dropify_panel.dart';
+import '../theme/dropify_theme.dart';
 import 'dropify_controller.dart';
 import 'dropify_selection.dart';
 import 'dropify_value.dart';
@@ -483,6 +486,65 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
           onOpen: _handleOpened,
           onClose: _handleClosed,
           overlayBuilder: (context, info) {
+            final theme = DropifyTheme.of(context);
+            final baseConstraints = widget.panelConstraints;
+            final defaultMaxHeight = theme.panelMaxHeight ?? 320;
+            final requestedMaxHeight = _finiteOr(
+              baseConstraints?.maxHeight,
+              defaultMaxHeight,
+            );
+            final belowTop = info.anchorRect.bottom + widget.alignmentOffset.dy;
+            final belowSpace = math.max(
+              0.0,
+              info.overlaySize.height - belowTop,
+            );
+            final aboveSpace = math.max(
+              0.0,
+              info.anchorRect.top - widget.alignmentOffset.dy,
+            );
+            final placeAbove =
+                belowSpace < requestedMaxHeight && aboveSpace > belowSpace;
+            final availableHeight = placeAbove ? aboveSpace : belowSpace;
+            final panelMaxHeight = math.min(
+              requestedMaxHeight,
+              availableHeight,
+            );
+            final top = placeAbove
+                ? math.max(
+                    0.0,
+                    info.anchorRect.top -
+                        widget.alignmentOffset.dy -
+                        panelMaxHeight,
+                  )
+                : belowTop;
+            final requestedMaxWidth = _finiteOr(
+              baseConstraints?.maxWidth,
+              widget.matchAnchorWidth
+                  ? info.anchorRect.width
+                  : info.overlaySize.width,
+            );
+            final clampWidth = math.min(
+              requestedMaxWidth,
+              info.overlaySize.width,
+            );
+            final desiredLeft =
+                info.anchorRect.left + widget.alignmentOffset.dx;
+            final left = desiredLeft
+                .clamp(0.0, math.max(0.0, info.overlaySize.width - clampWidth))
+                .toDouble();
+            final availableWidth = math.max(0.0, info.overlaySize.width - left);
+            final panelMaxWidth = math.min(requestedMaxWidth, availableWidth);
+            final requestedMinWidth =
+                baseConstraints?.minWidth ??
+                (widget.matchAnchorWidth ? info.anchorRect.width : 0.0);
+            final panelMinWidth = math.min(requestedMinWidth, panelMaxWidth);
+            final requestedMinHeight = baseConstraints?.minHeight ?? 0.0;
+            final panelConstraints = BoxConstraints(
+              minWidth: panelMinWidth,
+              maxWidth: panelMaxWidth,
+              minHeight: math.min(requestedMinHeight, panelMaxHeight),
+              maxHeight: panelMaxHeight,
+            );
             final panelState = DropifyPanelState<T>(
               mode: widget.selectionMode,
               value: _controller.value,
@@ -503,8 +565,8 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
               focusScope: _panelFocusNode,
             );
             return Positioned(
-              left: info.anchorRect.left + widget.alignmentOffset.dx,
-              top: info.anchorRect.bottom + widget.alignmentOffset.dy,
+              left: left,
+              top: top,
               child: TapRegion(
                 groupId: info.tapRegionGroupId,
                 onTapOutside: (_) => _close(),
@@ -524,7 +586,7 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
                     child: DropifyPanel(
                       anchorWidth: info.anchorRect.width,
                       matchAnchorWidth: widget.matchAnchorWidth,
-                      constraints: widget.panelConstraints,
+                      constraints: panelConstraints,
                       searchable: widget.searchable,
                       searchController: _searchController,
                       searchHintText: widget.searchHintText,
@@ -557,4 +619,8 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
       },
     );
   }
+}
+
+double _finiteOr(double? value, double fallback) {
+  return value != null && value.isFinite ? value : fallback;
 }

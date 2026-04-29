@@ -51,6 +51,7 @@ class DropifyDefaultAnchor<T> extends StatelessWidget {
         : colorScheme.error;
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: 4,
       children: [

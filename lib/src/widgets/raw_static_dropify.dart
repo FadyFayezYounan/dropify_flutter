@@ -6,6 +6,7 @@ import '../core/dropify_selection.dart';
 import '../core/dropify_value.dart';
 import '../core/raw_dropify.dart';
 import '../internal/_default_matcher.dart';
+import '../internal/_dropify_menu_scroll_shell.dart';
 import '../theme/dropify_theme.dart';
 
 /// Builds a static Dropify entry.
@@ -138,21 +139,29 @@ class RawStaticDropify<T> extends StatelessWidget {
         return builder(context, entry, selected, onTap);
       }
 
-      if (entries.length > 50) {
-        return ListView.builder(
-          padding: EdgeInsets.zero,
-          shrinkWrap: true,
-          itemCount: filtered.length,
-          itemBuilder: buildEntry,
+      if (filtered.length > 50) {
+        return DropifyMenuScrollShell(
+          builder: (context, controller) => ListView.builder(
+            controller: controller,
+            primary: false,
+            padding: EdgeInsets.zero,
+            shrinkWrap: false,
+            itemCount: filtered.length,
+            itemBuilder: buildEntry,
+          ),
         );
       }
-      return SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var index = 0; index < filtered.length; index++)
-              buildEntry(context, index),
-          ],
+      return DropifyMenuScrollShell(
+        builder: (context, controller) => SingleChildScrollView(
+          controller: controller,
+          primary: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var index = 0; index < filtered.length; index++)
+                buildEntry(context, index),
+            ],
+          ),
         ),
       );
     }

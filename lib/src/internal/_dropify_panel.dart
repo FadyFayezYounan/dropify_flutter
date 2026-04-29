@@ -38,6 +38,7 @@ class DropifyPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = DropifyTheme.of(context);
+    final decoration = theme.panelDecoration;
     final panelConstraints =
         constraints ??
         BoxConstraints(
@@ -46,52 +47,80 @@ class DropifyPanel extends StatelessWidget {
           maxWidth: matchAnchorWidth ? anchorWidth : double.infinity,
         );
     return Material(
-      type: MaterialType.transparency,
+      color: _panelColor(context, decoration),
+      elevation: theme.panelElevation ?? 0,
+      shadowColor: Theme.of(context).colorScheme.shadow,
+      surfaceTintColor: Theme.of(context).colorScheme.surfaceTint,
+      shape: _panelShape(decoration),
+      clipBehavior: Clip.none,
+      type: MaterialType.canvas,
       child: ConstrainedBox(
+        key: const ValueKey<String>('dropify.panel'),
         constraints: panelConstraints,
-        child: DecoratedBox(
-          key: const ValueKey<String>('dropify.panel'),
-          decoration: theme.panelDecoration ?? const BoxDecoration(),
-          child: Padding(
-            padding: theme.panelPadding ?? EdgeInsets.zero,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (searchable)
-                  DropifySearchField(
-                    controller: searchController,
-                    onChanged: onSearchChanged,
-                    hintText: searchHintText,
+        child: Padding(
+          padding: theme.panelPadding ?? EdgeInsets.zero,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (searchable)
+                DropifySearchField(
+                  controller: searchController,
+                  onChanged: onSearchChanged,
+                  hintText: searchHintText,
+                ),
+              Flexible(child: child),
+              if (confirmable)
+                Padding(
+                  key: const ValueKey<String>('dropify.multi.footer'),
+                  padding: theme.footerPadding ?? EdgeInsets.zero,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    spacing: 8,
+                    children: [
+                      TextButton(
+                        key: const ValueKey<String>('dropify.multi.cancel'),
+                        style: theme.cancelButtonStyle,
+                        onPressed: onCancel,
+                        child: Text(cancelLabel ?? 'Cancel'),
+                      ),
+                      FilledButton(
+                        key: const ValueKey<String>('dropify.multi.apply'),
+                        style: theme.confirmButtonStyle,
+                        onPressed: onApply,
+                        child: Text(confirmLabel ?? 'Apply'),
+                      ),
+                    ],
                   ),
-                Flexible(child: child),
-                if (confirmable)
-                  Padding(
-                    key: const ValueKey<String>('dropify.multi.footer'),
-                    padding: theme.footerPadding ?? EdgeInsets.zero,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      spacing: 8,
-                      children: [
-                        TextButton(
-                          key: const ValueKey<String>('dropify.multi.cancel'),
-                          style: theme.cancelButtonStyle,
-                          onPressed: onCancel,
-                          child: Text(cancelLabel ?? 'Cancel'),
-                        ),
-                        FilledButton(
-                          key: const ValueKey<String>('dropify.multi.apply'),
-                          style: theme.confirmButtonStyle,
-                          onPressed: onApply,
-                          child: Text(confirmLabel ?? 'Apply'),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ),
     );
   }
+}
+
+Color? _panelColor(BuildContext context, BoxDecoration? decoration) {
+  return decoration?.color ?? Theme.of(context).colorScheme.surface;
+}
+
+OutlinedBorder _panelShape(BoxDecoration? decoration) {
+  final borderRadius = decoration?.borderRadius;
+  return RoundedRectangleBorder(
+    borderRadius: borderRadius is BorderRadius
+        ? borderRadius
+        : BorderRadius.zero,
+    side: _panelSide(decoration?.border) ?? BorderSide.none,
+  );
+}
+
+BorderSide? _panelSide(BoxBorder? border) {
+  if (border is! Border) {
+    return null;
+  }
+  final top = border.top;
+  if (top == border.right && top == border.bottom && top == border.left) {
+    return top;
+  }
+  return null;
 }
