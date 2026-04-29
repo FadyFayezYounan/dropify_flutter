@@ -53,5 +53,10 @@ void main() {
     expect(materialDefaults.panelSide, isNotNull);
     expect(materialDefaults.panelClipBehavior, Clip.none);
     expect(materialDefaults.panelDecoration?.boxShadow, isNull);
+    expect(materialDefaults.anchorDecorationTheme, isNotNull);
+    expect(
+      materialDefaults.anchorDecorationTheme?.border,
+      isA<OutlineInputBorder>(),
+    );
   });
 }

@@ -61,6 +61,11 @@ class DropifyThemeData extends ThemeExtension<DropifyThemeData>
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     return DropifyThemeData(
+      anchorDecorationTheme: const InputDecorationTheme(
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        isDense: true,
+      ),
       trailingIcon: Icons.keyboard_arrow_down,
       clearIcon: Icons.close,
       anchorValueTextStyle: textTheme.bodyLarge,

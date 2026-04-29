@@ -51,6 +51,156 @@ void main() {
     },
   );
 
+  testWidgets('default anchor uses Material InputDecorator chrome', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      dropifyTestApp(
+        const SizedBox(
+          width: 280,
+          child: DropifyDropdown<String>(
+            entries: fruitEntries,
+            label: 'Fruit',
+            hintText: 'Pick fruit',
+            helperText: 'Choose one fruit',
+            prefixIcon: Icon(Icons.local_grocery_store),
+            itemLabelBuilder: _fruitLabel,
+          ),
+        ),
+      ),
+    );
+
+    final inputDecorator = tester.widget<InputDecorator>(
+      find.byType(InputDecorator),
+    );
+    expect(inputDecorator.decoration.labelText, 'Fruit');
+    expect(inputDecorator.decoration.hintText, 'Pick fruit');
+    expect(inputDecorator.decoration.helperText, 'Choose one fruit');
+    expect(inputDecorator.decoration.prefixIcon, isA<Icon>());
+    expect(inputDecorator.isEmpty, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Banana'));
+    await tester.pumpAndSettle();
+
+    final selectedDecorator = tester.widget<InputDecorator>(
+      find.byType(InputDecorator),
+    );
+    expect(selectedDecorator.isEmpty, isFalse);
+    expect(find.text('Banana'), findsOneWidget);
+  });
+
+  testWidgets('default anchor applies anchor decoration theme', (tester) async {
+    const fillColor = Color(0xfff1e6ff);
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        DropifyTheme(
+          data: const DropifyThemeData(
+            anchorDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: fillColor,
+              contentPadding: EdgeInsets.all(24),
+            ),
+          ),
+          child: const SizedBox(
+            width: 280,
+            child: DropifyDropdown<String>(
+              entries: fruitEntries,
+              hintText: 'Pick fruit',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final inputDecorator = tester.widget<InputDecorator>(
+      find.byType(InputDecorator),
+    );
+    expect(inputDecorator.decoration.filled, isTrue);
+    expect(inputDecorator.decoration.fillColor, fillColor);
+    expect(inputDecorator.decoration.contentPadding, const EdgeInsets.all(24));
+  });
+
+  testWidgets('default anchor renders validation and clear affordance', (
+    tester,
+  ) async {
+    final formKey = GlobalKey<FormState>();
+    String? selected = 'apple';
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        Form(
+          key: formKey,
+          child: SizedBox(
+            width: 280,
+            child: DropifyDropdown<String>(
+              entries: fruitEntries,
+              initialValue: 'apple',
+              showClearButton: true,
+              itemLabelBuilder: _fruitLabel,
+              onChanged: (value) => selected = value,
+              validator: (value) =>
+                  value is DropifySingleValue<String> && value.value == null
+                  ? 'Required'
+                  : null,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Apple'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('dropify.anchor.clear')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('dropify.anchor.clear')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(selected, isNull);
+    expect(formKey.currentState!.validate(), isFalse);
+    await tester.pump();
+
+    final inputDecorator = tester.widget<InputDecorator>(
+      find.byType(InputDecorator),
+    );
+    expect(inputDecorator.decoration.error, isA<Text>());
+    expect(
+      find.byKey(const ValueKey<String>('dropify.validation.error')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('disabled default anchor does not open panel', (tester) async {
+    await tester.pumpWidget(
+      dropifyTestApp(
+        const SizedBox(
+          width: 280,
+          child: DropifyDropdown<String>(
+            entries: fruitEntries,
+            hintText: 'Pick fruit',
+            enabled: false,
+          ),
+        ),
+      ),
+    );
+
+    final inputDecorator = tester.widget<InputDecorator>(
+      find.byType(InputDecorator),
+    );
+    expect(inputDecorator.decoration.enabled, isFalse);
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey<String>('dropify.panel')), findsNothing);
+  });
+
   testWidgets('static rows choose eager or lazy body from filtered count', (
     tester,
   ) async {
