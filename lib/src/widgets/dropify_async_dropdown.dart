@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/dropify_controller.dart';
 import '../core/dropify_selection.dart';
 import '../core/dropify_value.dart';
+import '../internal/_dropify_menu_item_button.dart';
 import 'raw_async_dropify.dart';
 import '_dropify_themed_helpers.dart';
 
@@ -169,8 +170,13 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
       return RawAsyncDropify<T>(
         fetcher: fetcher,
         anchorBuilder: anchor,
-        itemBuilder: (context, item, selected, onTap) =>
-            themedItem(context, item, selected, onTap, itemLabelBuilder),
+        itemBuilder: (context, item, selected, onTap) => DropifyMenuItemButton(
+          itemKey: dropifyMenuItemKey(keyOf?.call(item), item),
+          semanticsLabel: itemLabelBuilder(item),
+          selected: selected,
+          onPressed: onTap,
+          child: Text(itemLabelBuilder(item)),
+        ),
         controller: controller,
         initialValue: initialValue,
         onChanged: onChanged,
@@ -187,8 +193,13 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
     return RawAsyncDropify<T>.multi(
       fetcher: fetcher,
       anchorBuilder: anchor,
-      itemBuilder: (context, item, selected, onTap) =>
-          themedItem(context, item, selected, onTap, itemLabelBuilder),
+      itemBuilder: (context, item, selected, onTap) => DropifyMenuItemButton(
+        itemKey: dropifyMenuItemKey(keyOf?.call(item), item),
+        semanticsLabel: itemLabelBuilder(item),
+        selected: selected,
+        onPressed: onTap,
+        child: Text(itemLabelBuilder(item)),
+      ),
       controller: controller,
       initialValues: initialValues,
       onChanged: onChangedMulti,

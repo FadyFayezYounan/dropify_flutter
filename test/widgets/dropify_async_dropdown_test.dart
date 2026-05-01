@@ -7,6 +7,38 @@ import 'package:flutter_test/flutter_test.dart';
 import '../helpers/dropify_test_app.dart';
 
 void main() {
+  testWidgets('themed async default item exposes selected semantics', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      dropifyTestApp(
+        DropifyAsyncDropdown<String>(
+          fetcher: (query, {required cancel}) async => const ['Remote'],
+          itemLabelBuilder: (item) => item,
+          keyOf: (item) => item,
+          initialValue: 'Remote',
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'Remote' &&
+            widget.properties.selected == true,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.Remote')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('loaded async data uses lazy shell and preserves selection', (
     tester,
   ) async {

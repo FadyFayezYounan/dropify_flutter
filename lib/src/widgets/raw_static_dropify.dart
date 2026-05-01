@@ -6,6 +6,7 @@ import '../core/dropify_selection.dart';
 import '../core/dropify_value.dart';
 import '../core/raw_dropify.dart';
 import '../internal/_default_matcher.dart';
+import '../internal/_dropify_menu_item_button.dart';
 import '../internal/_dropify_menu_scroll_shell.dart';
 import '../theme/dropify_theme.dart';
 
@@ -204,8 +205,20 @@ class RawStaticDropify<T> extends StatelessWidget {
                 }
               }
             : null;
-        final builder = entryBuilder ?? _defaultEntryBuilder<T>;
-        return builder(context, entry, selected, onTap);
+        final builder = entryBuilder;
+        if (builder != null) {
+          return builder(context, entry, selected, onTap);
+        }
+        final label = entry.label ?? entry.value.toString();
+        return DropifyMenuItemButton(
+          itemKey: dropifyMenuItemKey(keyOf?.call(entry.value), entry.value),
+          semanticsLabel: label,
+          selected: selected,
+          leadingIcon: entry.leading,
+          trailingIcon: entry.trailing,
+          onPressed: onTap,
+          child: Text(label),
+        );
       }
 
       if (filtered.length > 50) {
@@ -281,52 +294,4 @@ class RawStaticDropify<T> extends StatelessWidget {
       cancelLabel: cancelLabel,
     );
   }
-}
-
-Widget _defaultEntryBuilder<T>(
-  BuildContext context,
-  DropifyEntry<T> entry,
-  bool selected,
-  VoidCallback? onTap,
-) {
-  final theme = DropifyTheme.of(context);
-  final child = InkWell(
-    onTap: onTap,
-    child: Container(
-      key: ValueKey<String>('dropify.item.${entry.value.hashCode}'),
-      padding: theme.entryPadding,
-      decoration: selected ? theme.entrySelectedDecoration : null,
-      child: Row(
-        spacing: theme.entrySpacing ?? 8,
-        children: [
-          if (entry.leading != null) entry.leading!,
-          Expanded(
-            child: Text(
-              entry.label ?? entry.value.toString(),
-              style: entry.enabled
-                  ? theme.entryTextStyle
-                  : theme.entryDisabledTextStyle,
-            ),
-          ),
-          if (entry.trailing != null) entry.trailing!,
-          if (selected)
-            Icon(
-              key: const ValueKey<String>('dropify.item.selectedIcon'),
-              theme.entrySelectedIcon,
-              size: 18,
-            ),
-        ],
-      ),
-    ),
-  );
-  return Semantics(
-    button: true,
-    selected: selected,
-    enabled: entry.enabled,
-    label: entry.label ?? entry.value.toString(),
-    child: IgnorePointer(
-      ignoring: !entry.enabled,
-      child: Opacity(opacity: entry.enabled ? 1 : 0.5, child: child),
-    ),
-  );
 }

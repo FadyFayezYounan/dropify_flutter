@@ -7,6 +7,46 @@ import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import '../helpers/dropify_test_app.dart';
 
 void main() {
+  testWidgets('themed paginated default item exposes selected semantics', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      dropifyTestApp(
+        DropifyPaginatedDropdown<int, String>(
+          state: DropifyPagingState<int, String>(
+            pages: const [
+              <String>['Alpha'],
+            ],
+            keys: const [0],
+            hasNextPage: false,
+          ),
+          fetchNextPage: () {},
+          itemLabelBuilder: (item) => item,
+          keyOf: (item) => item,
+          initialValue: 'Alpha',
+          searchable: false,
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'Alpha' &&
+            widget.properties.selected == true,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.Alpha')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('opening paginated dropdown defers initial load outside build', (
     tester,
   ) async {

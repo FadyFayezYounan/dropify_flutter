@@ -376,6 +376,10 @@ void main() {
       find.byKey(const ValueKey<String>('dropify.item.selectedIcon')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.1')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Banana'));
     await tester.pumpAndSettle();

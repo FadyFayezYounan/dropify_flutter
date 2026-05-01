@@ -6,6 +6,7 @@ import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import '../core/dropify_controller.dart';
 import '../core/dropify_selection.dart';
 import '../core/dropify_value.dart';
+import '../internal/_dropify_menu_item_button.dart';
 import 'raw_paginated_dropify.dart';
 import '_dropify_themed_helpers.dart';
 
@@ -187,7 +188,13 @@ class DropifyPaginatedDropdown<PageKey, T> extends StatelessWidget {
         onSearchChanged: onSearchChanged,
         anchorBuilder: anchor,
         itemBuilder: (context, item, index, selected, onTap) =>
-            themedItem(context, item, selected, onTap, itemLabelBuilder),
+            DropifyMenuItemButton(
+              itemKey: dropifyMenuItemKey(keyOf?.call(item), item),
+              semanticsLabel: itemLabelBuilder(item),
+              selected: selected,
+              onPressed: onTap,
+              child: Text(itemLabelBuilder(item)),
+            ),
         controller: controller,
         initialValue: initialValue,
         onChanged: onChanged,
@@ -207,7 +214,13 @@ class DropifyPaginatedDropdown<PageKey, T> extends StatelessWidget {
       onSearchChanged: onSearchChanged,
       anchorBuilder: anchor,
       itemBuilder: (context, item, index, selected, onTap) =>
-          themedItem(context, item, selected, onTap, itemLabelBuilder),
+          DropifyMenuItemButton(
+            itemKey: dropifyMenuItemKey(keyOf?.call(item), item),
+            semanticsLabel: itemLabelBuilder(item),
+            selected: selected,
+            onPressed: onTap,
+            child: Text(itemLabelBuilder(item)),
+          ),
       controller: controller,
       initialValues: initialValues,
       onChanged: onChangedMulti,

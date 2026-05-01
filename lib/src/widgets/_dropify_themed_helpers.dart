@@ -4,7 +4,6 @@ import '../core/dropify_entry.dart';
 import '../core/dropify_selection.dart';
 import '../core/raw_dropify.dart';
 import '../internal/_dropify_anchor.dart';
-import '../theme/dropify_theme.dart';
 
 typedef DropifyItemLabelBuilder<T> = String Function(T item);
 
@@ -40,38 +39,6 @@ AnchorBuilder<T> themedAnchorBuilder<T>({
       prefixIcon: prefixIcon,
     );
   };
-}
-
-Widget themedItem<T>(
-  BuildContext context,
-  T item,
-  bool selected,
-  VoidCallback? onTap,
-  DropifyItemLabelBuilder<T> labelBuilder,
-) {
-  final theme = DropifyTheme.of(context);
-  return InkWell(
-    onTap: onTap,
-    child: Container(
-      key: ValueKey<String>('dropify.item.${item.hashCode}'),
-      padding: theme.entryPadding,
-      decoration: selected ? theme.entrySelectedDecoration : null,
-      child: Row(
-        spacing: theme.entrySpacing ?? 8,
-        children: [
-          Expanded(
-            child: Text(labelBuilder(item), style: theme.entryTextStyle),
-          ),
-          if (selected)
-            Icon(
-              key: const ValueKey<String>('dropify.item.selectedIcon'),
-              theme.entrySelectedIcon,
-              size: 18,
-            ),
-        ],
-      ),
-    ),
-  );
 }
 
 List<DropifyEntry<T>> entriesWithLabels<T>(
