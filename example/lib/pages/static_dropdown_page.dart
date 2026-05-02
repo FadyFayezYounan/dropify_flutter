@@ -11,12 +11,14 @@ class StaticDropdownPage extends StatefulWidget {
 class _StaticDropdownPageState extends State<StaticDropdownPage> {
   String? _fruit;
 
-  static const _entries = <DropifyEntry<String>>[
-    DropifyEntry(value: 'apple', label: 'Apple'),
-    DropifyEntry(value: 'banana', label: 'Banana'),
-    DropifyEntry(value: 'cherry', label: 'Cherry'),
-    DropifyEntry(value: 'disabled', label: 'Disabled fruit', enabled: false),
-  ];
+  static final _entries = List<DropifyEntry<String>>.generate(
+    100,
+    (index) => DropifyEntry(
+      value: 'item_$index',
+      label: 'Item $index',
+      enabled: index != 3,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
