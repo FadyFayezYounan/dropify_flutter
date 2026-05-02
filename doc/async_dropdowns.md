@@ -56,6 +56,22 @@ Search is debounced by 300 milliseconds by default. `RawAsyncDropify` exposes
 `cacheItems` defaults to true. The cache belongs to one widget instance and is
 cleared when that instance is disposed.
 
+## Body Modes And Selected Row Scroll
+
+Async dropdowns default `menuBodyMode` to `DropifyMenuBodyMode.automatic`, which
+uses lazy indexed rows for loaded and refreshing data. Set
+`DropifyMenuBodyMode.eagerColumn` to eagerly build the currently rendered async
+rows, or `DropifyMenuBodyMode.lazyIndexed` to force lazy indexed rendering.
+
+When `scrollToSelectedOnOpen` is true, Dropify jumps to the selected value only
+when it is present in the currently rendered loaded or refreshing rows. Cache
+hits can jump immediately from cached rows. Cache misses wait for the latest
+successful fetch. Loading, idle, empty, and error states remain direct state
+widgets and do not create row scroll bodies.
+
+Dropify never performs an extra fetch to locate a selected async value, and
+paginated dropdowns do not expose `menuBodyMode` or `scrollToSelectedOnOpen`.
+
 ## Retry
 
 When the latest request fails, retry repeats the same query. Cancelled and stale
@@ -93,5 +109,6 @@ RawAsyncDropify<User>(
 
 - `DropifyAsyncDropdown<T>` provides Material styling.
 - `RawAsyncDropify<T>` provides raw async behavior.
+- `DropifyMenuBodyMode` controls eager versus lazy loaded async rows.
 - `DropifyCancelToken` coordinates cancellation.
 - `DropifyThemeData` controls async state-slot builders.

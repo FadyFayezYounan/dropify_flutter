@@ -39,6 +39,30 @@ void main() {
     expect(find.text('Banana'), findsOneWidget);
   });
 
+  testWidgets('static long-list journey opens at selected item', (
+    tester,
+  ) async {
+    final robot = DropifyRobot(tester);
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        SizedBox(
+          width: 280,
+          child: DropifyDropdown<String>(
+            entries: _longEntries(100),
+            initialValue: 'item_90',
+            keyOf: (item) => item,
+          ),
+        ),
+      ),
+    );
+
+    await robot.openDropdown();
+
+    robot.expectPanelOpen();
+    robot.expectItemVisibleByKey('item_90');
+  });
+
   testWidgets('confirmable multi-select journey cancels and applies', (
     tester,
   ) async {
@@ -115,6 +139,36 @@ void main() {
     robot.expectPanelClosed();
   });
 
+  testWidgets('async loaded-data journey opens at selected item', (
+    tester,
+  ) async {
+    final fetcher = ControlledStringFetcher();
+    final robot = DropifyRobot(tester);
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        SizedBox(
+          width: 280,
+          child: DropifyAsyncDropdown<String>(
+            fetcher: fetcher.call,
+            itemLabelBuilder: (item) => item,
+            initialValue: 'Remote 90',
+            keyOf: (item) => item,
+          ),
+        ),
+      ),
+    );
+
+    await robot.openDropdown(settle: false);
+    fetcher.requests.single.complete(
+      List<String>.generate(100, (index) => 'Remote $index'),
+    );
+    await robot.pumpUntilSettled();
+
+    robot.expectPanelOpen();
+    robot.expectItemVisibleByKey('Remote_90');
+  });
+
   testWidgets('paginated journey loads pages and delegates search', (
     tester,
   ) async {
@@ -147,4 +201,11 @@ String _fruitLabel(String value) {
     'disabled' => 'Disabled',
     _ => value,
   };
+}
+
+List<DropifyEntry<String>> _longEntries(int count) {
+  return [
+    for (var index = 0; index < count; index++)
+      DropifyEntry(value: 'item_$index', label: 'Item $index'),
+  ];
 }

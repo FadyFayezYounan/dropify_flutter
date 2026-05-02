@@ -9,7 +9,8 @@ class StaticDropdownPage extends StatefulWidget {
 }
 
 class _StaticDropdownPageState extends State<StaticDropdownPage> {
-  String? _fruit;
+  String? _fruit = 'item_90';
+  DropifyMenuBodyMode _bodyMode = DropifyMenuBodyMode.automatic;
 
   static final _entries = List<DropifyEntry<String>>.generate(
     100,
@@ -25,16 +26,42 @@ class _StaticDropdownPageState extends State<StaticDropdownPage> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        DropdownButton<DropifyMenuBodyMode>(
+          value: _bodyMode,
+          items: const [
+            DropdownMenuItem(
+              value: DropifyMenuBodyMode.automatic,
+              child: Text('Automatic body mode'),
+            ),
+            DropdownMenuItem(
+              value: DropifyMenuBodyMode.eagerColumn,
+              child: Text('Eager column body mode'),
+            ),
+            DropdownMenuItem(
+              value: DropifyMenuBodyMode.lazyIndexed,
+              child: Text('Lazy indexed body mode'),
+            ),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              setState(() => _bodyMode = value);
+            }
+          },
+        ),
+        const SizedBox(height: 16),
         DropifyDropdown<String>(
           entries: _entries,
           label: 'Fruit',
           hintText: 'Choose a fruit',
           searchable: true,
           showClearButton: true,
+          menuBodyMode: _bodyMode,
           initialValue: _fruit,
           onChanged: (value) => setState(() => _fruit = value),
         ),
         const SizedBox(height: 16),
+        const Text('The initial value is near the end of the 100-item list.'),
+        const SizedBox(height: 8),
         Text('Selected: ${_fruit ?? 'none'}'),
       ],
     );

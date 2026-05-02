@@ -67,8 +67,29 @@ RawStaticDropify<Product>(
 
 ## Large Lists
 
-When a filtered static list has more than 50 entries, Dropify uses a builder
-presentation for visible rows instead of building every row eagerly.
+With the default `DropifyMenuBodyMode.automatic`, a filtered static list with 50
+or fewer rows uses an eager `SingleChildScrollView` and `Column`. A filtered list
+with 51 or more rows uses lazy indexed rendering.
+
+Use `menuBodyMode` to force either behavior:
+
+```dart
+DropifyDropdown<String>(
+  entries: entries,
+  menuBodyMode: DropifyMenuBodyMode.lazyIndexed,
+)
+```
+
+## Opening At The Selected Row
+
+Static dropdowns default `scrollToSelectedOnOpen` to true. When the menu opens,
+Dropify jumps to the first selected value that is present in the current
+filtered rows. Multi-select uses current visible row order, not selection set
+insertion order.
+
+If search hides the selected item, Dropify preserves the query and does not jump
+or reveal a fallback row. Set `scrollToSelectedOnOpen: false` to keep the normal
+initial row offset.
 
 ## Common Mistakes
 
@@ -82,5 +103,6 @@ presentation for visible rows instead of building every row eagerly.
 ## Related APIs
 
 - `DropifyEntry<T>` describes static options.
+- `DropifyMenuBodyMode` controls eager versus lazy static row bodies.
 - `DropifyDropdown<T>` provides Material styling.
 - `RawStaticDropify<T>` provides raw static behavior with custom builders.

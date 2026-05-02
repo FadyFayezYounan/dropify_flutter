@@ -71,6 +71,11 @@ DropifyDropdown<User>(
 )
 ```
 
+For long-list selected-row tests, prefer opening through `dropify.anchor` and
+asserting the selected item key, such as `dropify.item.item_90`, while the panel
+key remains present. Controlled async fetchers should complete futures directly
+from the test instead of using `runAsync`.
+
 ## Common Mistakes
 
 - Do not locate package controls by localized labels when a stable key exists.

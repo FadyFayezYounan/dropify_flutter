@@ -40,8 +40,19 @@ class DropifyRobot {
     await tester.pumpAndSettle();
   }
 
+  Future<void> pumpUntilSettled() async {
+    await tester.pumpAndSettle();
+  }
+
   void expectPanelOpen() {
     expect(find.byKey(const ValueKey<String>('dropify.panel')), findsOneWidget);
+  }
+
+  void expectItemVisibleByKey(String identity) {
+    expect(
+      find.byKey(ValueKey<String>('dropify.item.$identity')),
+      findsOneWidget,
+    );
   }
 
   void expectPanelClosed() {

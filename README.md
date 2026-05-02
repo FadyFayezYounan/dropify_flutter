@@ -58,6 +58,10 @@ DropifyDropdown<String>(
 Static search uses `DropifyEntry.searchableText`, then `label`, then
 `value.toString()`. Disabled entries remain visible but cannot be selected.
 
+When a static dropdown opens with an existing selection, Dropify jumps the row
+body to the first selected item that is present in the current filtered rows.
+Set `scrollToSelectedOnOpen: false` to keep the normal initial offset.
+
 ## Async Dropdown
 
 Use `DropifyAsyncDropdown` when options come from a remote search or expensive
@@ -78,6 +82,23 @@ The fetcher receives a `DropifyCancelToken`. Replacement searches cancel the
 previous token, late stale results are ignored, and retry repeats the latest
 query. Async results are cached for the lifetime of the widget instance by
 default.
+
+Async dropdowns also jump to a selected item when it is present in the currently
+rendered loaded or refreshing rows. Dropify never fetches extra async results to
+locate a selected value.
+
+## Menu Body Modes
+
+Static and async dropdowns expose `menuBodyMode`:
+
+| Mode | Static rows | Async loaded/refreshing rows |
+|---|---|---|
+| `DropifyMenuBodyMode.automatic` | Eager up to 50 filtered rows, lazy above 50. | Lazy indexed rows. |
+| `DropifyMenuBodyMode.eagerColumn` | `SingleChildScrollView` with an eager `Column`. | `SingleChildScrollView` with an eager `Column`. |
+| `DropifyMenuBodyMode.lazyIndexed` | Lazy indexed rows for every non-empty filtered list. | Lazy indexed rows. |
+
+Paginated dropdowns do not expose these options; their row body remains owned by
+the caller-supplied paging state.
 
 ## Paginated Dropdown
 

@@ -79,18 +79,18 @@ Add body-mode API, shell-owned indexed lazy scrolling, docs/tests.
 ### Phase 5: Journeys And Docs
 
 - **Goal**: Critical flows, docs, example.
-- [ ] `test/robots/dropify_robot.dart` - key-first helpers for item visibility, async completion-safe opens.
-- [ ] `test/journeys/dropify_menu_body_journey_test.dart` - static long-list selected-row journey.
-- [ ] `test/journeys/dropify_menu_body_journey_test.dart` - async loaded-data selected-row journey.
-- [ ] `README.md` - scroll-to-selected + body modes + paginated exclusion.
-- [ ] `doc/static_dropdowns.md` - threshold, forced modes, search-hidden no-op.
-- [ ] `doc/async_dropdowns.md` - loaded/refreshing modes, no extra fetch, direct states.
-- [ ] `doc/accessibility_and_testing.md` - selectors/testing note only if changed.
-- [ ] `example/lib/pages/static_dropdown_page.dart` - long-list selected-near-end/body-mode demo.
-- [ ] Robot journey tests + selectors/seams: use `dropify.anchor`, `dropify.item.*`, controlled async fetcher, no `runAsync` unless documented.
-- [ ] TDD: static robot opens long list -> selected item key visible, panel open.
-- [ ] TDD: async robot completes fetch -> selected item key visible, panel open.
-- [ ] Verify: `dart format --set-exit-if-changed . && flutter analyze && flutter test`
+- [x] `test/robots/dropify_robot.dart` - key-first helpers for item visibility, async completion-safe opens.
+- [x] `test/journeys/dropify_menu_body_journey_test.dart` - static long-list selected-row journey.
+- [x] `test/journeys/dropify_menu_body_journey_test.dart` - async loaded-data selected-row journey.
+- [x] `README.md` - scroll-to-selected + body modes + paginated exclusion.
+- [x] `doc/static_dropdowns.md` - threshold, forced modes, search-hidden no-op.
+- [x] `doc/async_dropdowns.md` - loaded/refreshing modes, no extra fetch, direct states.
+- [x] `doc/accessibility_and_testing.md` - selectors/testing note only if changed.
+- [x] `example/lib/pages/static_dropdown_page.dart` - long-list selected-near-end/body-mode demo.
+- [x] Robot journey tests + selectors/seams: use `dropify.anchor`, `dropify.item.*`, controlled async fetcher, no `runAsync` unless documented.
+- [x] TDD: static robot opens long list -> selected item key visible, panel open.
+- [x] TDD: async robot completes fetch -> selected item key visible, panel open.
+- [x] Verify: `dart format --set-exit-if-changed . && flutter analyze && flutter test`
 
 ## Risks / Out of scope
 
