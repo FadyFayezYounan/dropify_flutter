@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 
+import '../helpers/dropify_fixtures.dart';
 import '../helpers/dropify_test_app.dart';
 
 void main() {
@@ -219,6 +220,7 @@ void main() {
       'new',
     );
     await tester.pump();
+    await tester.pump();
 
     expect(find.text('Old item'), findsOneWidget);
     expect(
@@ -231,6 +233,62 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Old item'), findsNothing);
+    expect(find.text('New item'), findsOneWidget);
+  });
+
+  testWidgets('refreshing stale rows stay rendered until replacement', (
+    tester,
+  ) async {
+    final requests = <Completer<List<String>>>[];
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        RawAsyncDropify<String>(
+          fetcher: (query, {required cancel}) {
+            final request = Completer<List<String>>();
+            requests.add(request);
+            return request.future;
+          },
+          anchorBuilder: _anchorBuilder,
+          itemBuilder: _keyedAsyncItemBuilder,
+          keyOf: (item) => item,
+          initialValue: 'Item 90',
+          searchDebounce: Duration.zero,
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pump();
+    requests.single.complete(
+      List<String>.generate(100, (index) => 'Item $index'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('dropify.test.async.Item_90')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('dropify.search.field')),
+      'new',
+    );
+    await tester.pump();
+
+    expect(find.text('Item 0'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('dropify.async.refreshing')),
+      findsOneWidget,
+    );
+
+    requests.last.complete(const ['New item']);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('dropify.test.async.Item_90')),
+      findsNothing,
+    );
     expect(find.text('New item'), findsOneWidget);
   });
 
@@ -339,6 +397,91 @@ void main() {
     expect(find.text('Fresh'), findsOneWidget);
   });
 
+  testWidgets('cancelled stale async completion does not reveal selected row', (
+    tester,
+  ) async {
+    final fetcher = ControlledStringFetcher();
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        RawAsyncDropify<String>(
+          fetcher: fetcher.call,
+          anchorBuilder: _anchorBuilder,
+          itemBuilder: _keyedAsyncItemBuilder,
+          keyOf: (item) => item,
+          initialValue: 'Item 90',
+          searchDebounce: Duration.zero,
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pump();
+    final staleRequest = fetcher.requests.single;
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('dropify.search.field')),
+      'fresh',
+    );
+    await tester.pump();
+    expect(staleRequest.cancel.isCancelled, isTrue);
+
+    staleRequest.complete(List<String>.generate(100, (index) => 'Item $index'));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('dropify.test.async.Item_90')),
+      findsNothing,
+    );
+
+    fetcher.requests.last.complete(const ['Fresh']);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Fresh'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('dropify.test.async.Item_90')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('async idle and loading states stay direct', (tester) async {
+    final loading = Completer<List<String>>();
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        RawAsyncDropify<String>(
+          fetcher: (query, {required cancel}) => loading.future,
+          anchorBuilder: _anchorBuilder,
+          itemBuilder: _asyncItemBuilder,
+          loadOnOpen: false,
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pump();
+    expect(find.byType(Scrollbar), findsNothing);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        RawAsyncDropify<String>(
+          fetcher: (query, {required cancel}) => loading.future,
+          anchorBuilder: _anchorBuilder,
+          itemBuilder: _asyncItemBuilder,
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('dropify.async.loading')),
+      findsOneWidget,
+    );
+    expect(find.byType(Scrollbar), findsNothing);
+  });
+
   testWidgets('search debounce coalesces fetches and cache reuses query data', (
     tester,
   ) async {
@@ -403,6 +546,19 @@ Widget _asyncItemBuilder(
   VoidCallback onTap,
 ) {
   return InkWell(
+    onTap: onTap,
+    child: SizedBox(height: 40, child: Text(item)),
+  );
+}
+
+Widget _keyedAsyncItemBuilder(
+  BuildContext context,
+  String item,
+  bool selected,
+  VoidCallback onTap,
+) {
+  return InkWell(
+    key: ValueKey<String>('dropify.test.async.${item.replaceAll(' ', '_')}'),
     onTap: onTap,
     child: SizedBox(height: 40, child: Text(item)),
   );

@@ -66,15 +66,15 @@ Add body-mode API, shell-owned indexed lazy scrolling, docs/tests.
 ### Phase 4: Async Edges
 
 - **Goal**: Cancellation, stale data, direct states safe.
-- [ ] `lib/src/widgets/raw_async_dropify.dart` - refreshing stale rows valid generation while rendered.
-- [ ] `lib/src/widgets/raw_async_dropify.dart` - cancelled/stale/failed/empty/loading skip scheduling.
-- [ ] `lib/src/widgets/raw_async_dropify.dart` - retry success may schedule only latest rendered data.
-- [ ] `test/widgets/dropify_async_dropdown_test.dart` - controlled `Completer` fetch paths.
-- [ ] TDD: cache miss loads then jumps after latest success -> selected row visible.
-- [ ] TDD: refreshing stale rows may jump; replacement without selected item does not.
-- [ ] TDD: stale/cancelled completions -> no stale selected row revealed.
-- [ ] TDD: empty/error/loading/idle states -> no scrollbar row body, no jump.
-- [ ] Verify: `dart format --set-exit-if-changed . && flutter analyze && flutter test`
+- [x] `lib/src/widgets/raw_async_dropify.dart` - refreshing stale rows valid generation while rendered.
+- [x] `lib/src/widgets/raw_async_dropify.dart` - cancelled/stale/failed/empty/loading skip scheduling.
+- [x] `lib/src/widgets/raw_async_dropify.dart` - retry success may schedule only latest rendered data.
+- [x] `test/widgets/dropify_async_dropdown_test.dart` - controlled `Completer` fetch paths.
+- [x] TDD: cache miss loads then jumps after latest success -> selected row visible.
+- [x] TDD: refreshing stale rows may jump; replacement without selected item does not.
+- [x] TDD: stale/cancelled completions -> no stale selected row revealed.
+- [x] TDD: empty/error/loading/idle states -> no scrollbar row body, no jump.
+- [x] Verify: `dart format --set-exit-if-changed . && flutter analyze && flutter test`
 
 ### Phase 5: Journeys And Docs
 

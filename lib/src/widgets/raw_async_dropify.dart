@@ -399,6 +399,7 @@ class _AsyncDropifyBodyState<T> extends State<_AsyncDropifyBody<T>> {
   DropifyAsyncState<T> _asyncState = DropifyAsyncIdle<T>();
   DropifyCancelToken? _token;
   int _generation = 0;
+  int _renderedRowsGeneration = 0;
 
   @override
   void initState() {
@@ -432,7 +433,10 @@ class _AsyncDropifyBodyState<T> extends State<_AsyncDropifyBody<T>> {
     void run() {
       final cached = widget.cacheItems ? widget.cache[query] : null;
       if (cached != null) {
-        setState(() => _asyncState = DropifyAsyncData<T>(cached));
+        setState(() {
+          _renderedRowsGeneration += 1;
+          _asyncState = DropifyAsyncData<T>(cached);
+        });
         return;
       }
       unawaited(_fetch(query));
@@ -456,9 +460,12 @@ class _AsyncDropifyBodyState<T> extends State<_AsyncDropifyBody<T>> {
       _ => null,
     };
     setState(() {
-      _asyncState = staleItems == null
-          ? DropifyAsyncLoading<T>()
-          : DropifyAsyncRefreshing<T>(staleItems);
+      if (staleItems == null) {
+        _asyncState = DropifyAsyncLoading<T>();
+      } else {
+        _renderedRowsGeneration += 1;
+        _asyncState = DropifyAsyncRefreshing<T>(staleItems);
+      }
     });
     try {
       final items = await widget.fetcher(query, cancel: token);
@@ -469,9 +476,12 @@ class _AsyncDropifyBodyState<T> extends State<_AsyncDropifyBody<T>> {
         widget.cache[query] = List<T>.unmodifiable(items);
       }
       setState(() {
-        _asyncState = items.isEmpty
-            ? DropifyAsyncEmpty<T>(hasQuery: query.trim().isNotEmpty)
-            : DropifyAsyncData<T>(items);
+        if (items.isEmpty) {
+          _asyncState = DropifyAsyncEmpty<T>(hasQuery: query.trim().isNotEmpty);
+        } else {
+          _renderedRowsGeneration += 1;
+          _asyncState = DropifyAsyncData<T>(items);
+        }
       });
     } catch (error, stackTrace) {
       if (!mounted || token.isCancelled || generation != _generation) {
@@ -499,6 +509,7 @@ class _AsyncDropifyBodyState<T> extends State<_AsyncDropifyBody<T>> {
             scrollToSelectedOnOpen: widget.scrollToSelectedOnOpen,
             keyOf: widget.keyOf,
             equals: widget.equals,
+            rowsGeneration: _renderedRowsGeneration,
           ),
           const Align(
             alignment: Alignment.topRight,
@@ -521,6 +532,7 @@ class _AsyncDropifyBodyState<T> extends State<_AsyncDropifyBody<T>> {
         scrollToSelectedOnOpen: widget.scrollToSelectedOnOpen,
         keyOf: widget.keyOf,
         equals: widget.equals,
+        rowsGeneration: _renderedRowsGeneration,
       ),
       DropifyAsyncEmpty<T>(:final hasQuery) =>
         (widget.emptyBuilder ?? theme.emptyBuilder)?.call(context, hasQuery) ??
@@ -543,6 +555,7 @@ class _ItemsList<T> extends StatelessWidget {
     required this.itemBuilder,
     required this.menuBodyMode,
     required this.scrollToSelectedOnOpen,
+    required this.rowsGeneration,
     this.keyOf,
     this.equals,
   });
@@ -552,6 +565,7 @@ class _ItemsList<T> extends StatelessWidget {
   final DropifyAsyncItemBuilder<T> itemBuilder;
   final DropifyMenuBodyMode menuBodyMode;
   final bool scrollToSelectedOnOpen;
+  final int rowsGeneration;
   final Object Function(T item)? keyOf;
   final bool Function(T a, T b)? equals;
 
@@ -574,6 +588,7 @@ class _ItemsList<T> extends StatelessWidget {
             scrollController: controller,
             listController: listController,
             scrollToSelectedOnOpen: scrollToSelectedOnOpen,
+            rowsGeneration: rowsGeneration,
           );
         },
       );
@@ -588,6 +603,7 @@ class _ItemsList<T> extends StatelessWidget {
         equals: equals,
         scrollController: controller,
         scrollToSelectedOnOpen: scrollToSelectedOnOpen,
+        rowsGeneration: rowsGeneration,
       ),
     );
   }
@@ -600,6 +616,7 @@ class _AsyncEagerRowsView<T> extends StatefulWidget {
     required this.itemBuilder,
     required this.scrollController,
     required this.scrollToSelectedOnOpen,
+    required this.rowsGeneration,
     this.keyOf,
     this.equals,
   });
@@ -609,6 +626,7 @@ class _AsyncEagerRowsView<T> extends StatefulWidget {
   final DropifyAsyncItemBuilder<T> itemBuilder;
   final ScrollController scrollController;
   final bool scrollToSelectedOnOpen;
+  final int rowsGeneration;
   final Object Function(T item)? keyOf;
   final bool Function(T a, T b)? equals;
 
@@ -620,6 +638,7 @@ class _AsyncEagerRowsViewState<T> extends State<_AsyncEagerRowsView<T>> {
   final List<GlobalKey> _rowKeys = <GlobalKey>[];
   int _scheduledGeneration = 0;
   int? _lastScheduledTarget;
+  int? _lastScheduledRowsGeneration;
 
   @override
   void initState() {
@@ -684,10 +703,13 @@ class _AsyncEagerRowsViewState<T> extends State<_AsyncEagerRowsView<T>> {
       keyOf: widget.keyOf,
       equals: widget.equals,
     );
-    if (targetIndex == null || targetIndex == _lastScheduledTarget) {
+    if (targetIndex == null ||
+        (targetIndex == _lastScheduledTarget &&
+            widget.rowsGeneration == _lastScheduledRowsGeneration)) {
       return;
     }
     _lastScheduledTarget = targetIndex;
+    _lastScheduledRowsGeneration = widget.rowsGeneration;
     final generation = ++_scheduledGeneration;
     SchedulerBinding.instance.addPostFrameCallback(
       (_) => _jumpToSelected(generation, targetIndex, canRetry: true),
@@ -743,6 +765,7 @@ class _AsyncLazyRowsView<T> extends StatefulWidget {
     required this.scrollController,
     required this.listController,
     required this.scrollToSelectedOnOpen,
+    required this.rowsGeneration,
     this.keyOf,
     this.equals,
   });
@@ -753,6 +776,7 @@ class _AsyncLazyRowsView<T> extends StatefulWidget {
   final ScrollController scrollController;
   final ListController listController;
   final bool scrollToSelectedOnOpen;
+  final int rowsGeneration;
   final Object Function(T item)? keyOf;
   final bool Function(T a, T b)? equals;
 
@@ -763,6 +787,7 @@ class _AsyncLazyRowsView<T> extends StatefulWidget {
 class _AsyncLazyRowsViewState<T> extends State<_AsyncLazyRowsView<T>> {
   int _scheduledGeneration = 0;
   int? _lastScheduledTarget;
+  int? _lastScheduledRowsGeneration;
 
   @override
   void initState() {
@@ -806,10 +831,13 @@ class _AsyncLazyRowsViewState<T> extends State<_AsyncLazyRowsView<T>> {
       keyOf: widget.keyOf,
       equals: widget.equals,
     );
-    if (targetIndex == null || targetIndex == _lastScheduledTarget) {
+    if (targetIndex == null ||
+        (targetIndex == _lastScheduledTarget &&
+            widget.rowsGeneration == _lastScheduledRowsGeneration)) {
       return;
     }
     _lastScheduledTarget = targetIndex;
+    _lastScheduledRowsGeneration = widget.rowsGeneration;
     final generation = ++_scheduledGeneration;
     SchedulerBinding.instance.addPostFrameCallback(
       (_) => _jumpToSelected(generation, targetIndex, canRetry: true),
