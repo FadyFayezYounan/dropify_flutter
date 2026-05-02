@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/dropify_controller.dart';
 import '../core/dropify_entry.dart';
+import '../core/dropify_menu_body_mode.dart';
 import '../core/dropify_selection.dart';
 import '../core/dropify_value.dart';
 import 'raw_static_dropify.dart';
@@ -46,6 +47,8 @@ class DropifyDropdown<T> extends StatelessWidget {
     this.itemLabelBuilder,
     this.keyOf,
     this.equals,
+    this.menuBodyMode = DropifyMenuBodyMode.automatic,
+    this.scrollToSelectedOnOpen = true,
   }) : selectionMode = DropifySelectionMode.single,
        initialValues = null,
        onChangedMulti = null,
@@ -82,7 +85,9 @@ class DropifyDropdown<T> extends StatelessWidget {
   }) : selectionMode = DropifySelectionMode.multi,
        initialValue = null,
        onChanged = null,
-       onChangedMulti = onChanged;
+       onChangedMulti = onChanged,
+       menuBodyMode = DropifyMenuBodyMode.automatic,
+       scrollToSelectedOnOpen = true;
 
   /// The options shown by the dropdown.
   ///
@@ -177,6 +182,18 @@ class DropifyDropdown<T> extends StatelessWidget {
   /// If null, the default visible copy is used.
   final String? cancelLabel;
 
+  /// Controls whether non-empty static row bodies are eager or lazy.
+  ///
+  /// Defaults to [DropifyMenuBodyMode.automatic], which keeps the built-in
+  /// static threshold. Paginated dropdowns do not use this setting.
+  final DropifyMenuBodyMode menuBodyMode;
+
+  /// Whether opening the menu should jump to the selected visible row.
+  ///
+  /// Defaults to true. If the selected value is not present in the current
+  /// visible rows, opening preserves normal initial scroll offset behavior.
+  final bool scrollToSelectedOnOpen;
+
   @override
   Widget build(BuildContext context) {
     final anchor = themedAnchorBuilder<T>(
@@ -202,6 +219,8 @@ class DropifyDropdown<T> extends StatelessWidget {
         autovalidateMode: autovalidateMode,
         keyOf: keyOf,
         equals: equals,
+        menuBodyMode: menuBodyMode,
+        scrollToSelectedOnOpen: scrollToSelectedOnOpen,
       );
     }
     return RawStaticDropify<T>.multi(

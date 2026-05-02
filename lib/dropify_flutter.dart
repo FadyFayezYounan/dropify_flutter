@@ -27,6 +27,7 @@ export 'src/core/dropify_cancel_token.dart'
     show DropifyCancelToken, DropifyCancelledException;
 export 'src/core/dropify_controller.dart' show DropifyController;
 export 'src/core/dropify_entry.dart' show DropifyEntry;
+export 'src/core/dropify_menu_body_mode.dart' show DropifyMenuBodyMode;
 export 'src/core/dropify_paging_state.dart' show DropifyPagingState;
 export 'src/core/dropify_selection.dart' show DropifySelectionMode;
 export 'src/core/dropify_value.dart'

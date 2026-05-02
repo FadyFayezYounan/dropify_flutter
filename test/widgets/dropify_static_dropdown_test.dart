@@ -2,6 +2,7 @@ import 'package:dropify_flutter/dropify_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:super_sliver_list/super_sliver_list.dart';
 
 import '../helpers/dropify_fixtures.dart';
 import '../helpers/dropify_test_app.dart';
@@ -209,13 +210,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(SingleChildScrollView), findsOneWidget);
-    expect(find.byType(ListView), findsNothing);
+    expect(find.byType(SuperListView), findsNothing);
 
     await _pumpRawStaticDropdown(tester, entries: _numberedEntries(51));
     await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
     await tester.pumpAndSettle();
 
-    final listView = tester.widget<ListView>(find.byType(ListView));
+    final listView = tester.widget<SuperListView>(find.byType(SuperListView));
     expect(listView.shrinkWrap, isFalse);
 
     await _pumpRawStaticDropdown(
@@ -231,6 +232,32 @@ void main() {
     expect(find.text('Item 0'), findsOneWidget);
     expect(find.text('Item 1'), findsOneWidget);
     expect(find.text('Item 2'), findsNothing);
+  });
+
+  testWidgets('static lazy body opens with selected row visible', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      dropifyTestApp(
+        SizedBox(
+          width: 240,
+          child: DropifyDropdown<String>(
+            entries: _keyedEntries(100),
+            initialValue: 'item_90',
+            keyOf: (item) => item,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey<String>('dropify.panel')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.item_90')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('static disabled and selected rows keep semantics and behavior', (
@@ -513,6 +540,13 @@ List<DropifyEntry<String>> _numberedEntries(int count) {
   return [
     for (var index = 0; index < count; index++)
       DropifyEntry(value: 'Item $index'),
+  ];
+}
+
+List<DropifyEntry<String>> _keyedEntries(int count) {
+  return [
+    for (var index = 0; index < count; index++)
+      DropifyEntry(value: 'item_$index', label: 'Item $index'),
   ];
 }
 

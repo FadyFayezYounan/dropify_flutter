@@ -17,6 +17,25 @@ void main() {
     expect(DropifyPaginatedDropdown<int, String>, isNotNull);
   });
 
+  test('static single constructors expose menu body defaults', () {
+    expect(DropifyMenuBodyMode.values, const [
+      DropifyMenuBodyMode.automatic,
+      DropifyMenuBodyMode.eagerColumn,
+      DropifyMenuBodyMode.lazyIndexed,
+    ]);
+
+    final raw = RawStaticDropify<String>(
+      entries: const [],
+      anchorBuilder: (context, state) => const SizedBox.shrink(),
+    );
+    expect(raw.menuBodyMode, DropifyMenuBodyMode.automatic);
+    expect(raw.scrollToSelectedOnOpen, isTrue);
+
+    const themed = DropifyDropdown<String>(entries: []);
+    expect(themed.menuBodyMode, DropifyMenuBodyMode.automatic);
+    expect(themed.scrollToSelectedOnOpen, isTrue);
+  });
+
   test('theme data exposes Material panel chrome fields', () {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(8),

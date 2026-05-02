@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:super_sliver_list/super_sliver_list.dart';
 
 import '../core/dropify_controller.dart';
 import '../core/dropify_entry.dart';
+import '../core/dropify_menu_body_mode.dart';
 import '../core/dropify_selection.dart';
 import '../core/dropify_value.dart';
 import '../core/raw_dropify.dart';
@@ -52,6 +55,8 @@ class RawStaticDropify<T> extends StatelessWidget {
     this.errorTextBuilder,
     this.keyOf,
     this.equals,
+    this.menuBodyMode = DropifyMenuBodyMode.automatic,
+    this.scrollToSelectedOnOpen = true,
     this.noResultsBuilder,
   }) : selectionMode = DropifySelectionMode.single,
        initialValues = null,
@@ -93,7 +98,9 @@ class RawStaticDropify<T> extends StatelessWidget {
   }) : selectionMode = DropifySelectionMode.multi,
        initialValue = null,
        onChanged = null,
-       onChangedMulti = onChanged;
+       onChangedMulti = onChanged,
+       menuBodyMode = DropifyMenuBodyMode.automatic,
+       scrollToSelectedOnOpen = true;
 
   /// The in-memory entries shown by the dropdown.
   final List<DropifyEntry<T>> entries;
@@ -181,6 +188,18 @@ class RawStaticDropify<T> extends StatelessWidget {
   /// Builds the state shown when filtering produces no entries.
   final WidgetBuilder? noResultsBuilder;
 
+  /// Controls whether non-empty row bodies are eager or lazy.
+  ///
+  /// Defaults to [DropifyMenuBodyMode.automatic]. Paginated dropdowns do not use
+  /// this setting.
+  final DropifyMenuBodyMode menuBodyMode;
+
+  /// Whether opening the menu should jump to the selected visible row.
+  ///
+  /// Defaults to true. If the selected value is not present in the current
+  /// visible rows, opening preserves normal initial scroll offset behavior.
+  final bool scrollToSelectedOnOpen;
+
   @override
   Widget build(BuildContext context) {
     Widget panelBuilder(BuildContext context, DropifyPanelState<T> state) {
@@ -193,44 +212,20 @@ class RawStaticDropify<T> extends StatelessWidget {
                 ?.call(context) ??
             const Center(child: Text('No results found'));
       }
-      Widget buildEntry(BuildContext context, int index) {
-        final entry = filtered[index];
-        final selected = state.isSelected(entry.value);
-        final onTap = entry.enabled
-            ? () {
-                if (state.mode == DropifySelectionMode.single) {
-                  state.select(entry.value);
-                } else {
-                  state.toggle(entry.value);
-                }
-              }
-            : null;
-        final builder = entryBuilder;
-        if (builder != null) {
-          return builder(context, entry, selected, onTap);
-        }
-        final label = entry.label ?? entry.value.toString();
-        return DropifyMenuItemButton(
-          itemKey: dropifyMenuItemKey(keyOf?.call(entry.value), entry.value),
-          semanticsLabel: label,
-          selected: selected,
-          leadingIcon: entry.leading,
-          trailingIcon: entry.trailing,
-          onPressed: onTap,
-          child: Text(label),
-        );
-      }
-
       if (filtered.length > 50) {
-        return DropifyMenuScrollShell(
-          builder: (context, controller) => ListView.builder(
-            controller: controller,
-            primary: false,
-            padding: EdgeInsets.zero,
-            shrinkWrap: false,
-            itemCount: filtered.length,
-            itemBuilder: buildEntry,
-          ),
+        return DropifyMenuScrollShell.indexed(
+          indexedBuilder: (context, controller, listController) {
+            return _StaticLazyRowsView<T>(
+              entries: filtered,
+              panelState: state,
+              entryBuilder: entryBuilder,
+              keyOf: keyOf,
+              equals: equals,
+              scrollController: controller,
+              listController: listController,
+              scrollToSelectedOnOpen: scrollToSelectedOnOpen,
+            );
+          },
         );
       }
       return DropifyMenuScrollShell(
@@ -241,7 +236,13 @@ class RawStaticDropify<T> extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               for (var index = 0; index < filtered.length; index++)
-                buildEntry(context, index),
+                _buildStaticEntry(
+                  context,
+                  entry: filtered[index],
+                  state: state,
+                  entryBuilder: entryBuilder,
+                  keyOf: keyOf,
+                ),
             ],
           ),
         ),
@@ -294,4 +295,185 @@ class RawStaticDropify<T> extends StatelessWidget {
       cancelLabel: cancelLabel,
     );
   }
+}
+
+class _StaticLazyRowsView<T> extends StatefulWidget {
+  const _StaticLazyRowsView({
+    required this.entries,
+    required this.panelState,
+    required this.scrollController,
+    required this.listController,
+    required this.scrollToSelectedOnOpen,
+    this.entryBuilder,
+    this.keyOf,
+    this.equals,
+  });
+
+  final List<DropifyEntry<T>> entries;
+  final DropifyPanelState<T> panelState;
+  final ScrollController scrollController;
+  final ListController listController;
+  final bool scrollToSelectedOnOpen;
+  final DropifyEntryBuilder<T>? entryBuilder;
+  final Object Function(T item)? keyOf;
+  final bool Function(T a, T b)? equals;
+
+  @override
+  State<_StaticLazyRowsView<T>> createState() => _StaticLazyRowsViewState<T>();
+}
+
+class _StaticLazyRowsViewState<T> extends State<_StaticLazyRowsView<T>> {
+  int _scheduledGeneration = 0;
+  int? _lastScheduledTarget;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleSelectedJump();
+  }
+
+  @override
+  void didUpdateWidget(covariant _StaticLazyRowsView<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _scheduleSelectedJump();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SuperListView.builder(
+      controller: widget.scrollController,
+      listController: widget.listController,
+      primary: false,
+      padding: EdgeInsets.zero,
+      shrinkWrap: false,
+      itemCount: widget.entries.length,
+      itemBuilder: (context, index) {
+        return _buildStaticEntry<T>(
+          context,
+          entry: widget.entries[index],
+          state: widget.panelState,
+          entryBuilder: widget.entryBuilder,
+          keyOf: widget.keyOf,
+        );
+      },
+    );
+  }
+
+  void _scheduleSelectedJump() {
+    if (!widget.scrollToSelectedOnOpen) {
+      return;
+    }
+    final targetIndex = _selectedIndex();
+    if (targetIndex == null || targetIndex == _lastScheduledTarget) {
+      return;
+    }
+    _lastScheduledTarget = targetIndex;
+    final generation = ++_scheduledGeneration;
+    SchedulerBinding.instance.addPostFrameCallback(
+      (_) => _jumpToSelected(generation, targetIndex, canRetry: true),
+      debugLabel: 'Dropify.staticScrollToSelected',
+    );
+  }
+
+  void _jumpToSelected(
+    int generation,
+    int targetIndex, {
+    required bool canRetry,
+  }) {
+    if (!mounted || generation != _scheduledGeneration) {
+      return;
+    }
+    if (targetIndex < 0 || targetIndex >= widget.entries.length) {
+      return;
+    }
+    if (_selectedIndex() != targetIndex) {
+      return;
+    }
+    if (!widget.scrollController.hasClients ||
+        !widget.listController.isAttached) {
+      if (canRetry) {
+        SchedulerBinding.instance.addPostFrameCallback(
+          (_) => _jumpToSelected(generation, targetIndex, canRetry: false),
+          debugLabel: 'Dropify.staticScrollToSelected.retry',
+        );
+      }
+      return;
+    }
+    final visibleRange = widget.listController.visibleRange;
+    if (visibleRange != null &&
+        targetIndex >= visibleRange.$1 &&
+        targetIndex <= visibleRange.$2) {
+      return;
+    }
+    widget.listController.jumpToItem(
+      index: targetIndex,
+      scrollController: widget.scrollController,
+      alignment: 0.1,
+    );
+  }
+
+  int? _selectedIndex() {
+    final identity = DropifySelectionIdentity<T>(
+      keyOf: widget.keyOf,
+      equals: widget.equals,
+    );
+    switch (widget.panelState.mode) {
+      case DropifySelectionMode.single:
+        final selected = widget.panelState.value;
+        if (selected == null) {
+          return null;
+        }
+        for (var index = 0; index < widget.entries.length; index++) {
+          if (identity.same(selected, widget.entries[index].value)) {
+            return index;
+          }
+        }
+      case DropifySelectionMode.multi:
+        if (widget.panelState.values.isEmpty) {
+          return null;
+        }
+        for (var index = 0; index < widget.entries.length; index++) {
+          if (identity.contains(
+            widget.panelState.values,
+            widget.entries[index].value,
+          )) {
+            return index;
+          }
+        }
+    }
+    return null;
+  }
+}
+
+Widget _buildStaticEntry<T>(
+  BuildContext context, {
+  required DropifyEntry<T> entry,
+  required DropifyPanelState<T> state,
+  required DropifyEntryBuilder<T>? entryBuilder,
+  required Object Function(T item)? keyOf,
+}) {
+  final selected = state.isSelected(entry.value);
+  final onTap = entry.enabled
+      ? () {
+          if (state.mode == DropifySelectionMode.single) {
+            state.select(entry.value);
+          } else {
+            state.toggle(entry.value);
+          }
+        }
+      : null;
+  final builder = entryBuilder;
+  if (builder != null) {
+    return builder(context, entry, selected, onTap);
+  }
+  final label = entry.label ?? entry.value.toString();
+  return DropifyMenuItemButton(
+    itemKey: dropifyMenuItemKey(keyOf?.call(entry.value), entry.value),
+    semanticsLabel: label,
+    selected: selected,
+    leadingIcon: entry.leading,
+    trailingIcon: entry.trailing,
+    onPressed: onTap,
+    child: Text(label),
+  );
 }
