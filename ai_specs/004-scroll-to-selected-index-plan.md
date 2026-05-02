@@ -32,20 +32,20 @@ Add body-mode API, shell-owned indexed lazy scrolling, docs/tests.
 ### Phase 2: Static Matrix
 
 - **Goal**: Static modes, target rules, guarded no-ops.
-- [ ] `lib/src/widgets/raw_static_dropify.dart` - automatic/eager/lazy selection from filtered rows.
-- [ ] `lib/src/widgets/raw_static_dropify.dart` - eager row keys aligned to visible rows.
-- [ ] `lib/src/widgets/raw_static_dropify.dart` - selected target by `DropifySelectionIdentity`; single + multi row order.
-- [ ] `lib/src/widgets/raw_static_dropify.dart` - post-frame scheduling; one bounded retry; mounted/open/index/current-selection guards.
-- [ ] `lib/src/widgets/dropify_dropdown.dart` - static multi pass-through + dartdoc.
-- [ ] `test/widgets/dropify_static_dropdown_test.dart` - extend focused widget coverage.
-- [ ] TDD: automatic uses eager at 50 and lazy at 51 -> filtered count threshold.
-- [ ] TDD: forced eager above 50 and forced lazy below 50 -> body widget type.
-- [ ] TDD: static raw/themed multi defaults -> public API compiles.
-- [ ] TDD: `scrollToSelectedOnOpen: false` -> normal initial offset.
-- [ ] TDD: search hides selected item -> query preserved, no jump.
-- [ ] TDD: disabled selected row + duplicate identity + `keyOf`/`equals` -> first visible match.
-- [ ] TDD: multi + confirmable cancel/reopen -> committed first visible selected row.
-- [ ] Verify: `dart format --set-exit-if-changed . && flutter analyze && flutter test`
+- [x] `lib/src/widgets/raw_static_dropify.dart` - automatic/eager/lazy selection from filtered rows.
+- [x] `lib/src/widgets/raw_static_dropify.dart` - eager row keys aligned to visible rows.
+- [x] `lib/src/widgets/raw_static_dropify.dart` - selected target by `DropifySelectionIdentity`; single + multi row order.
+- [x] `lib/src/widgets/raw_static_dropify.dart` - post-frame scheduling; one bounded retry; mounted/open/index/current-selection guards.
+- [x] `lib/src/widgets/dropify_dropdown.dart` - static multi pass-through + dartdoc.
+- [x] `test/widgets/dropify_static_dropdown_test.dart` - extend focused widget coverage.
+- [x] TDD: automatic uses eager at 50 and lazy at 51 -> filtered count threshold.
+- [x] TDD: forced eager above 50 and forced lazy below 50 -> body widget type.
+- [x] TDD: static raw/themed multi defaults -> public API compiles.
+- [x] TDD: `scrollToSelectedOnOpen: false` -> normal initial offset.
+- [x] TDD: search hides selected item -> query preserved, no jump.
+- [x] TDD: disabled selected row + duplicate identity + `keyOf`/`equals` -> first visible match.
+- [x] TDD: multi + confirmable cancel/reopen -> committed first visible selected row.
+- [x] Verify: `dart format --set-exit-if-changed . && flutter analyze && flutter test`
 
 ### Phase 3: Async Vertical Slice
 

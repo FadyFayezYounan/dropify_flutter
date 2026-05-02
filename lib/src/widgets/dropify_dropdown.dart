@@ -82,12 +82,12 @@ class DropifyDropdown<T> extends StatelessWidget {
     this.confirmable = false,
     this.confirmLabel,
     this.cancelLabel,
+    this.menuBodyMode = DropifyMenuBodyMode.automatic,
+    this.scrollToSelectedOnOpen = true,
   }) : selectionMode = DropifySelectionMode.multi,
        initialValue = null,
        onChanged = null,
-       onChangedMulti = onChanged,
-       menuBodyMode = DropifyMenuBodyMode.automatic,
-       scrollToSelectedOnOpen = true;
+       onChangedMulti = onChanged;
 
   /// The options shown by the dropdown.
   ///
@@ -237,6 +237,8 @@ class DropifyDropdown<T> extends StatelessWidget {
       autovalidateMode: autovalidateMode,
       keyOf: keyOf,
       equals: equals,
+      menuBodyMode: menuBodyMode,
+      scrollToSelectedOnOpen: scrollToSelectedOnOpen,
       confirmable: confirmable,
       confirmLabel: confirmLabel,
       cancelLabel: cancelLabel,

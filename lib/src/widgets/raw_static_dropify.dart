@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
@@ -94,13 +96,13 @@ class RawStaticDropify<T> extends StatelessWidget {
     this.confirmable = false,
     this.confirmLabel,
     this.cancelLabel,
+    this.menuBodyMode = DropifyMenuBodyMode.automatic,
+    this.scrollToSelectedOnOpen = true,
     this.noResultsBuilder,
   }) : selectionMode = DropifySelectionMode.multi,
        initialValue = null,
        onChanged = null,
-       onChangedMulti = onChanged,
-       menuBodyMode = DropifyMenuBodyMode.automatic,
-       scrollToSelectedOnOpen = true;
+       onChangedMulti = onChanged;
 
   /// The in-memory entries shown by the dropdown.
   final List<DropifyEntry<T>> entries;
@@ -212,7 +214,13 @@ class RawStaticDropify<T> extends StatelessWidget {
                 ?.call(context) ??
             const Center(child: Text('No results found'));
       }
-      if (filtered.length > 50) {
+      final useLazyRows = switch (menuBodyMode) {
+        DropifyMenuBodyMode.automatic => filtered.length > 50,
+        DropifyMenuBodyMode.eagerColumn => false,
+        DropifyMenuBodyMode.lazyIndexed => true,
+      };
+
+      if (useLazyRows) {
         return DropifyMenuScrollShell.indexed(
           indexedBuilder: (context, controller, listController) {
             return _StaticLazyRowsView<T>(
@@ -229,22 +237,14 @@ class RawStaticDropify<T> extends StatelessWidget {
         );
       }
       return DropifyMenuScrollShell(
-        builder: (context, controller) => SingleChildScrollView(
-          controller: controller,
-          primary: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var index = 0; index < filtered.length; index++)
-                _buildStaticEntry(
-                  context,
-                  entry: filtered[index],
-                  state: state,
-                  entryBuilder: entryBuilder,
-                  keyOf: keyOf,
-                ),
-            ],
-          ),
+        builder: (context, controller) => _StaticEagerRowsView<T>(
+          entries: filtered,
+          panelState: state,
+          entryBuilder: entryBuilder,
+          keyOf: keyOf,
+          equals: equals,
+          scrollController: controller,
+          scrollToSelectedOnOpen: scrollToSelectedOnOpen,
         ),
       );
     }
@@ -293,6 +293,150 @@ class RawStaticDropify<T> extends StatelessWidget {
       confirmable: confirmable,
       confirmLabel: confirmLabel,
       cancelLabel: cancelLabel,
+    );
+  }
+}
+
+class _StaticEagerRowsView<T> extends StatefulWidget {
+  const _StaticEagerRowsView({
+    required this.entries,
+    required this.panelState,
+    required this.scrollController,
+    required this.scrollToSelectedOnOpen,
+    this.entryBuilder,
+    this.keyOf,
+    this.equals,
+  });
+
+  final List<DropifyEntry<T>> entries;
+  final DropifyPanelState<T> panelState;
+  final ScrollController scrollController;
+  final bool scrollToSelectedOnOpen;
+  final DropifyEntryBuilder<T>? entryBuilder;
+  final Object Function(T item)? keyOf;
+  final bool Function(T a, T b)? equals;
+
+  @override
+  State<_StaticEagerRowsView<T>> createState() =>
+      _StaticEagerRowsViewState<T>();
+}
+
+class _StaticEagerRowsViewState<T> extends State<_StaticEagerRowsView<T>> {
+  final List<GlobalKey> _rowKeys = <GlobalKey>[];
+  int _scheduledGeneration = 0;
+  int? _lastScheduledTarget;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleSelectedJump();
+  }
+
+  @override
+  void didUpdateWidget(covariant _StaticEagerRowsView<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncRowKeys();
+    _scheduleSelectedJump();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _syncRowKeys();
+    return SingleChildScrollView(
+      controller: widget.scrollController,
+      primary: false,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var index = 0; index < widget.entries.length; index++)
+            KeyedSubtree(
+              key: _rowKeys[index],
+              child: _buildStaticEntry<T>(
+                context,
+                entry: widget.entries[index],
+                state: widget.panelState,
+                entryBuilder: widget.entryBuilder,
+                keyOf: widget.keyOf,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _syncRowKeys() {
+    if (_rowKeys.length == widget.entries.length) {
+      return;
+    }
+    if (_rowKeys.length > widget.entries.length) {
+      _rowKeys.removeRange(widget.entries.length, _rowKeys.length);
+      return;
+    }
+    _rowKeys.addAll(
+      List<GlobalKey>.generate(
+        widget.entries.length - _rowKeys.length,
+        (_) => GlobalKey(),
+      ),
+    );
+  }
+
+  void _scheduleSelectedJump() {
+    if (!widget.scrollToSelectedOnOpen) {
+      return;
+    }
+    final targetIndex = _selectedStaticIndex<T>(
+      entries: widget.entries,
+      panelState: widget.panelState,
+      keyOf: widget.keyOf,
+      equals: widget.equals,
+    );
+    if (targetIndex == null || targetIndex == _lastScheduledTarget) {
+      return;
+    }
+    _lastScheduledTarget = targetIndex;
+    final generation = ++_scheduledGeneration;
+    SchedulerBinding.instance.addPostFrameCallback(
+      (_) => _jumpToSelected(generation, targetIndex, canRetry: true),
+      debugLabel: 'Dropify.staticEagerScrollToSelected',
+    );
+  }
+
+  void _jumpToSelected(
+    int generation,
+    int targetIndex, {
+    required bool canRetry,
+  }) {
+    if (!mounted || generation != _scheduledGeneration) {
+      return;
+    }
+    if (targetIndex < 0 || targetIndex >= widget.entries.length) {
+      return;
+    }
+    final currentTargetIndex = _selectedStaticIndex<T>(
+      entries: widget.entries,
+      panelState: widget.panelState,
+      keyOf: widget.keyOf,
+      equals: widget.equals,
+    );
+    if (currentTargetIndex != targetIndex) {
+      return;
+    }
+    final rowContext = _rowKeys[targetIndex].currentContext;
+    if (rowContext == null || !widget.scrollController.hasClients) {
+      if (canRetry) {
+        SchedulerBinding.instance.addPostFrameCallback(
+          (_) => _jumpToSelected(generation, targetIndex, canRetry: false),
+          debugLabel: 'Dropify.staticEagerScrollToSelected.retry',
+        );
+      }
+      return;
+    }
+    unawaited(
+      Scrollable.ensureVisible(
+        rowContext,
+        duration: Duration.zero,
+        alignment: 0.1,
+      ),
     );
   }
 }
@@ -413,36 +557,44 @@ class _StaticLazyRowsViewState<T> extends State<_StaticLazyRowsView<T>> {
   }
 
   int? _selectedIndex() {
-    final identity = DropifySelectionIdentity<T>(
+    return _selectedStaticIndex<T>(
+      entries: widget.entries,
+      panelState: widget.panelState,
       keyOf: widget.keyOf,
       equals: widget.equals,
     );
-    switch (widget.panelState.mode) {
-      case DropifySelectionMode.single:
-        final selected = widget.panelState.value;
-        if (selected == null) {
-          return null;
-        }
-        for (var index = 0; index < widget.entries.length; index++) {
-          if (identity.same(selected, widget.entries[index].value)) {
-            return index;
-          }
-        }
-      case DropifySelectionMode.multi:
-        if (widget.panelState.values.isEmpty) {
-          return null;
-        }
-        for (var index = 0; index < widget.entries.length; index++) {
-          if (identity.contains(
-            widget.panelState.values,
-            widget.entries[index].value,
-          )) {
-            return index;
-          }
-        }
-    }
-    return null;
   }
+}
+
+int? _selectedStaticIndex<T>({
+  required List<DropifyEntry<T>> entries,
+  required DropifyPanelState<T> panelState,
+  required Object Function(T item)? keyOf,
+  required bool Function(T a, T b)? equals,
+}) {
+  final identity = DropifySelectionIdentity<T>(keyOf: keyOf, equals: equals);
+  switch (panelState.mode) {
+    case DropifySelectionMode.single:
+      final selected = panelState.value;
+      if (selected == null) {
+        return null;
+      }
+      for (var index = 0; index < entries.length; index++) {
+        if (identity.same(selected, entries[index].value)) {
+          return index;
+        }
+      }
+    case DropifySelectionMode.multi:
+      if (panelState.values.isEmpty) {
+        return null;
+      }
+      for (var index = 0; index < entries.length; index++) {
+        if (identity.contains(panelState.values, entries[index].value)) {
+          return index;
+        }
+      }
+  }
+  return null;
 }
 
 Widget _buildStaticEntry<T>(

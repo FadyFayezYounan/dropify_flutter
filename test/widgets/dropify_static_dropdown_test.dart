@@ -234,6 +234,32 @@ void main() {
     expect(find.text('Item 2'), findsNothing);
   });
 
+  testWidgets('static forced body modes override automatic threshold', (
+    tester,
+  ) async {
+    await _pumpRawStaticDropdown(
+      tester,
+      entries: _numberedEntries(60),
+      menuBodyMode: DropifyMenuBodyMode.eagerColumn,
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+    expect(find.byType(SuperListView), findsNothing);
+
+    await _pumpRawStaticDropdown(
+      tester,
+      entries: _numberedEntries(10),
+      menuBodyMode: DropifyMenuBodyMode.lazyIndexed,
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SuperListView), findsOneWidget);
+    expect(find.byType(SingleChildScrollView), findsNothing);
+  });
+
   testWidgets('static lazy body opens with selected row visible', (
     tester,
   ) async {
@@ -256,6 +282,211 @@ void main() {
     expect(find.byKey(const ValueKey<String>('dropify.panel')), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('dropify.item.item_90')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('static eager body opens with selected row visible', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      dropifyTestApp(
+        SizedBox(
+          width: 240,
+          child: DropifyDropdown<String>(
+            entries: _keyedEntries(100),
+            initialValue: 'item_90',
+            keyOf: (item) => item,
+            menuBodyMode: DropifyMenuBodyMode.eagerColumn,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    final panelRect = tester.getRect(
+      find.byKey(const ValueKey<String>('dropify.panel')),
+    );
+    final selectedRect = tester.getRect(
+      find.byKey(const ValueKey<String>('dropify.item.item_90')),
+    );
+    expect(selectedRect.top, greaterThanOrEqualTo(panelRect.top));
+    expect(selectedRect.bottom, lessThanOrEqualTo(panelRect.bottom));
+  });
+
+  testWidgets('static scrollToSelectedOnOpen false keeps initial lazy offset', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      dropifyTestApp(
+        SizedBox(
+          width: 240,
+          child: DropifyDropdown<String>(
+            entries: _keyedEntries(100),
+            initialValue: 'item_90',
+            keyOf: (item) => item,
+            scrollToSelectedOnOpen: false,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.item_0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.item_90')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('static search hides selected item without changing query', (
+    tester,
+  ) async {
+    final searchController = TextEditingController(text: 'Item 1');
+    addTearDown(searchController.dispose);
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        SizedBox(
+          width: 240,
+          child: RawStaticDropify<String>(
+            entries: _keyedEntries(100),
+            initialValue: 'item_90',
+            keyOf: (item) => item,
+            searchable: true,
+            searchController: searchController,
+            anchorBuilder: (context, state) => TextButton(
+              key: const ValueKey<String>('dropify.anchor'),
+              onPressed: state.open,
+              child: Text(state.value ?? 'Open'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    expect(searchController.text, 'Item 1');
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.item_1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.item_90')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('static selected target uses first visible identity match', (
+    tester,
+  ) async {
+    final entries = [
+      for (var index = 0; index < 100; index++)
+        if (index == 70)
+          const DropifyEntry(
+            value: _TestFruit(1, 'disabled-first'),
+            label: 'Disabled first',
+            enabled: false,
+          )
+        else if (index == 90)
+          const DropifyEntry(
+            value: _TestFruit(1, 'enabled-second'),
+            label: 'Enabled second',
+          )
+        else
+          DropifyEntry(value: _TestFruit(index + 10, 'row-$index')),
+    ];
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        SizedBox(
+          width: 240,
+          child: RawStaticDropify<_TestFruit>(
+            entries: entries,
+            initialValue: const _TestFruit(1, 'selected'),
+            keyOf: (item) => item.id,
+            equals: (a, b) => a.id == b.id,
+            panelConstraints: const BoxConstraints(maxHeight: 120),
+            entryBuilder: (context, entry, selected, onTap) {
+              return SizedBox(
+                key: ValueKey<String>('dropify.test.row.${entry.value.label}'),
+                height: 40,
+                child: Text('${entry.value.label}:$selected'),
+              );
+            },
+            anchorBuilder: (context, state) => TextButton(
+              key: const ValueKey<String>('dropify.anchor'),
+              onPressed: state.open,
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('dropify.test.row.disabled-first')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('dropify.test.row.enabled-second')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('confirmable multi reopens at committed first selected row', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      dropifyTestApp(
+        SizedBox(
+          width: 320,
+          child: DropifyDropdown<String>.multi(
+            entries: _keyedEntries(100),
+            initialValues: const {'item_90', 'item_70'},
+            keyOf: (item) => item,
+            confirmable: true,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.item_70')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.item_90')),
+      findsNothing,
+    );
+
+    await tester.tap(find.text('Item 70'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('dropify.multi.cancel')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.item_70')),
       findsOneWidget,
     );
   });
@@ -516,6 +747,7 @@ Future<void> _pumpRawStaticDropdown(
   WidgetTester tester, {
   required List<DropifyEntry<String>> entries,
   bool Function(DropifyEntry<String> entry, String query)? matcher,
+  DropifyMenuBodyMode menuBodyMode = DropifyMenuBodyMode.automatic,
 }) async {
   await tester.pumpWidget(
     dropifyTestApp(
@@ -524,6 +756,7 @@ Future<void> _pumpRawStaticDropdown(
         child: RawStaticDropify<String>(
           entries: entries,
           matcher: matcher,
+          menuBodyMode: menuBodyMode,
           anchorBuilder: (context, state) => TextButton(
             key: const ValueKey<String>('dropify.anchor'),
             onPressed: state.open,

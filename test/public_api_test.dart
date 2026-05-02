@@ -36,6 +36,36 @@ void main() {
     expect(themed.scrollToSelectedOnOpen, isTrue);
   });
 
+  test('static multi constructors expose menu body controls', () {
+    final defaultRaw = RawStaticDropify<String>.multi(
+      entries: const [],
+      anchorBuilder: (context, state) => const SizedBox.shrink(),
+    );
+    expect(defaultRaw.menuBodyMode, DropifyMenuBodyMode.automatic);
+    expect(defaultRaw.scrollToSelectedOnOpen, isTrue);
+
+    final raw = RawStaticDropify<String>.multi(
+      entries: const [],
+      anchorBuilder: (context, state) => const SizedBox.shrink(),
+      menuBodyMode: DropifyMenuBodyMode.lazyIndexed,
+      scrollToSelectedOnOpen: false,
+    );
+    expect(raw.menuBodyMode, DropifyMenuBodyMode.lazyIndexed);
+    expect(raw.scrollToSelectedOnOpen, isFalse);
+
+    const defaultThemed = DropifyDropdown<String>.multi(entries: []);
+    expect(defaultThemed.menuBodyMode, DropifyMenuBodyMode.automatic);
+    expect(defaultThemed.scrollToSelectedOnOpen, isTrue);
+
+    const themed = DropifyDropdown<String>.multi(
+      entries: [],
+      menuBodyMode: DropifyMenuBodyMode.eagerColumn,
+      scrollToSelectedOnOpen: false,
+    );
+    expect(themed.menuBodyMode, DropifyMenuBodyMode.eagerColumn);
+    expect(themed.scrollToSelectedOnOpen, isFalse);
+  });
+
   test('theme data exposes Material panel chrome fields', () {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(8),
