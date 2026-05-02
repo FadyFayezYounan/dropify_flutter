@@ -50,18 +50,18 @@ Add body-mode API, shell-owned indexed lazy scrolling, docs/tests.
 ### Phase 3: Async Vertical Slice
 
 - **Goal**: Async body modes + loaded-data selected jump.
-- [ ] `lib/src/widgets/raw_async_dropify.dart` - add `menuBodyMode`, `scrollToSelectedOnOpen`.
-- [ ] `lib/src/widgets/dropify_async_dropdown.dart` - pass async public properties through + dartdoc.
-- [ ] `lib/src/widgets/raw_async_dropify.dart` - loaded/refreshing eager or `SuperListView.builder`; direct states unchanged.
-- [ ] `lib/src/widgets/raw_async_dropify.dart` - target resolution from currently rendered items only.
-- [ ] `lib/src/widgets/raw_async_dropify.dart` - cache-hit and latest-success row generation scheduling.
-- [ ] `test/public_api_test.dart` - async raw/themed single+multi defaults.
-- [ ] `test/widgets/dropify_async_dropdown_test.dart` - async focused widget coverage.
-- [ ] TDD: async automatic/lazy loaded rows use `SuperListView` -> selected row visible after fetch.
-- [ ] TDD: async forced eager loaded rows use `SingleChildScrollView` -> selected row visible.
-- [ ] TDD: cache hit opens with selected row visible -> no extra fetch.
-- [ ] TDD: paginated constructors unchanged -> analyzer guards exclusion.
-- [ ] Verify: `dart format --set-exit-if-changed . && flutter analyze && flutter test`
+- [x] `lib/src/widgets/raw_async_dropify.dart` - add `menuBodyMode`, `scrollToSelectedOnOpen`.
+- [x] `lib/src/widgets/dropify_async_dropdown.dart` - pass async public properties through + dartdoc.
+- [x] `lib/src/widgets/raw_async_dropify.dart` - loaded/refreshing eager or `SuperListView.builder`; direct states unchanged.
+- [x] `lib/src/widgets/raw_async_dropify.dart` - target resolution from currently rendered items only.
+- [x] `lib/src/widgets/raw_async_dropify.dart` - cache-hit and latest-success row generation scheduling.
+- [x] `test/public_api_test.dart` - async raw/themed single+multi defaults.
+- [x] `test/widgets/dropify_async_dropdown_test.dart` - async focused widget coverage.
+- [x] TDD: async automatic/lazy loaded rows use `SuperListView` -> selected row visible after fetch.
+- [x] TDD: async forced eager loaded rows use `SingleChildScrollView` -> selected row visible.
+- [x] TDD: cache hit opens with selected row visible -> no extra fetch.
+- [x] TDD: paginated constructors unchanged -> analyzer guards exclusion.
+- [x] Verify: `dart format --set-exit-if-changed . && flutter analyze && flutter test`
 
 ### Phase 4: Async Edges
 

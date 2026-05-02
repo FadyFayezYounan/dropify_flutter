@@ -66,6 +66,53 @@ void main() {
     expect(themed.scrollToSelectedOnOpen, isFalse);
   });
 
+  test('async constructors expose menu body controls', () {
+    Future<List<String>> fetcher(String query, {required cancel}) async =>
+        const [];
+    Widget itemBuilder(
+      BuildContext context,
+      String item,
+      bool selected,
+      VoidCallback onTap,
+    ) {
+      return const SizedBox.shrink();
+    }
+
+    final rawSingle = RawAsyncDropify<String>(
+      fetcher: fetcher,
+      anchorBuilder: (context, state) => const SizedBox.shrink(),
+      itemBuilder: itemBuilder,
+    );
+    expect(rawSingle.menuBodyMode, DropifyMenuBodyMode.automatic);
+    expect(rawSingle.scrollToSelectedOnOpen, isTrue);
+
+    final rawMulti = RawAsyncDropify<String>.multi(
+      fetcher: fetcher,
+      anchorBuilder: (context, state) => const SizedBox.shrink(),
+      itemBuilder: itemBuilder,
+      menuBodyMode: DropifyMenuBodyMode.eagerColumn,
+      scrollToSelectedOnOpen: false,
+    );
+    expect(rawMulti.menuBodyMode, DropifyMenuBodyMode.eagerColumn);
+    expect(rawMulti.scrollToSelectedOnOpen, isFalse);
+
+    final themedSingle = DropifyAsyncDropdown<String>(
+      fetcher: fetcher,
+      itemLabelBuilder: (item) => item,
+    );
+    expect(themedSingle.menuBodyMode, DropifyMenuBodyMode.automatic);
+    expect(themedSingle.scrollToSelectedOnOpen, isTrue);
+
+    final themedMulti = DropifyAsyncDropdown<String>.multi(
+      fetcher: fetcher,
+      itemLabelBuilder: (item) => item,
+      menuBodyMode: DropifyMenuBodyMode.lazyIndexed,
+      scrollToSelectedOnOpen: false,
+    );
+    expect(themedMulti.menuBodyMode, DropifyMenuBodyMode.lazyIndexed);
+    expect(themedMulti.scrollToSelectedOnOpen, isFalse);
+  });
+
   test('theme data exposes Material panel chrome fields', () {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(8),

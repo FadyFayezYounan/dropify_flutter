@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:super_sliver_list/super_sliver_list.dart';
 
 import '../core/dropify_cancel_token.dart';
 import '../core/dropify_controller.dart';
+import '../core/dropify_menu_body_mode.dart';
 import '../core/dropify_selection.dart';
 import '../core/dropify_value.dart';
 import '../core/raw_dropify.dart';
@@ -124,6 +127,8 @@ class RawAsyncDropify<T> extends StatefulWidget {
     this.equals,
     this.loadOnOpen = true,
     this.cacheItems = true,
+    this.menuBodyMode = DropifyMenuBodyMode.automatic,
+    this.scrollToSelectedOnOpen = true,
   }) : selectionMode = DropifySelectionMode.single,
        initialValues = null,
        onChangedMulti = null,
@@ -158,6 +163,8 @@ class RawAsyncDropify<T> extends StatefulWidget {
     this.equals,
     this.loadOnOpen = true,
     this.cacheItems = true,
+    this.menuBodyMode = DropifyMenuBodyMode.automatic,
+    this.scrollToSelectedOnOpen = true,
     this.confirmable = false,
     this.confirmLabel,
     this.cancelLabel,
@@ -249,6 +256,19 @@ class RawAsyncDropify<T> extends StatefulWidget {
   /// Defaults to true.
   final bool cacheItems;
 
+  /// Controls whether loaded row bodies are eager or lazy.
+  ///
+  /// Defaults to [DropifyMenuBodyMode.automatic], which uses lazy indexed rows
+  /// for async loaded and refreshing data. Paginated dropdowns do not use this
+  /// setting.
+  final DropifyMenuBodyMode menuBodyMode;
+
+  /// Whether opening the menu should jump to the selected visible row.
+  ///
+  /// Defaults to true. Async dropdowns only inspect currently rendered loaded or
+  /// refreshing rows and never fetch extra items to find a selection.
+  final bool scrollToSelectedOnOpen;
+
   /// Whether multi-selection changes are staged until applied.
   final bool confirmable;
 
@@ -286,6 +306,10 @@ class _RawAsyncDropifyState<T> extends State<RawAsyncDropify<T>> {
         cacheItems: widget.cacheItems,
         loadOnOpen: widget.loadOnOpen,
         debounce: widget.searchDebounce,
+        menuBodyMode: widget.menuBodyMode,
+        scrollToSelectedOnOpen: widget.scrollToSelectedOnOpen,
+        keyOf: widget.keyOf,
+        equals: widget.equals,
       );
     }
 
@@ -344,6 +368,10 @@ class _AsyncDropifyBody<T> extends StatefulWidget {
     this.loadingBuilder,
     this.errorBuilder,
     this.emptyBuilder,
+    this.menuBodyMode = DropifyMenuBodyMode.automatic,
+    this.scrollToSelectedOnOpen = true,
+    this.keyOf,
+    this.equals,
   });
 
   final String query;
@@ -354,6 +382,10 @@ class _AsyncDropifyBody<T> extends StatefulWidget {
   final bool cacheItems;
   final bool loadOnOpen;
   final Duration debounce;
+  final DropifyMenuBodyMode menuBodyMode;
+  final bool scrollToSelectedOnOpen;
+  final Object Function(T item)? keyOf;
+  final bool Function(T a, T b)? equals;
   final WidgetBuilder? loadingBuilder;
   final Widget Function(BuildContext, Object, VoidCallback)? errorBuilder;
   final Widget Function(BuildContext, bool)? emptyBuilder;
@@ -463,6 +495,10 @@ class _AsyncDropifyBodyState<T> extends State<_AsyncDropifyBody<T>> {
             items: staleItems,
             state: widget.state,
             itemBuilder: widget.itemBuilder,
+            menuBodyMode: widget.menuBodyMode,
+            scrollToSelectedOnOpen: widget.scrollToSelectedOnOpen,
+            keyOf: widget.keyOf,
+            equals: widget.equals,
           ),
           const Align(
             alignment: Alignment.topRight,
@@ -481,6 +517,10 @@ class _AsyncDropifyBodyState<T> extends State<_AsyncDropifyBody<T>> {
         items: items,
         state: widget.state,
         itemBuilder: widget.itemBuilder,
+        menuBodyMode: widget.menuBodyMode,
+        scrollToSelectedOnOpen: widget.scrollToSelectedOnOpen,
+        keyOf: widget.keyOf,
+        equals: widget.equals,
       ),
       DropifyAsyncEmpty<T>(:final hasQuery) =>
         (widget.emptyBuilder ?? theme.emptyBuilder)?.call(context, hasQuery) ??
@@ -501,32 +541,368 @@ class _ItemsList<T> extends StatelessWidget {
     required this.items,
     required this.state,
     required this.itemBuilder,
+    required this.menuBodyMode,
+    required this.scrollToSelectedOnOpen,
+    this.keyOf,
+    this.equals,
   });
 
   final List<T> items;
   final DropifyPanelState<T> state;
   final DropifyAsyncItemBuilder<T> itemBuilder;
+  final DropifyMenuBodyMode menuBodyMode;
+  final bool scrollToSelectedOnOpen;
+  final Object Function(T item)? keyOf;
+  final bool Function(T a, T b)? equals;
 
   @override
   Widget build(BuildContext context) {
-    return DropifyMenuScrollShell(
-      builder: (context, controller) => ListView.builder(
-        controller: controller,
-        primary: false,
-        padding: EdgeInsets.zero,
-        shrinkWrap: false,
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return itemBuilder(context, item, state.isSelected(item), () {
-            if (state.mode == DropifySelectionMode.single) {
-              state.select(item);
-            } else {
-              state.toggle(item);
-            }
-          });
+    final useLazyRows = switch (menuBodyMode) {
+      DropifyMenuBodyMode.automatic || DropifyMenuBodyMode.lazyIndexed => true,
+      DropifyMenuBodyMode.eagerColumn => false,
+    };
+
+    if (useLazyRows) {
+      return DropifyMenuScrollShell.indexed(
+        indexedBuilder: (context, controller, listController) {
+          return _AsyncLazyRowsView<T>(
+            items: items,
+            panelState: state,
+            itemBuilder: itemBuilder,
+            keyOf: keyOf,
+            equals: equals,
+            scrollController: controller,
+            listController: listController,
+            scrollToSelectedOnOpen: scrollToSelectedOnOpen,
+          );
         },
+      );
+    }
+
+    return DropifyMenuScrollShell(
+      builder: (context, controller) => _AsyncEagerRowsView<T>(
+        items: items,
+        panelState: state,
+        itemBuilder: itemBuilder,
+        keyOf: keyOf,
+        equals: equals,
+        scrollController: controller,
+        scrollToSelectedOnOpen: scrollToSelectedOnOpen,
       ),
     );
   }
+}
+
+class _AsyncEagerRowsView<T> extends StatefulWidget {
+  const _AsyncEagerRowsView({
+    required this.items,
+    required this.panelState,
+    required this.itemBuilder,
+    required this.scrollController,
+    required this.scrollToSelectedOnOpen,
+    this.keyOf,
+    this.equals,
+  });
+
+  final List<T> items;
+  final DropifyPanelState<T> panelState;
+  final DropifyAsyncItemBuilder<T> itemBuilder;
+  final ScrollController scrollController;
+  final bool scrollToSelectedOnOpen;
+  final Object Function(T item)? keyOf;
+  final bool Function(T a, T b)? equals;
+
+  @override
+  State<_AsyncEagerRowsView<T>> createState() => _AsyncEagerRowsViewState<T>();
+}
+
+class _AsyncEagerRowsViewState<T> extends State<_AsyncEagerRowsView<T>> {
+  final List<GlobalKey> _rowKeys = <GlobalKey>[];
+  int _scheduledGeneration = 0;
+  int? _lastScheduledTarget;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleSelectedJump();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AsyncEagerRowsView<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncRowKeys();
+    _scheduleSelectedJump();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _syncRowKeys();
+    return SingleChildScrollView(
+      controller: widget.scrollController,
+      primary: false,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var index = 0; index < widget.items.length; index++)
+            KeyedSubtree(
+              key: _rowKeys[index],
+              child: _buildAsyncItem<T>(
+                context,
+                item: widget.items[index],
+                panelState: widget.panelState,
+                itemBuilder: widget.itemBuilder,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _syncRowKeys() {
+    if (_rowKeys.length == widget.items.length) {
+      return;
+    }
+    if (_rowKeys.length > widget.items.length) {
+      _rowKeys.removeRange(widget.items.length, _rowKeys.length);
+      return;
+    }
+    _rowKeys.addAll(
+      List<GlobalKey>.generate(
+        widget.items.length - _rowKeys.length,
+        (_) => GlobalKey(),
+      ),
+    );
+  }
+
+  void _scheduleSelectedJump() {
+    if (!widget.scrollToSelectedOnOpen) {
+      return;
+    }
+    final targetIndex = _selectedAsyncIndex<T>(
+      items: widget.items,
+      panelState: widget.panelState,
+      keyOf: widget.keyOf,
+      equals: widget.equals,
+    );
+    if (targetIndex == null || targetIndex == _lastScheduledTarget) {
+      return;
+    }
+    _lastScheduledTarget = targetIndex;
+    final generation = ++_scheduledGeneration;
+    SchedulerBinding.instance.addPostFrameCallback(
+      (_) => _jumpToSelected(generation, targetIndex, canRetry: true),
+      debugLabel: 'Dropify.asyncEagerScrollToSelected',
+    );
+  }
+
+  void _jumpToSelected(
+    int generation,
+    int targetIndex, {
+    required bool canRetry,
+  }) {
+    if (!mounted || generation != _scheduledGeneration) {
+      return;
+    }
+    if (targetIndex < 0 || targetIndex >= widget.items.length) {
+      return;
+    }
+    final currentTargetIndex = _selectedAsyncIndex<T>(
+      items: widget.items,
+      panelState: widget.panelState,
+      keyOf: widget.keyOf,
+      equals: widget.equals,
+    );
+    if (currentTargetIndex != targetIndex) {
+      return;
+    }
+    final rowContext = _rowKeys[targetIndex].currentContext;
+    if (rowContext == null || !widget.scrollController.hasClients) {
+      if (canRetry) {
+        SchedulerBinding.instance.addPostFrameCallback(
+          (_) => _jumpToSelected(generation, targetIndex, canRetry: false),
+          debugLabel: 'Dropify.asyncEagerScrollToSelected.retry',
+        );
+      }
+      return;
+    }
+    unawaited(
+      Scrollable.ensureVisible(
+        rowContext,
+        duration: Duration.zero,
+        alignment: 0.1,
+      ),
+    );
+  }
+}
+
+class _AsyncLazyRowsView<T> extends StatefulWidget {
+  const _AsyncLazyRowsView({
+    required this.items,
+    required this.panelState,
+    required this.itemBuilder,
+    required this.scrollController,
+    required this.listController,
+    required this.scrollToSelectedOnOpen,
+    this.keyOf,
+    this.equals,
+  });
+
+  final List<T> items;
+  final DropifyPanelState<T> panelState;
+  final DropifyAsyncItemBuilder<T> itemBuilder;
+  final ScrollController scrollController;
+  final ListController listController;
+  final bool scrollToSelectedOnOpen;
+  final Object Function(T item)? keyOf;
+  final bool Function(T a, T b)? equals;
+
+  @override
+  State<_AsyncLazyRowsView<T>> createState() => _AsyncLazyRowsViewState<T>();
+}
+
+class _AsyncLazyRowsViewState<T> extends State<_AsyncLazyRowsView<T>> {
+  int _scheduledGeneration = 0;
+  int? _lastScheduledTarget;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleSelectedJump();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AsyncLazyRowsView<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _scheduleSelectedJump();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SuperListView.builder(
+      controller: widget.scrollController,
+      listController: widget.listController,
+      primary: false,
+      padding: EdgeInsets.zero,
+      shrinkWrap: false,
+      itemCount: widget.items.length,
+      itemBuilder: (context, index) {
+        return _buildAsyncItem<T>(
+          context,
+          item: widget.items[index],
+          panelState: widget.panelState,
+          itemBuilder: widget.itemBuilder,
+        );
+      },
+    );
+  }
+
+  void _scheduleSelectedJump() {
+    if (!widget.scrollToSelectedOnOpen) {
+      return;
+    }
+    final targetIndex = _selectedAsyncIndex<T>(
+      items: widget.items,
+      panelState: widget.panelState,
+      keyOf: widget.keyOf,
+      equals: widget.equals,
+    );
+    if (targetIndex == null || targetIndex == _lastScheduledTarget) {
+      return;
+    }
+    _lastScheduledTarget = targetIndex;
+    final generation = ++_scheduledGeneration;
+    SchedulerBinding.instance.addPostFrameCallback(
+      (_) => _jumpToSelected(generation, targetIndex, canRetry: true),
+      debugLabel: 'Dropify.asyncScrollToSelected',
+    );
+  }
+
+  void _jumpToSelected(
+    int generation,
+    int targetIndex, {
+    required bool canRetry,
+  }) {
+    if (!mounted || generation != _scheduledGeneration) {
+      return;
+    }
+    if (targetIndex < 0 || targetIndex >= widget.items.length) {
+      return;
+    }
+    final currentTargetIndex = _selectedAsyncIndex<T>(
+      items: widget.items,
+      panelState: widget.panelState,
+      keyOf: widget.keyOf,
+      equals: widget.equals,
+    );
+    if (currentTargetIndex != targetIndex) {
+      return;
+    }
+    if (!widget.scrollController.hasClients ||
+        !widget.listController.isAttached) {
+      if (canRetry) {
+        SchedulerBinding.instance.addPostFrameCallback(
+          (_) => _jumpToSelected(generation, targetIndex, canRetry: false),
+          debugLabel: 'Dropify.asyncScrollToSelected.retry',
+        );
+      }
+      return;
+    }
+    final visibleRange = widget.listController.visibleRange;
+    if (visibleRange != null &&
+        targetIndex >= visibleRange.$1 &&
+        targetIndex <= visibleRange.$2) {
+      return;
+    }
+    widget.listController.jumpToItem(
+      index: targetIndex,
+      scrollController: widget.scrollController,
+      alignment: 0.1,
+    );
+  }
+}
+
+Widget _buildAsyncItem<T>(
+  BuildContext context, {
+  required T item,
+  required DropifyPanelState<T> panelState,
+  required DropifyAsyncItemBuilder<T> itemBuilder,
+}) {
+  return itemBuilder(context, item, panelState.isSelected(item), () {
+    if (panelState.mode == DropifySelectionMode.single) {
+      panelState.select(item);
+    } else {
+      panelState.toggle(item);
+    }
+  });
+}
+
+int? _selectedAsyncIndex<T>({
+  required List<T> items,
+  required DropifyPanelState<T> panelState,
+  required Object Function(T item)? keyOf,
+  required bool Function(T a, T b)? equals,
+}) {
+  final identity = DropifySelectionIdentity<T>(keyOf: keyOf, equals: equals);
+  switch (panelState.mode) {
+    case DropifySelectionMode.single:
+      final selected = panelState.value;
+      if (selected == null) {
+        return null;
+      }
+      for (var index = 0; index < items.length; index++) {
+        if (identity.same(selected, items[index])) {
+          return index;
+        }
+      }
+    case DropifySelectionMode.multi:
+      if (panelState.values.isEmpty) {
+        return null;
+      }
+      for (var index = 0; index < items.length; index++) {
+        if (identity.contains(panelState.values, items[index])) {
+          return index;
+        }
+      }
+  }
+  return null;
 }

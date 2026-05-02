@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dropify_flutter/dropify_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:super_sliver_list/super_sliver_list.dart';
 
 import '../helpers/dropify_test_app.dart';
 
@@ -68,7 +69,7 @@ void main() {
     completer.complete(List<String>.generate(60, (index) => 'Item $index'));
     await tester.pumpAndSettle();
 
-    final listView = tester.widget<ListView>(find.byType(ListView));
+    final listView = tester.widget<SuperListView>(find.byType(SuperListView));
     expect(find.byType(Scrollbar), findsOneWidget);
     expect(listView.shrinkWrap, isFalse);
 
@@ -77,6 +78,115 @@ void main() {
 
     expect(selected, 'Item 0');
     expect(find.byKey(const ValueKey<String>('dropify.panel')), findsNothing);
+  });
+
+  testWidgets('async lazy loaded rows reveal selected item after fetch', (
+    tester,
+  ) async {
+    final completer = Completer<List<String>>();
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        SizedBox(
+          width: 240,
+          child: DropifyAsyncDropdown<String>(
+            fetcher: (query, {required cancel}) => completer.future,
+            itemLabelBuilder: (item) => item,
+            keyOf: (item) => item,
+            initialValue: 'Item 90',
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pump();
+    completer.complete(List<String>.generate(100, (index) => 'Item $index'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SuperListView), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.Item_90')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('async forced eager rows reveal selected item after fetch', (
+    tester,
+  ) async {
+    final completer = Completer<List<String>>();
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        SizedBox(
+          width: 240,
+          child: DropifyAsyncDropdown<String>(
+            fetcher: (query, {required cancel}) => completer.future,
+            itemLabelBuilder: (item) => item,
+            keyOf: (item) => item,
+            initialValue: 'Item 90',
+            menuBodyMode: DropifyMenuBodyMode.eagerColumn,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pump();
+    completer.complete(List<String>.generate(100, (index) => 'Item $index'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+    final panelRect = tester.getRect(
+      find.byKey(const ValueKey<String>('dropify.panel')),
+    );
+    final selectedRect = tester.getRect(
+      find.byKey(const ValueKey<String>('dropify.item.Item_90')),
+    );
+    expect(selectedRect.top, greaterThanOrEqualTo(panelRect.top));
+    expect(selectedRect.bottom, lessThanOrEqualTo(panelRect.bottom));
+  });
+
+  testWidgets('async cache hit reopens selected item without extra fetch', (
+    tester,
+  ) async {
+    var calls = 0;
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        SizedBox(
+          width: 240,
+          child: DropifyAsyncDropdown<String>(
+            fetcher: (query, {required cancel}) async {
+              calls += 1;
+              return List<String>.generate(100, (index) => 'Item $index');
+            },
+            itemLabelBuilder: (item) => item,
+            keyOf: (item) => item,
+            initialValue: 'Item 90',
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+    expect(calls, 1);
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.Item_90')),
+      findsOneWidget,
+    );
+
+    await tester.tapAt(const Offset(790, 590));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+
+    expect(calls, 1);
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.Item_90')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('refreshing keeps stale rows plus progress in lazy shell', (

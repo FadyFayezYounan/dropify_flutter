@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/dropify_controller.dart';
+import '../core/dropify_menu_body_mode.dart';
 import '../core/dropify_selection.dart';
 import '../core/dropify_value.dart';
 import '../internal/_dropify_menu_item_button.dart';
@@ -41,6 +42,8 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
     this.autovalidateMode,
     this.keyOf,
     this.equals,
+    this.menuBodyMode = DropifyMenuBodyMode.automatic,
+    this.scrollToSelectedOnOpen = true,
   }) : selectionMode = DropifySelectionMode.single,
        initialValues = null,
        onChangedMulti = null,
@@ -74,6 +77,8 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
     this.confirmable = false,
     this.confirmLabel,
     this.cancelLabel,
+    this.menuBodyMode = DropifyMenuBodyMode.automatic,
+    this.scrollToSelectedOnOpen = true,
   }) : selectionMode = DropifySelectionMode.multi,
        initialValue = null,
        onChanged = null,
@@ -148,6 +153,19 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
   /// Compares two values for selection identity.
   final bool Function(T a, T b)? equals;
 
+  /// Controls whether loaded async row bodies are eager or lazy.
+  ///
+  /// Defaults to [DropifyMenuBodyMode.automatic], which uses lazy indexed rows
+  /// for async loaded and refreshing data. Paginated dropdowns do not use this
+  /// setting.
+  final DropifyMenuBodyMode menuBodyMode;
+
+  /// Whether opening the menu should jump to the selected visible row.
+  ///
+  /// Defaults to true. Async dropdowns only inspect currently rendered loaded or
+  /// refreshing rows and never fetch extra items to find a selection.
+  final bool scrollToSelectedOnOpen;
+
   /// Whether multi-selection changes are staged until applied.
   final bool confirmable;
 
@@ -188,6 +206,8 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
         autovalidateMode: autovalidateMode,
         keyOf: keyOf,
         equals: equals,
+        menuBodyMode: menuBodyMode,
+        scrollToSelectedOnOpen: scrollToSelectedOnOpen,
       );
     }
     return RawAsyncDropify<T>.multi(
@@ -211,6 +231,8 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
       autovalidateMode: autovalidateMode,
       keyOf: keyOf,
       equals: equals,
+      menuBodyMode: menuBodyMode,
+      scrollToSelectedOnOpen: scrollToSelectedOnOpen,
       confirmable: confirmable,
       confirmLabel: confirmLabel,
       cancelLabel: cancelLabel,
