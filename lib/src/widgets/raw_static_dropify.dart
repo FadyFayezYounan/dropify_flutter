@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
@@ -54,7 +55,6 @@ class RawStaticDropify<T> extends StatelessWidget {
     this.enabled = true,
     this.validator,
     this.autovalidateMode,
-    this.errorTextBuilder,
     this.keyOf,
     this.equals,
     this.menuBodyMode = DropifyMenuBodyMode.automatic,
@@ -90,7 +90,6 @@ class RawStaticDropify<T> extends StatelessWidget {
     this.enabled = true,
     this.validator,
     this.autovalidateMode,
-    this.errorTextBuilder,
     this.keyOf,
     this.equals,
     this.confirmable = false,
@@ -169,9 +168,6 @@ class RawStaticDropify<T> extends StatelessWidget {
   /// Controls when validation runs.
   final AutovalidateMode? autovalidateMode;
 
-  /// Builds validation error text.
-  final Widget Function(BuildContext, String error)? errorTextBuilder;
-
   /// Returns a stable identity key for a value.
   final Object Function(T item)? keyOf;
 
@@ -201,6 +197,130 @@ class RawStaticDropify<T> extends StatelessWidget {
   /// Defaults to true. If the selected value is not present in the current
   /// visible rows, opening preserves normal initial scroll offset behavior.
   final bool scrollToSelectedOnOpen;
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(IntProperty('entries', entries.length));
+    properties.add(
+      EnumProperty<DropifySelectionMode>('selectionMode', selectionMode),
+    );
+    properties.add(
+      ObjectFlagProperty<AnchorBuilder<T>>.has('anchorBuilder', anchorBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<DropifyEntryBuilder<T>?>.has(
+        'entryBuilder',
+        entryBuilder,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<
+        bool Function(DropifyEntry<T> entry, String query)?
+      >.has('matcher', matcher),
+    );
+    properties.add(
+      ObjectFlagProperty<DropifyController<T>?>.has('controller', controller),
+    );
+    properties.add(
+      DiagnosticsProperty<T?>('initialValue', initialValue, defaultValue: null),
+    );
+    properties.add(
+      IterableProperty<T>('initialValues', initialValues, defaultValue: null),
+    );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<T?>?>.has('onChanged', onChanged),
+    );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<Set<T>>?>.has(
+        'onChangedMulti',
+        onChangedMulti,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<TextEditingController?>.has(
+        'searchController',
+        searchController,
+      ),
+    );
+    properties.add(
+      FlagProperty('searchable', value: searchable, ifTrue: 'searchable'),
+    );
+    properties.add(
+      StringProperty('searchHintText', searchHintText, defaultValue: null),
+    );
+    properties.add(
+      DiagnosticsProperty<Duration>('searchDebounce', searchDebounce),
+    );
+    properties.add(
+      FlagProperty(
+        'showClearButton',
+        value: showClearButton,
+        ifTrue: 'shows clear button',
+      ),
+    );
+    properties.add(
+      FlagProperty(
+        'matchAnchorWidth',
+        value: matchAnchorWidth,
+        ifTrue: 'matches anchor width',
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<BoxConstraints?>(
+        'panelConstraints',
+        panelConstraints,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      FlagProperty('enabled', value: enabled, ifFalse: 'disabled'),
+    );
+    properties.add(
+      ObjectFlagProperty<FormFieldValidator<DropifyValue<T>>?>.has(
+        'validator',
+        validator,
+      ),
+    );
+    properties.add(
+      EnumProperty<AutovalidateMode?>(
+        'autovalidateMode',
+        autovalidateMode,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<Object Function(T item)?>.has('keyOf', keyOf),
+    );
+    properties.add(
+      ObjectFlagProperty<bool Function(T a, T b)?>.has('equals', equals),
+    );
+    properties.add(
+      FlagProperty('confirmable', value: confirmable, ifTrue: 'confirmable'),
+    );
+    properties.add(
+      StringProperty('confirmLabel', confirmLabel, defaultValue: null),
+    );
+    properties.add(
+      StringProperty('cancelLabel', cancelLabel, defaultValue: null),
+    );
+    properties.add(
+      ObjectFlagProperty<WidgetBuilder?>.has(
+        'noResultsBuilder',
+        noResultsBuilder,
+      ),
+    );
+    properties.add(
+      EnumProperty<DropifyMenuBodyMode>('menuBodyMode', menuBodyMode),
+    );
+    properties.add(
+      FlagProperty(
+        'scrollToSelectedOnOpen',
+        value: scrollToSelectedOnOpen,
+        ifTrue: 'scrolls to selected on open',
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -266,7 +386,6 @@ class RawStaticDropify<T> extends StatelessWidget {
         enabled: enabled,
         validator: validator,
         autovalidateMode: autovalidateMode,
-        errorTextBuilder: errorTextBuilder,
         keyOf: keyOf,
         equals: equals,
       );
@@ -287,7 +406,6 @@ class RawStaticDropify<T> extends StatelessWidget {
       enabled: enabled,
       validator: validator,
       autovalidateMode: autovalidateMode,
-      errorTextBuilder: errorTextBuilder,
       keyOf: keyOf,
       equals: equals,
       confirmable: confirmable,

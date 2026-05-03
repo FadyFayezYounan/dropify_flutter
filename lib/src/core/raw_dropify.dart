@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -162,7 +163,6 @@ class RawDropify<T> extends StatefulWidget {
     this.onClose,
     this.validator,
     this.autovalidateMode,
-    this.errorTextBuilder,
     this.keyOf,
     this.equals,
     this.onSearchChanged,
@@ -201,7 +201,6 @@ class RawDropify<T> extends StatefulWidget {
     this.onClose,
     this.validator,
     this.autovalidateMode,
-    this.errorTextBuilder,
     this.keyOf,
     this.equals,
     this.confirmable = false,
@@ -298,9 +297,6 @@ class RawDropify<T> extends StatefulWidget {
   /// Autovalidation mode.
   final AutovalidateMode? autovalidateMode;
 
-  /// Optional validation error builder.
-  final Widget Function(BuildContext, String error)? errorTextBuilder;
-
   /// Returns a stable identity key for a value.
   ///
   /// Use this when new object instances can represent the same logical item.
@@ -325,15 +321,148 @@ class RawDropify<T> extends StatefulWidget {
 
   @override
   State<RawDropify<T>> createState() => _RawDropifyState<T>();
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      EnumProperty<DropifySelectionMode>('selectionMode', selectionMode),
+    );
+    properties.add(
+      ObjectFlagProperty<DropifyController<T>?>.has('controller', controller),
+    );
+    properties.add(
+      DiagnosticsProperty<T?>('initialValue', initialValue, defaultValue: null),
+    );
+    properties.add(
+      IterableProperty<T>('initialValues', initialValues, defaultValue: null),
+    );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<T?>?>.has('onChanged', onChanged),
+    );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<Set<T>>?>.has(
+        'onChangedMulti',
+        onChangedMulti,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<PanelBuilder<T>>.has('panelBuilder', panelBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<AnchorBuilder<T>>.has('anchorBuilder', anchorBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<TextEditingController?>.has(
+        'searchController',
+        searchController,
+      ),
+    );
+    properties.add(
+      FlagProperty('searchable', value: searchable, ifTrue: 'searchable'),
+    );
+    properties.add(
+      StringProperty('searchHintText', searchHintText, defaultValue: null),
+    );
+    properties.add(
+      DiagnosticsProperty<Duration>('searchDebounce', searchDebounce),
+    );
+    properties.add(
+      FlagProperty(
+        'showClearButton',
+        value: showClearButton,
+        ifTrue: 'shows clear button',
+      ),
+    );
+    properties.add(
+      FlagProperty(
+        'matchAnchorWidth',
+        value: matchAnchorWidth,
+        ifTrue: 'matches anchor width',
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<BoxConstraints?>(
+        'panelConstraints',
+        panelConstraints,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<Offset>(
+        'alignmentOffset',
+        alignmentOffset,
+        defaultValue: const Offset(0, 4),
+      ),
+    );
+    properties.add(
+      FlagProperty(
+        'useRootOverlay',
+        value: useRootOverlay,
+        ifTrue: 'uses root overlay',
+      ),
+    );
+    properties.add(
+      FlagProperty(
+        'consumeOutsideTaps',
+        value: consumeOutsideTaps,
+        ifTrue: 'consumes outside taps',
+      ),
+    );
+    properties.add(
+      FlagProperty('enabled', value: enabled, ifFalse: 'disabled'),
+    );
+    properties.add(
+      FlagProperty('autofocus', value: autofocus, ifTrue: 'autofocus'),
+    );
+    properties.add(ObjectFlagProperty<FocusNode?>.has('focusNode', focusNode));
+    properties.add(ObjectFlagProperty<VoidCallback?>.has('onOpen', onOpen));
+    properties.add(ObjectFlagProperty<VoidCallback?>.has('onClose', onClose));
+    properties.add(
+      ObjectFlagProperty<FormFieldValidator<DropifyValue<T>>?>.has(
+        'validator',
+        validator,
+      ),
+    );
+    properties.add(
+      EnumProperty<AutovalidateMode?>(
+        'autovalidateMode',
+        autovalidateMode,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<Object Function(T item)?>.has('keyOf', keyOf),
+    );
+    properties.add(
+      ObjectFlagProperty<bool Function(T a, T b)?>.has('equals', equals),
+    );
+    properties.add(
+      FlagProperty('confirmable', value: confirmable, ifTrue: 'confirmable'),
+    );
+    properties.add(
+      StringProperty('confirmLabel', confirmLabel, defaultValue: null),
+    );
+    properties.add(
+      StringProperty('cancelLabel', cancelLabel, defaultValue: null),
+    );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<String>?>.has(
+        'onSearchChanged',
+        onSearchChanged,
+      ),
+    );
+  }
 }
 
 class _RawDropifyState<T> extends State<RawDropify<T>> {
   final MenuController _menuController = MenuController();
   final FocusNode _panelFocusNode = FocusNode(debugLabel: 'Dropify panel');
-  late final bool _ownsController;
+  bool _ownsController = false;
   late DropifyController<T> _controller;
-  late final bool _ownsSearchController;
+  bool _ownsSearchController = false;
   late TextEditingController _searchController;
+  FormFieldState<DropifyValue<T>>? _field;
   Set<T>? _stagedValues;
 
   DropifySelectionIdentity<T> get _identity =>
@@ -342,12 +471,24 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
   @override
   void initState() {
     super.initState();
-    _ownsController = widget.controller == null;
+    assert(_debugControllerModeIsValid());
     _controller = widget.controller ?? _createController();
-    _ownsSearchController = widget.searchController == null;
+    _ownsController = widget.controller == null;
     _searchController = widget.searchController ?? TextEditingController();
+    _ownsSearchController = widget.searchController == null;
     _controller.addListener(_handleControllerChanged);
     _attachController();
+  }
+
+  bool _debugControllerModeIsValid() {
+    final controller = widget.controller;
+    if (controller == null || controller.mode == widget.selectionMode) {
+      return true;
+    }
+    throw AssertionError(
+      'DropifyController mode (${controller.mode}) must match '
+      'RawDropify selection mode (${widget.selectionMode}).',
+    );
   }
 
   DropifyController<T> _createController() {
@@ -364,23 +505,49 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
   @override
   void didUpdateWidget(covariant RawDropify<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      _controller
-        ..removeListener(_handleControllerChanged)
-        ..detach();
-      if (_ownsController) {
-        _controller.dispose();
-      }
-      _controller = widget.controller ?? _createController();
-      _controller.addListener(_handleControllerChanged);
+    assert(_debugControllerModeIsValid());
+    if (oldWidget.controller != widget.controller ||
+        (oldWidget.selectionMode != widget.selectionMode &&
+            widget.controller == null)) {
+      _replaceController(
+        widget.controller ?? _createController(),
+        ownsController: widget.controller == null,
+      );
     }
     if (oldWidget.searchController != widget.searchController) {
-      if (_ownsSearchController) {
-        _searchController.dispose();
-      }
-      _searchController = widget.searchController ?? TextEditingController();
+      _replaceSearchController(
+        widget.searchController ?? TextEditingController(),
+        ownsSearchController: widget.searchController == null,
+      );
     }
     _attachController();
+    _syncFormField();
+  }
+
+  void _replaceController(
+    DropifyController<T> controller, {
+    required bool ownsController,
+  }) {
+    _controller
+      ..removeListener(_handleControllerChanged)
+      ..detach();
+    if (_ownsController) {
+      _controller.dispose();
+    }
+    _controller = controller;
+    _ownsController = ownsController;
+    _controller.addListener(_handleControllerChanged);
+  }
+
+  void _replaceSearchController(
+    TextEditingController controller, {
+    required bool ownsSearchController,
+  }) {
+    if (_ownsSearchController) {
+      _searchController.dispose();
+    }
+    _searchController = controller;
+    _ownsSearchController = ownsSearchController;
   }
 
   void _attachController() {
@@ -394,8 +561,17 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
 
   void _handleControllerChanged() {
     if (mounted) {
+      _syncFormField();
       setState(() {});
     }
+  }
+
+  void _syncFormField() {
+    final field = _field;
+    if (field == null || field.value == _formValue) {
+      return;
+    }
+    field.didChange(_formValue);
   }
 
   @override
@@ -454,14 +630,13 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
     widget.onClose?.call();
   }
 
-  void _select(T item, FormFieldState<DropifyValue<T>> field) {
+  void _select(T item) {
     _controller.setValue(item);
-    field.didChange(_formValue);
     widget.onChanged?.call(item);
     _close();
   }
 
-  void _toggle(T item, FormFieldState<DropifyValue<T>> field) {
+  void _toggle(T item) {
     if (widget.confirmable) {
       setState(() {
         _stagedValues = _identity.toggled(
@@ -472,14 +647,12 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
       return;
     }
     _controller.toggle(item);
-    field.didChange(_formValue);
     widget.onChangedMulti?.call(_controller.values);
   }
 
-  void _clear(FormFieldState<DropifyValue<T>> field) {
+  void _clear() {
     _controller.clear();
     _stagedValues = null;
-    field.didChange(_formValue);
     if (widget.selectionMode == DropifySelectionMode.single) {
       widget.onChanged?.call(null);
     } else {
@@ -487,11 +660,10 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
     }
   }
 
-  void _apply(FormFieldState<DropifyValue<T>> field) {
+  void _apply() {
     final staged = _stagedValues;
     if (staged != null) {
       _controller.setValues(staged);
-      field.didChange(_formValue);
       widget.onChangedMulti?.call(_controller.values);
     }
     _close();
@@ -513,6 +685,7 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
       autovalidateMode: widget.autovalidateMode ?? AutovalidateMode.disabled,
       onReset: _handleReset,
       builder: (field) {
+        _field = field;
         final anchorState = DropifyAnchorState<T>(
           mode: widget.selectionMode,
           value: _controller.value,
@@ -523,7 +696,7 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
           open: _open,
           close: _close,
           clear: widget.enabled && widget.showClearButton && _hasSelection
-              ? () => _clear(field)
+              ? _clear
               : null,
         );
         return RawMenuAnchor(
@@ -607,8 +780,8 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
                 }
                 return _controller.isSelected(item);
               },
-              toggle: (item) => _toggle(item, field),
-              select: (item) => _select(item, field),
+              toggle: _toggle,
+              select: _select,
               close: _close,
               focusScope: _panelFocusNode,
             );
@@ -651,7 +824,7 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
                             widget.selectionMode == DropifySelectionMode.multi,
                         confirmLabel: widget.confirmLabel,
                         cancelLabel: widget.cancelLabel,
-                        onApply: () => _apply(field),
+                        onApply: _apply,
                         onCancel: _close,
                         child: widget.panelBuilder(context, panelState),
                       ),

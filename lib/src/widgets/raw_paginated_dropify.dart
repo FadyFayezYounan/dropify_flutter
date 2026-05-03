@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
@@ -63,7 +64,11 @@ class RawPaginatedDropify<PageKey, T> extends StatefulWidget {
     this.keyOf,
     this.equals,
     this.loadOnOpen = true,
-  }) : selectionMode = DropifySelectionMode.single,
+  }) : assert(
+         invisibleItemsThreshold >= 0,
+         'invisibleItemsThreshold must not be negative.',
+       ),
+       selectionMode = DropifySelectionMode.single,
        initialValues = null,
        onChangedMulti = null,
        confirmable = false,
@@ -105,7 +110,11 @@ class RawPaginatedDropify<PageKey, T> extends StatefulWidget {
     this.confirmable = false,
     this.confirmLabel,
     this.cancelLabel,
-  }) : selectionMode = DropifySelectionMode.multi,
+  }) : assert(
+         invisibleItemsThreshold >= 0,
+         'invisibleItemsThreshold must not be negative.',
+       ),
+       selectionMode = DropifySelectionMode.multi,
        initialValue = null,
        onChanged = null,
        onChangedMulti = onChanged;
@@ -213,6 +222,78 @@ class RawPaginatedDropify<PageKey, T> extends StatefulWidget {
   @override
   State<RawPaginatedDropify<PageKey, T>> createState() =>
       _RawPaginatedDropifyState<PageKey, T>();
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      DiagnosticsProperty<PagingState<PageKey, T>>('state', state),
+    );
+    properties.add(
+      ObjectFlagProperty<FutureOr<void> Function()>.has(
+        'fetchNextPage',
+        fetchNextPage,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<AnchorBuilder<T>>.has('anchorBuilder', anchorBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<DropifyPaginatedItemBuilder<T>>.has(
+        'itemBuilder',
+        itemBuilder,
+      ),
+    );
+    properties.add(
+      IntProperty('invisibleItemsThreshold', invisibleItemsThreshold),
+    );
+    properties.add(
+      ObjectFlagProperty<void Function(String query)?>.has(
+        'onSearchChanged',
+        onSearchChanged,
+      ),
+    );
+    properties.add(
+      EnumProperty<DropifySelectionMode>('selectionMode', selectionMode),
+    );
+    properties.add(
+      ObjectFlagProperty<DropifyController<T>?>.has('controller', controller),
+    );
+    properties.add(
+      DiagnosticsProperty<T?>('initialValue', initialValue, defaultValue: null),
+    );
+    properties.add(
+      IterableProperty<T>('initialValues', initialValues, defaultValue: null),
+    );
+    properties.add(
+      FlagProperty('searchable', value: searchable, ifTrue: 'searchable'),
+    );
+    properties.add(
+      DiagnosticsProperty<Duration>('searchDebounce', searchDebounce),
+    );
+    properties.add(
+      FlagProperty(
+        'showClearButton',
+        value: showClearButton,
+        ifTrue: 'shows clear button',
+      ),
+    );
+    properties.add(
+      FlagProperty('enabled', value: enabled, ifFalse: 'disabled'),
+    );
+    properties.add(
+      ObjectFlagProperty<Object Function(T item)?>.has('keyOf', keyOf),
+    );
+    properties.add(
+      ObjectFlagProperty<bool Function(T a, T b)?>.has('equals', equals),
+    );
+    properties.add(
+      FlagProperty('loadOnOpen', value: loadOnOpen, ifTrue: 'loads on open'),
+    );
+    properties.add(
+      FlagProperty('confirmable', value: confirmable, ifTrue: 'confirmable'),
+    );
+  }
 }
 
 class _RawPaginatedDropifyState<PageKey, T>

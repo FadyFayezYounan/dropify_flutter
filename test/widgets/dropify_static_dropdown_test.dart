@@ -177,6 +177,126 @@ void main() {
     );
   });
 
+  testWidgets('external controller replacement does not dispose caller owner', (
+    tester,
+  ) async {
+    final firstController = DropifyController<String>.single(
+      initialValue: 'apple',
+    );
+    final secondController = DropifyController<String>.single(
+      initialValue: 'banana',
+    );
+    addTearDown(firstController.dispose);
+    addTearDown(secondController.dispose);
+
+    await _pumpRawStaticDropdown(tester, entries: fruitEntries);
+    await _pumpRawStaticDropdown(
+      tester,
+      entries: fruitEntries,
+      controller: firstController,
+    );
+    await _pumpRawStaticDropdown(
+      tester,
+      entries: fruitEntries,
+      controller: secondController,
+    );
+    await _pumpRawStaticDropdown(tester, entries: fruitEntries);
+
+    void listener() {}
+    firstController.addListener(listener);
+    firstController.removeListener(listener);
+    secondController.addListener(listener);
+    secondController.removeListener(listener);
+  });
+
+  testWidgets('search controller replacement does not dispose caller owner', (
+    tester,
+  ) async {
+    final firstController = TextEditingController(text: 'apple');
+    final secondController = TextEditingController(text: 'banana');
+    addTearDown(firstController.dispose);
+    addTearDown(secondController.dispose);
+
+    await _pumpRawStaticDropdown(tester, entries: fruitEntries);
+    await _pumpRawStaticDropdown(
+      tester,
+      entries: fruitEntries,
+      searchController: firstController,
+    );
+    await _pumpRawStaticDropdown(
+      tester,
+      entries: fruitEntries,
+      searchController: secondController,
+    );
+    await _pumpRawStaticDropdown(tester, entries: fruitEntries);
+
+    firstController.text = 'still usable';
+    secondController.text = 'still usable too';
+    expect(firstController.text, 'still usable');
+    expect(secondController.text, 'still usable too');
+  });
+
+  testWidgets('external controller selection updates form validation', (
+    tester,
+  ) async {
+    final formKey = GlobalKey<FormState>();
+    final controller = DropifyController<String>.single();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        Form(
+          key: formKey,
+          child: SizedBox(
+            width: 280,
+            child: DropifyDropdown<String>(
+              entries: fruitEntries,
+              controller: controller,
+              itemLabelBuilder: _fruitLabel,
+              validator: (value) =>
+                  value is DropifySingleValue<String> && value.value == null
+                  ? 'Required'
+                  : null,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(formKey.currentState!.validate(), isFalse);
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('dropify.validation.error')),
+      findsOneWidget,
+    );
+
+    controller.setValue('banana');
+    await tester.pump();
+
+    expect(formKey.currentState!.validate(), isTrue);
+    await tester.pump();
+    expect(find.text('Banana'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('dropify.validation.error')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('controller mode mismatch asserts clearly', (tester) async {
+    final controller = DropifyController<String>.multi();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        DropifyDropdown<String>(entries: fruitEntries, controller: controller),
+      ),
+    );
+
+    final exception = tester.takeException();
+    expect(exception, isAssertionError);
+    expect(exception.toString(), contains('DropifyController mode'));
+  });
+
   testWidgets('disabled default anchor does not open panel', (tester) async {
     await tester.pumpWidget(
       dropifyTestApp(
@@ -748,6 +868,8 @@ Future<void> _pumpRawStaticDropdown(
   required List<DropifyEntry<String>> entries,
   bool Function(DropifyEntry<String> entry, String query)? matcher,
   DropifyMenuBodyMode menuBodyMode = DropifyMenuBodyMode.automatic,
+  DropifyController<String>? controller,
+  TextEditingController? searchController,
 }) async {
   await tester.pumpWidget(
     dropifyTestApp(
@@ -757,6 +879,8 @@ Future<void> _pumpRawStaticDropdown(
           entries: entries,
           matcher: matcher,
           menuBodyMode: menuBodyMode,
+          controller: controller,
+          searchController: searchController,
           anchorBuilder: (context, state) => TextButton(
             key: const ValueKey<String>('dropify.anchor'),
             onPressed: state.open,

@@ -1,12 +1,12 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
 import '../core/dropify_controller.dart';
 import '../core/dropify_selection.dart';
 import '../core/dropify_value.dart';
-import '../internal/_dropify_menu_item_button.dart';
 import 'raw_paginated_dropify.dart';
 import '_dropify_themed_helpers.dart';
 
@@ -173,6 +173,71 @@ class DropifyPaginatedDropdown<PageKey, T> extends StatelessWidget {
   final String? cancelLabel;
 
   @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      DiagnosticsProperty<PagingState<PageKey, T>>('state', state),
+    );
+    properties.add(
+      ObjectFlagProperty<FutureOr<void> Function()>.has(
+        'fetchNextPage',
+        fetchNextPage,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<String Function(T item)>.has(
+        'itemLabelBuilder',
+        itemLabelBuilder,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<void Function(String query)?>.has(
+        'onSearchChanged',
+        onSearchChanged,
+      ),
+    );
+    properties.add(
+      EnumProperty<DropifySelectionMode>('selectionMode', selectionMode),
+    );
+    properties.add(
+      ObjectFlagProperty<DropifyController<T>?>.has('controller', controller),
+    );
+    properties.add(
+      DiagnosticsProperty<T?>('initialValue', initialValue, defaultValue: null),
+    );
+    properties.add(
+      IterableProperty<T>('initialValues', initialValues, defaultValue: null),
+    );
+    properties.add(StringProperty('label', label, defaultValue: null));
+    properties.add(StringProperty('hintText', hintText, defaultValue: null));
+    properties.add(
+      StringProperty('helperText', helperText, defaultValue: null),
+    );
+    properties.add(
+      FlagProperty('searchable', value: searchable, ifTrue: 'searchable'),
+    );
+    properties.add(
+      FlagProperty(
+        'showClearButton',
+        value: showClearButton,
+        ifTrue: 'shows clear button',
+      ),
+    );
+    properties.add(
+      FlagProperty('enabled', value: enabled, ifFalse: 'disabled'),
+    );
+    properties.add(
+      ObjectFlagProperty<Object Function(T item)?>.has('keyOf', keyOf),
+    );
+    properties.add(
+      ObjectFlagProperty<bool Function(T a, T b)?>.has('equals', equals),
+    );
+    properties.add(
+      FlagProperty('confirmable', value: confirmable, ifTrue: 'confirmable'),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final anchor = themedAnchorBuilder<T>(
       label: label,
@@ -181,20 +246,17 @@ class DropifyPaginatedDropdown<PageKey, T> extends StatelessWidget {
       prefixIcon: prefixIcon,
       itemLabelBuilder: itemLabelBuilder,
     );
+    final itemBuilder = themedPaginatedItemBuilder<T>(
+      itemLabelBuilder: itemLabelBuilder,
+      keyOf: keyOf,
+    );
     if (selectionMode == DropifySelectionMode.single) {
       return RawPaginatedDropify<PageKey, T>(
         state: state,
         fetchNextPage: fetchNextPage,
         onSearchChanged: onSearchChanged,
         anchorBuilder: anchor,
-        itemBuilder: (context, item, index, selected, onTap) =>
-            DropifyMenuItemButton(
-              itemKey: dropifyMenuItemKey(keyOf?.call(item), item),
-              semanticsLabel: itemLabelBuilder(item),
-              selected: selected,
-              onPressed: onTap,
-              child: Text(itemLabelBuilder(item)),
-            ),
+        itemBuilder: itemBuilder,
         controller: controller,
         initialValue: initialValue,
         onChanged: onChanged,
@@ -213,14 +275,7 @@ class DropifyPaginatedDropdown<PageKey, T> extends StatelessWidget {
       fetchNextPage: fetchNextPage,
       onSearchChanged: onSearchChanged,
       anchorBuilder: anchor,
-      itemBuilder: (context, item, index, selected, onTap) =>
-          DropifyMenuItemButton(
-            itemKey: dropifyMenuItemKey(keyOf?.call(item), item),
-            semanticsLabel: itemLabelBuilder(item),
-            selected: selected,
-            onPressed: onTap,
-            child: Text(itemLabelBuilder(item)),
-          ),
+      itemBuilder: itemBuilder,
       controller: controller,
       initialValues: initialValues,
       onChanged: onChangedMulti,

@@ -559,6 +559,391 @@ class DropifyThemeData extends ThemeExtension<DropifyThemeData>
       entrySpacing: ui.lerpDouble(entrySpacing, other.entrySpacing, t),
     );
   }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      DiagnosticsProperty<InputDecorationTheme?>(
+        'anchorDecorationTheme',
+        anchorDecorationTheme,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<IconData?>(
+        'trailingIcon',
+        trailingIcon,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<IconData?>(
+        'clearIcon',
+        clearIcon,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<TextStyle?>(
+        'anchorValueTextStyle',
+        anchorValueTextStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<TextStyle?>(
+        'anchorHintTextStyle',
+        anchorHintTextStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<TextStyle?>(
+        'anchorErrorTextStyle',
+        anchorErrorTextStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<EdgeInsetsGeometry?>(
+        'anchorPadding',
+        anchorPadding,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<BoxDecoration?>(
+        'panelDecoration',
+        panelDecoration,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<EdgeInsetsGeometry?>(
+        'panelPadding',
+        panelPadding,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DoubleProperty('panelMaxHeight', panelMaxHeight, defaultValue: null),
+    );
+    properties.add(
+      DoubleProperty('panelElevation', panelElevation, defaultValue: null),
+    );
+    properties.add(ColorProperty('panelColor', panelColor, defaultValue: null));
+    properties.add(
+      ColorProperty('panelShadowColor', panelShadowColor, defaultValue: null),
+    );
+    properties.add(
+      ColorProperty(
+        'panelSurfaceTintColor',
+        panelSurfaceTintColor,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<OutlinedBorder?>(
+        'panelShape',
+        panelShape,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<BorderSide?>(
+        'panelSide',
+        panelSide,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      EnumProperty<Clip?>(
+        'panelClipBehavior',
+        panelClipBehavior,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<Duration?>(
+        'animationDuration',
+        animationDuration,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<Curve?>(
+        'animationCurve',
+        animationCurve,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<InputDecoration?>(
+        'searchInputDecoration',
+        searchInputDecoration,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<EdgeInsetsGeometry?>(
+        'searchFieldPadding',
+        searchFieldPadding,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<TextStyle?>(
+        'searchTextStyle',
+        searchTextStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<IconData?>(
+        'searchIcon',
+        searchIcon,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<IconData?>(
+        'searchClearIcon',
+        searchClearIcon,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<TextStyle?>(
+        'entryTextStyle',
+        entryTextStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<TextStyle?>(
+        'entryDisabledTextStyle',
+        entryDisabledTextStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<BoxDecoration?>(
+        'entrySelectedDecoration',
+        entrySelectedDecoration,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<BoxDecoration?>(
+        'entryHoverDecoration',
+        entryHoverDecoration,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<BoxDecoration?>(
+        'entryFocusDecoration',
+        entryFocusDecoration,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<EdgeInsetsGeometry?>(
+        'entryPadding',
+        entryPadding,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<IconData?>(
+        'entrySelectedIcon',
+        entrySelectedIcon,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DoubleProperty('entrySpacing', entrySpacing, defaultValue: null),
+    );
+    properties.add(
+      DiagnosticsProperty<Divider?>(
+        'entryDivider',
+        entryDivider,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<WidgetBuilder?>.has('loadingBuilder', loadingBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<
+        Widget Function(BuildContext, Object, VoidCallback)?
+      >.has('errorBuilder', errorBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<Widget Function(BuildContext, bool hasQuery)?>.has(
+        'emptyBuilder',
+        emptyBuilder,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<WidgetBuilder?>.has(
+        'noResultsBuilder',
+        noResultsBuilder,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<WidgetBuilder?>.has(
+        'firstPageProgressBuilder',
+        firstPageProgressBuilder,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<WidgetBuilder?>.has(
+        'newPageProgressBuilder',
+        newPageProgressBuilder,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<
+        Widget Function(BuildContext, Object, VoidCallback)?
+      >.has('firstPageErrorBuilder', firstPageErrorBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<
+        Widget Function(BuildContext, Object, VoidCallback)?
+      >.has('newPageErrorBuilder', newPageErrorBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<WidgetBuilder?>.has(
+        'noMoreItemsBuilder',
+        noMoreItemsBuilder,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<ButtonStyle?>(
+        'confirmButtonStyle',
+        confirmButtonStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<ButtonStyle?>(
+        'cancelButtonStyle',
+        cancelButtonStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<EdgeInsetsGeometry?>(
+        'footerPadding',
+        footerPadding,
+        defaultValue: null,
+      ),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is DropifyThemeData &&
+            other.anchorDecorationTheme == anchorDecorationTheme &&
+            other.trailingIcon == trailingIcon &&
+            other.clearIcon == clearIcon &&
+            other.anchorValueTextStyle == anchorValueTextStyle &&
+            other.anchorHintTextStyle == anchorHintTextStyle &&
+            other.anchorErrorTextStyle == anchorErrorTextStyle &&
+            other.anchorPadding == anchorPadding &&
+            other.panelDecoration == panelDecoration &&
+            other.panelPadding == panelPadding &&
+            other.panelMaxHeight == panelMaxHeight &&
+            other.panelElevation == panelElevation &&
+            other.panelColor == panelColor &&
+            other.panelShadowColor == panelShadowColor &&
+            other.panelSurfaceTintColor == panelSurfaceTintColor &&
+            other.panelShape == panelShape &&
+            other.panelSide == panelSide &&
+            other.panelClipBehavior == panelClipBehavior &&
+            other.animationDuration == animationDuration &&
+            other.animationCurve == animationCurve &&
+            other.searchInputDecoration == searchInputDecoration &&
+            other.searchFieldPadding == searchFieldPadding &&
+            other.searchTextStyle == searchTextStyle &&
+            other.searchIcon == searchIcon &&
+            other.searchClearIcon == searchClearIcon &&
+            other.entryTextStyle == entryTextStyle &&
+            other.entryDisabledTextStyle == entryDisabledTextStyle &&
+            other.entrySelectedDecoration == entrySelectedDecoration &&
+            other.entryHoverDecoration == entryHoverDecoration &&
+            other.entryFocusDecoration == entryFocusDecoration &&
+            other.entryPadding == entryPadding &&
+            other.entrySelectedIcon == entrySelectedIcon &&
+            other.entrySpacing == entrySpacing &&
+            other.entryDivider == entryDivider &&
+            other.loadingBuilder == loadingBuilder &&
+            other.errorBuilder == errorBuilder &&
+            other.emptyBuilder == emptyBuilder &&
+            other.noResultsBuilder == noResultsBuilder &&
+            other.firstPageProgressBuilder == firstPageProgressBuilder &&
+            other.newPageProgressBuilder == newPageProgressBuilder &&
+            other.firstPageErrorBuilder == firstPageErrorBuilder &&
+            other.newPageErrorBuilder == newPageErrorBuilder &&
+            other.noMoreItemsBuilder == noMoreItemsBuilder &&
+            other.confirmButtonStyle == confirmButtonStyle &&
+            other.cancelButtonStyle == cancelButtonStyle &&
+            other.footerPadding == footerPadding;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hashAll(<Object?>[
+      anchorDecorationTheme,
+      trailingIcon,
+      clearIcon,
+      anchorValueTextStyle,
+      anchorHintTextStyle,
+      anchorErrorTextStyle,
+      anchorPadding,
+      panelDecoration,
+      panelPadding,
+      panelMaxHeight,
+      panelElevation,
+      panelColor,
+      panelShadowColor,
+      panelSurfaceTintColor,
+      panelShape,
+      panelSide,
+      panelClipBehavior,
+      animationDuration,
+      animationCurve,
+      searchInputDecoration,
+      searchFieldPadding,
+      searchTextStyle,
+      searchIcon,
+      searchClearIcon,
+      entryTextStyle,
+      entryDisabledTextStyle,
+      entrySelectedDecoration,
+      entryHoverDecoration,
+      entryFocusDecoration,
+      entryPadding,
+      entrySelectedIcon,
+      entrySpacing,
+      entryDivider,
+      loadingBuilder,
+      errorBuilder,
+      emptyBuilder,
+      noResultsBuilder,
+      firstPageProgressBuilder,
+      newPageProgressBuilder,
+      firstPageErrorBuilder,
+      newPageErrorBuilder,
+      noMoreItemsBuilder,
+      confirmButtonStyle,
+      cancelButtonStyle,
+      footerPadding,
+    ]);
+  }
 }
 
 class _DropifyStateMessage extends StatelessWidget {

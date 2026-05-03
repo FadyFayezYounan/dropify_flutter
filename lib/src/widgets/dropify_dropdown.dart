@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../core/dropify_controller.dart';
@@ -193,6 +194,76 @@ class DropifyDropdown<T> extends StatelessWidget {
   /// Defaults to true. If the selected value is not present in the current
   /// visible rows, opening preserves normal initial scroll offset behavior.
   final bool scrollToSelectedOnOpen;
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(IntProperty('entries', entries.length));
+    properties.add(
+      EnumProperty<DropifySelectionMode>('selectionMode', selectionMode),
+    );
+    properties.add(
+      ObjectFlagProperty<DropifyController<T>?>.has('controller', controller),
+    );
+    properties.add(
+      DiagnosticsProperty<T?>('initialValue', initialValue, defaultValue: null),
+    );
+    properties.add(
+      IterableProperty<T>('initialValues', initialValues, defaultValue: null),
+    );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<T?>?>.has('onChanged', onChanged),
+    );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<Set<T>>?>.has(
+        'onChangedMulti',
+        onChangedMulti,
+      ),
+    );
+    properties.add(StringProperty('label', label, defaultValue: null));
+    properties.add(StringProperty('hintText', hintText, defaultValue: null));
+    properties.add(
+      StringProperty('helperText', helperText, defaultValue: null),
+    );
+    properties.add(
+      FlagProperty('searchable', value: searchable, ifTrue: 'searchable'),
+    );
+    properties.add(
+      FlagProperty(
+        'showClearButton',
+        value: showClearButton,
+        ifTrue: 'shows clear button',
+      ),
+    );
+    properties.add(
+      FlagProperty('enabled', value: enabled, ifFalse: 'disabled'),
+    );
+    properties.add(
+      ObjectFlagProperty<String Function(T item)?>.has(
+        'itemLabelBuilder',
+        itemLabelBuilder,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<Object Function(T item)?>.has('keyOf', keyOf),
+    );
+    properties.add(
+      ObjectFlagProperty<bool Function(T a, T b)?>.has('equals', equals),
+    );
+    properties.add(
+      FlagProperty('confirmable', value: confirmable, ifTrue: 'confirmable'),
+    );
+    properties.add(
+      EnumProperty<DropifyMenuBodyMode>('menuBodyMode', menuBodyMode),
+    );
+    properties.add(
+      FlagProperty(
+        'scrollToSelectedOnOpen',
+        value: scrollToSelectedOnOpen,
+        ifTrue: 'scrolls to selected on open',
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

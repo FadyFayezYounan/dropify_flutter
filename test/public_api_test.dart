@@ -9,9 +9,14 @@ void main() {
     expect(DropifyCancelToken, isNotNull);
     expect(DropifyPagingState<int, String>, isNotNull);
     expect(RawDropify<String>, isNotNull);
+    expect(AnchorBuilder<String>, isNotNull);
+    expect(PanelBuilder<String>, isNotNull);
     expect(RawStaticDropify<String>, isNotNull);
+    expect(DropifyEntryBuilder<String>, isNotNull);
     expect(RawAsyncDropify<String>, isNotNull);
+    expect(DropifyAsyncItemBuilder<String>, isNotNull);
     expect(RawPaginatedDropify<int, String>, isNotNull);
+    expect(DropifyPaginatedItemBuilder<String>, isNotNull);
     expect(DropifyDropdown<String>, isNotNull);
     expect(DropifyAsyncDropdown<String>, isNotNull);
     expect(DropifyPaginatedDropdown<int, String>, isNotNull);

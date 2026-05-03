@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
@@ -280,6 +281,99 @@ class RawAsyncDropify<T> extends StatefulWidget {
 
   @override
   State<RawAsyncDropify<T>> createState() => _RawAsyncDropifyState<T>();
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      ObjectFlagProperty<DropifyAsyncFetcher<T>>.has('fetcher', fetcher),
+    );
+    properties.add(
+      ObjectFlagProperty<AnchorBuilder<T>>.has('anchorBuilder', anchorBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<DropifyAsyncItemBuilder<T>>.has(
+        'itemBuilder',
+        itemBuilder,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<WidgetBuilder?>.has('loadingBuilder', loadingBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<
+        Widget Function(BuildContext, Object, VoidCallback)?
+      >.has('errorBuilder', errorBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<Widget Function(BuildContext, bool hasQuery)?>.has(
+        'emptyBuilder',
+        emptyBuilder,
+      ),
+    );
+    properties.add(
+      EnumProperty<DropifySelectionMode>('selectionMode', selectionMode),
+    );
+    properties.add(
+      ObjectFlagProperty<DropifyController<T>?>.has('controller', controller),
+    );
+    properties.add(
+      DiagnosticsProperty<T?>('initialValue', initialValue, defaultValue: null),
+    );
+    properties.add(
+      IterableProperty<T>('initialValues', initialValues, defaultValue: null),
+    );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<T?>?>.has('onChanged', onChanged),
+    );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<Set<T>>?>.has(
+        'onChangedMulti',
+        onChangedMulti,
+      ),
+    );
+    properties.add(
+      FlagProperty('searchable', value: searchable, ifTrue: 'searchable'),
+    );
+    properties.add(
+      DiagnosticsProperty<Duration>('searchDebounce', searchDebounce),
+    );
+    properties.add(
+      FlagProperty(
+        'showClearButton',
+        value: showClearButton,
+        ifTrue: 'shows clear button',
+      ),
+    );
+    properties.add(
+      FlagProperty('enabled', value: enabled, ifFalse: 'disabled'),
+    );
+    properties.add(
+      ObjectFlagProperty<Object Function(T item)?>.has('keyOf', keyOf),
+    );
+    properties.add(
+      ObjectFlagProperty<bool Function(T a, T b)?>.has('equals', equals),
+    );
+    properties.add(
+      FlagProperty('loadOnOpen', value: loadOnOpen, ifTrue: 'loads on open'),
+    );
+    properties.add(
+      FlagProperty('cacheItems', value: cacheItems, ifTrue: 'caches items'),
+    );
+    properties.add(
+      EnumProperty<DropifyMenuBodyMode>('menuBodyMode', menuBodyMode),
+    );
+    properties.add(
+      FlagProperty(
+        'scrollToSelectedOnOpen',
+        value: scrollToSelectedOnOpen,
+        ifTrue: 'scrolls to selected on open',
+      ),
+    );
+    properties.add(
+      FlagProperty('confirmable', value: confirmable, ifTrue: 'confirmable'),
+    );
+  }
 }
 
 class _RawAsyncDropifyState<T> extends State<RawAsyncDropify<T>> {

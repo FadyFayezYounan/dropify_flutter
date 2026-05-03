@@ -51,10 +51,13 @@ export 'src/widgets/raw_async_dropify.dart'
         DropifyAsyncEmpty,
         DropifyAsyncError,
         DropifyAsyncFetcher,
+        DropifyAsyncItemBuilder,
         DropifyAsyncIdle,
         DropifyAsyncLoading,
         DropifyAsyncRefreshing,
         DropifyAsyncState,
         RawAsyncDropify;
-export 'src/widgets/raw_paginated_dropify.dart' show RawPaginatedDropify;
-export 'src/widgets/raw_static_dropify.dart' show RawStaticDropify;
+export 'src/widgets/raw_paginated_dropify.dart'
+    show DropifyPaginatedItemBuilder, RawPaginatedDropify;
+export 'src/widgets/raw_static_dropify.dart'
+    show DropifyEntryBuilder, RawStaticDropify;
