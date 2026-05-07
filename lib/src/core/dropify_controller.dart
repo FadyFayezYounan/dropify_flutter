@@ -1,421 +1,140 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
 
-import 'dropify_entry.dart';
-import 'dropify_state.dart';
+import 'dropify_selection.dart';
 
-/// Explains why a multi-selection toggle was rejected.
-enum DropifySelectionRejectionReason {
-  /// Removing the value would violate the minimum selection count.
-  minSelectionViolated,
-
-  /// Adding the value would violate the maximum selection count.
-  maxSelectionViolated,
-
-  /// The entry is disabled and cannot be selected.
-  entryDisabled,
-}
-
-/// Controls a Dropify widget's open state, query, entries, and selection.
-abstract class DropifyController<T> extends ChangeNotifier {
-  DropifyController._();
-
+/// Controls Dropify selection and open state.
+///
+/// A controller can open, close, clear, and replace selection from outside a
+/// Dropify widget. When a controller is passed to a widget, the caller owns its
+/// disposal.
+class DropifyController<T> extends ChangeNotifier {
   /// Creates a single-selection controller.
-  factory DropifyController.single({T? initialValue}) =
-      _DropifyController<T>.single;
+  ///
+  /// The optional [initialValue] is used until the selection is replaced or
+  /// cleared.
+  DropifyController.single({T? initialValue})
+    : _mode = DropifySelectionMode.single,
+      _value = initialValue,
+      _values = <T>{};
 
   /// Creates a multi-selection controller.
-  factory DropifyController.multi({
-    List<T> initialValues,
-    int? minSelection,
-    int? maxSelection,
-  }) = _DropifyController<T>.multi;
+  ///
+  /// The optional [initialValues] are copied into the controller.
+  DropifyController.multi({Set<T>? initialValues})
+    : _mode = DropifySelectionMode.multi,
+      _values = {...?initialValues};
 
-  /// Whether this controller manages multiple selected values.
-  bool get isMulti;
+  final DropifySelectionMode _mode;
+  T? _value;
+  Set<T> _values;
+  bool _isOpen = false;
+  DropifySelectionIdentity<T> _identity = DropifySelectionIdentity<T>();
+  VoidCallback? _openRequest;
+  VoidCallback? _closeRequest;
 
-  /// Whether the dropdown is currently open.
-  bool get isOpen;
-
-  /// Current search query. Whitespace is preserved.
-  String get query;
-
-  /// Current data loading status.
-  DropifyStatus get status;
-
-  /// Current error object, when [status] is [DropifyStatus.error].
-  Object? get error;
-
-  /// Current page-level error for paginated sources with loaded entries.
-  Object? get pageError;
-
-  /// Whether a paginated source is currently loading another page.
-  bool get isLoadingMore;
-
-  /// Whether a paginated source can load another page.
-  bool get hasMore;
-
-  /// Current entries visible to the widget.
-  List<DropifyEntry<T>> get entries;
+  /// The controller selection mode.
+  DropifySelectionMode get mode => _mode;
 
   /// The selected single value.
-  T? get singleValue;
-
-  /// Updates the selected single value.
-  set singleValue(T? value);
+  T? get value => _value;
 
   /// The selected multi values.
-  List<T> get multiValues;
+  Set<T> get values => Set.unmodifiable(_values);
 
-  /// The last rejected selection reason, if any.
-  DropifySelectionRejectionReason? get lastRejectionReason;
-
-  /// Opens the dropdown.
-  void open({Offset? position});
-
-  /// Closes the dropdown.
-  void close();
-
-  /// Updates [query].
-  void setQuery(String value);
-
-  /// Selects or toggles [value] depending on the controller mode.
-  bool toggle(T value);
-
-  /// Selects or toggles [entry], honoring [DropifyEntry.enabled].
-  bool toggleEntry(DropifyEntry<T> entry);
-
-  /// Refreshes async or paginated data.
-  void refresh();
-
-  /// Loads the next page for paginated data.
-  void loadMore();
-
-  /// Retries the latest failed async or paginated request.
-  void retry();
-
-  /// Configures data-source actions supplied by the attached widget.
-  @internal
-  void setDataActions({
-    VoidCallback? refresh,
-    VoidCallback? retry,
-    VoidCallback? loadMore,
-  });
-
-  /// Updates the visible entries and status.
-  @internal
-  void setEntries(
-    List<DropifyEntry<T>> entries, {
-    required DropifyStatus status,
-    Object? error,
-    Object? pageError,
-    bool hasMore = false,
-    bool isLoadingMore = false,
-  });
-
-  /// Attaches this controller to one widget owner.
-  void attach(Object owner);
-
-  /// Detaches this controller from a widget owner.
-  void detach(Object owner);
-
-  /// Returns the nearest Dropify controller, if one exists.
-  static DropifyController<T>? maybeOf<T>(BuildContext context) {
-    return context
-        .getInheritedWidgetOfExactType<DropifyControllerScope<T>>()
-        ?.controller;
-  }
-}
-
-class _DropifyController<T> extends DropifyController<T> {
-  _DropifyController.single({T? initialValue})
-    : _isMulti = false,
-      _singleValue = initialValue,
-      _multiValues = <T>[],
-      _minSelection = null,
-      _maxSelection = null,
-      super._();
-
-  _DropifyController.multi({
-    List<T> initialValues = const <Never>[],
-    int? minSelection,
-    int? maxSelection,
-  }) : assert(
-         minSelection == null || minSelection >= 0,
-         'minSelection must be null or non-negative.',
-       ),
-       assert(
-         maxSelection == null || maxSelection >= 0,
-         'maxSelection must be null or non-negative.',
-       ),
-       assert(
-         minSelection == null ||
-             maxSelection == null ||
-             minSelection <= maxSelection,
-         'minSelection must be less than or equal to maxSelection.',
-       ),
-       _isMulti = true,
-       _singleValue = null,
-       _multiValues = List<T>.of(initialValues),
-       _minSelection = minSelection,
-       _maxSelection = maxSelection,
-       super._();
-
-  final bool _isMulti;
-  final int? _minSelection;
-  final int? _maxSelection;
-  bool _isOpen = false;
-  String _query = '';
-  DropifyStatus _status = DropifyStatus.idle;
-  Object? _error;
-  Object? _pageError;
-  bool _hasMore = false;
-  bool _isLoadingMore = false;
-  List<DropifyEntry<T>> _entries = List<DropifyEntry<T>>.empty();
-  T? _singleValue;
-  List<T> _multiValues;
-  DropifySelectionRejectionReason? _lastRejectionReason;
-  VoidCallback? _refresh;
-  VoidCallback? _retry;
-  VoidCallback? _loadMore;
-  Object? _owner;
-
-  @override
-  bool get isMulti => _isMulti;
-
-  @override
+  /// Whether the dropdown panel is open.
   bool get isOpen => _isOpen;
 
-  @override
-  String get query => _query;
-
-  @override
-  DropifyStatus get status => _status;
-
-  @override
-  Object? get error => _error;
-
-  @override
-  Object? get pageError => _pageError;
-
-  @override
-  bool get isLoadingMore => _isLoadingMore;
-
-  @override
-  bool get hasMore => _hasMore;
-
-  @override
-  List<DropifyEntry<T>> get entries =>
-      List<DropifyEntry<T>>.unmodifiable(_entries);
-
-  @override
-  T? get singleValue {
-    _debugAssertSingle();
-    return _singleValue;
-  }
-
-  @override
-  set singleValue(T? value) {
-    _debugAssertSingle();
-    if (_singleValue == value && _lastRejectionReason == null) {
-      return;
-    }
-    _singleValue = value;
-    _lastRejectionReason = null;
-    notifyListeners();
-  }
-
-  @override
-  List<T> get multiValues {
-    _debugAssertMulti();
-    return List<T>.unmodifiable(_multiValues);
-  }
-
-  @override
-  DropifySelectionRejectionReason? get lastRejectionReason =>
-      _lastRejectionReason;
-
-  @override
-  void open({Offset? position}) {
-    if (_isOpen) {
-      return;
-    }
-    _isOpen = true;
-    notifyListeners();
-  }
-
-  @override
-  void close() {
-    if (!_isOpen) {
-      return;
-    }
-    _isOpen = false;
-    notifyListeners();
-  }
-
-  @override
-  void setQuery(String value) {
-    if (_query == value) {
-      return;
-    }
-    _query = value;
-    notifyListeners();
-  }
-
-  @override
-  bool toggle(T value) {
-    if (_isMulti) {
-      return _toggleMulti(value);
-    }
-    singleValue = value;
-    return true;
-  }
-
-  @override
-  bool toggleEntry(DropifyEntry<T> entry) {
-    if (!entry.enabled) {
-      _lastRejectionReason = DropifySelectionRejectionReason.entryDisabled;
-      notifyListeners();
-      return false;
-    }
-    return toggle(entry.value);
-  }
-
-  @override
-  void refresh() {
-    final VoidCallback? refresh = _refresh;
-    if (refresh == null) {
-      throw UnsupportedError(
-        'refresh is wired for async and paginated sources.',
-      );
-    }
-    refresh();
-  }
-
-  @override
-  void loadMore() {
-    final VoidCallback? loadMore = _loadMore;
-    if (loadMore == null) {
-      throw UnsupportedError(
-        'loadMore is only supported for paginated sources.',
-      );
-    }
-    loadMore();
-  }
-
-  @override
-  void retry() {
-    final VoidCallback? retry = _retry;
-    if (retry == null) {
-      throw UnsupportedError('retry is wired for async and paginated sources.');
-    }
-    retry();
-  }
-
-  @override
-  void setDataActions({
-    VoidCallback? refresh,
-    VoidCallback? retry,
-    VoidCallback? loadMore,
+  /// Attaches widget callbacks to this controller.
+  @internal
+  void attach({
+    required VoidCallback open,
+    required VoidCallback close,
+    Object Function(T item)? keyOf,
+    bool Function(T a, T b)? equals,
   }) {
-    _refresh = refresh;
-    _retry = retry;
-    _loadMore = loadMore;
+    _openRequest = open;
+    _closeRequest = close;
+    _identity = DropifySelectionIdentity<T>(keyOf: keyOf, equals: equals);
   }
 
-  @override
-  void setEntries(
-    List<DropifyEntry<T>> entries, {
-    required DropifyStatus status,
-    Object? error,
-    Object? pageError,
-    bool hasMore = false,
-    bool isLoadingMore = false,
-  }) {
-    _entries = List<DropifyEntry<T>>.unmodifiable(entries);
-    _status = status;
-    _error = error;
-    _pageError = pageError;
-    _hasMore = hasMore;
-    _isLoadingMore = isLoadingMore;
+  /// Detaches widget callbacks from this controller.
+  @internal
+  void detach() {
+    _openRequest = null;
+    _closeRequest = null;
+  }
+
+  /// Updates open state from the owning widget.
+  @internal
+  void setOpenState(bool value) {
+    if (_isOpen == value) {
+      return;
+    }
+    _isOpen = value;
     notifyListeners();
   }
 
-  @override
-  void attach(Object owner) {
-    if (_owner != null && !identical(_owner, owner)) {
-      throw FlutterError(
-        'A DropifyController can only be attached to one RawDropify at a time.',
-      );
+  /// Replaces the selected single value.
+  ///
+  /// This method asserts when called on a multi-selection controller.
+  void setValue(T? value) {
+    assert(_mode == DropifySelectionMode.single);
+    if (_value == value) {
+      return;
     }
-    _owner = owner;
+    _value = value;
+    notifyListeners();
   }
 
-  @override
-  void detach(Object owner) {
-    if (identical(_owner, owner)) {
-      _owner = null;
+  /// Replaces the selected multi values.
+  ///
+  /// This method asserts when called on a single-selection controller.
+  void setValues(Set<T> values) {
+    assert(_mode == DropifySelectionMode.multi);
+    if (setEquals(_values, values)) {
+      return;
     }
+    _values = {...values};
+    notifyListeners();
   }
 
-  bool _toggleMulti(T value) {
-    _debugAssertMulti();
-    final List<T> nextValues = List<T>.of(_multiValues);
-    if (nextValues.contains(value)) {
-      if (_minSelection != null && nextValues.length <= _minSelection) {
-        _lastRejectionReason =
-            DropifySelectionRejectionReason.minSelectionViolated;
-        notifyListeners();
-        return false;
-      }
-      nextValues.remove(value);
+  /// Toggles a multi value using the active identity rules.
+  ///
+  /// This method asserts when called on a single-selection controller.
+  void toggle(T item) {
+    assert(_mode == DropifySelectionMode.multi);
+    setValues(_identity.toggled(_values, item));
+  }
+
+  /// Clears the current selection.
+  void clear() {
+    if (_mode == DropifySelectionMode.single) {
+      setValue(null);
     } else {
-      if (_maxSelection != null && nextValues.length >= _maxSelection) {
-        _lastRejectionReason =
-            DropifySelectionRejectionReason.maxSelectionViolated;
-        notifyListeners();
-        return false;
-      }
-      nextValues.add(value);
-    }
-    _multiValues = nextValues;
-    _lastRejectionReason = null;
-    notifyListeners();
-    return true;
-  }
-
-  void _debugAssertSingle() {
-    if (_isMulti) {
-      throw StateError(
-        'singleValue is unavailable on a multi-select controller.',
-      );
+      setValues(<T>{});
     }
   }
 
-  void _debugAssertMulti() {
-    if (!_isMulti) {
-      throw StateError(
-        'multiValues is unavailable on a single-select controller.',
-      );
-    }
+  /// Opens the dropdown panel.
+  ///
+  /// Calling this before the controller is attached to a widget is a no-op.
+  void open() {
+    _openRequest?.call();
   }
-}
 
-/// Exposes a Dropify controller to descendants.
-@internal
-class DropifyControllerScope<T> extends InheritedWidget {
-  /// Creates a controller scope.
-  const DropifyControllerScope({
-    super.key,
-    required this.controller,
-    required super.child,
-  });
+  /// Closes the dropdown panel.
+  ///
+  /// Calling this before the controller is attached to a widget is a no-op.
+  void close() {
+    _closeRequest?.call();
+  }
 
-  /// The scoped controller.
-  final DropifyController<T> controller;
-
-  @override
-  bool updateShouldNotify(DropifyControllerScope<T> oldWidget) {
-    return controller != oldWidget.controller;
+  /// Whether [item] is selected.
+  bool isSelected(T item) {
+    if (_mode == DropifySelectionMode.single) {
+      final value = _value;
+      return value != null && _identity.same(value, item);
+    }
+    return _identity.contains(_values, item);
   }
 }

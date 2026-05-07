@@ -1,389 +1,848 @@
-import 'dart:ui' show lerpDouble;
+import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-/// Visual defaults shared by Dropify widgets.
+/// Package-specific styling and state-slot defaults for Dropify widgets.
 ///
-/// A [DropifyThemeData] can be provided to [DropifyTheme] for inherited
-/// defaults or passed directly to an individual dropdown. Use
-/// [DropifyThemeData.fromMaterial] to bridge from the ambient Material theme.
-///
-/// {@tool snippet}
-/// ```dart
-/// DropifyTheme(
-///   data: DropifyThemeData.fromMaterial(context),
-///   child: DropifyDropdown<String>(entries: entries),
-/// )
-/// ```
-/// {@end-tool}
-///
-/// See also:
-///
-///  * [DropifyTheme], which applies this data to a subtree.
+/// The themed dropdown widgets resolve these values from the nearest
+/// [DropifyTheme], then from `ThemeData.extensions`, then from
+/// [DropifyThemeData.fromMaterial]. Null fields allow lower-priority theme
+/// layers to provide the effective value.
 @immutable
-class DropifyThemeData {
+class DropifyThemeData extends ThemeExtension<DropifyThemeData>
+    with Diagnosticable {
   /// Creates Dropify theme data.
+  ///
+  /// All fields are optional so partial themes can be layered with
+  /// [DropifyTheme] and [merge].
   const DropifyThemeData({
-    this.anchorColor,
+    this.anchorDecorationTheme,
+    this.trailingIcon,
+    this.clearIcon,
+    this.anchorValueTextStyle,
+    this.anchorHintTextStyle,
+    this.anchorErrorTextStyle,
+    this.anchorPadding,
+    this.panelDecoration,
+    this.panelPadding,
+    this.panelMaxHeight,
+    this.panelElevation,
     this.panelColor,
-    this.textStyle,
-    this.labelTextStyle,
-    this.hintTextStyle,
-    this.itemTextStyle,
-    this.selectedItemTextStyle,
-    this.chipTextStyle,
-    this.errorTextStyle = const TextStyle(
-      color: Color(0xffb91c1c),
-      fontSize: 12,
-    ),
-    this.searchDecoration = const InputDecoration(
-      border: OutlineInputBorder(),
-      isDense: true,
-    ),
-    this.anchorDecoration = const BoxDecoration(
-      color: Color(0xffffffff),
-      border: Border.fromBorderSide(BorderSide(color: Color(0xffd1d5db))),
-      borderRadius: BorderRadius.all(Radius.circular(8)),
-    ),
-    this.panelDecoration = const BoxDecoration(
-      color: Color(0xffffffff),
-      boxShadow: <BoxShadow>[
-        BoxShadow(
-          color: Color(0x26000000),
-          blurRadius: 12,
-          offset: Offset(0, 4),
-        ),
-      ],
-      borderRadius: BorderRadius.all(Radius.circular(8)),
-    ),
-    this.anchorPadding = const EdgeInsets.symmetric(
-      horizontal: 12,
-      vertical: 10,
-    ),
-    this.panelPadding = const EdgeInsets.all(8),
-    this.itemPadding = const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-    this.panelConstraints,
-    this.panelMaxHeight = 320,
-    this.chevronIcon = Icons.expand_more,
-    this.hintText = 'Select an option',
-    this.searchHintText = 'Search',
-    this.chipBackground = const Color(0xffe0e7ff),
-    this.focusedItemColor = const Color(0xffeef2ff),
-    this.disabledOpacity = 0.45,
-    this.padding = const EdgeInsets.all(8),
-    this.borderRadius = const BorderRadius.all(Radius.circular(8)),
-    this.defaultLoadingBuilder,
-    this.defaultErrorBuilder,
-    this.defaultEmptyBuilder,
+    this.panelShadowColor,
+    this.panelSurfaceTintColor,
+    this.panelShape,
+    this.panelSide,
+    this.panelClipBehavior,
+    this.animationDuration,
+    this.animationCurve,
+    this.searchInputDecoration,
+    this.searchFieldPadding,
+    this.searchTextStyle,
+    this.searchIcon,
+    this.searchClearIcon,
+    this.entryTextStyle,
+    this.entryDisabledTextStyle,
+    this.entrySelectedDecoration,
+    this.entryHoverDecoration,
+    this.entryFocusDecoration,
+    this.entryPadding,
+    this.entrySelectedIcon,
+    this.entrySpacing,
+    this.entryDivider,
+    this.loadingBuilder,
+    this.errorBuilder,
+    this.emptyBuilder,
+    this.noResultsBuilder,
+    this.firstPageProgressBuilder,
+    this.newPageProgressBuilder,
+    this.firstPageErrorBuilder,
+    this.newPageErrorBuilder,
+    this.noMoreItemsBuilder,
+    this.confirmButtonStyle,
+    this.cancelButtonStyle,
+    this.footerPadding,
   });
 
-  /// Default anchor fill color.
-  final Color? anchorColor;
-
-  /// Default panel fill color.
-  final Color? panelColor;
-
-  /// Default text style.
-  final TextStyle? textStyle;
-
-  /// Default label text style.
-  final TextStyle? labelTextStyle;
-
-  /// Default hint text style.
-  final TextStyle? hintTextStyle;
-
-  /// Default item text style.
-  final TextStyle? itemTextStyle;
-
-  /// Default selected item text style.
-  final TextStyle? selectedItemTextStyle;
-
-  /// Default selected chip text style.
-  final TextStyle? chipTextStyle;
-
-  /// Default error text style.
-  final TextStyle errorTextStyle;
-
-  /// Default search field decoration.
-  final InputDecoration searchDecoration;
-
-  /// Default anchor decoration.
-  final Decoration anchorDecoration;
-
-  /// Default panel decoration.
-  final Decoration panelDecoration;
-
-  /// Default anchor padding.
-  final EdgeInsetsGeometry anchorPadding;
-
-  /// Default panel padding.
-  final EdgeInsetsGeometry panelPadding;
-
-  /// Default item row padding.
-  final EdgeInsetsGeometry itemPadding;
-
-  /// Optional panel constraints.
-  final BoxConstraints? panelConstraints;
-
-  /// Default maximum panel height.
-  final double panelMaxHeight;
-
-  /// Default trailing chevron icon.
-  final IconData chevronIcon;
-
-  /// Default empty-selection hint text.
-  final String hintText;
-
-  /// Default search hint text.
-  final String searchHintText;
-
-  /// Default chip background color.
-  final Color chipBackground;
-
-  /// Default focused item background color.
-  final Color focusedItemColor;
-
-  /// Default opacity for disabled controls.
-  final double disabledOpacity;
-
-  /// Default interior spacing.
-  final EdgeInsetsGeometry? padding;
-
-  /// Default rounded corners.
-  final BorderRadius? borderRadius;
-
-  /// Optional loading-state builder for default panels.
-  final WidgetBuilder? defaultLoadingBuilder;
-
-  /// Optional error-state builder for default panels.
-  final Widget Function(BuildContext, Object, VoidCallback)?
-  defaultErrorBuilder;
-
-  /// Optional empty-state builder for default panels.
-  final Widget Function(BuildContext, String)? defaultEmptyBuilder;
-
-  /// Light defaults that do not require a Material ancestor.
-  factory DropifyThemeData.light() {
-    return const DropifyThemeData(
-      anchorColor: Color(0xffffffff),
-      panelColor: Color(0xffffffff),
-      textStyle: TextStyle(color: Color(0xff111827)),
-      labelTextStyle: TextStyle(color: Color(0xff374151), fontSize: 12),
-      hintTextStyle: TextStyle(color: Color(0xff6b7280)),
-      itemTextStyle: TextStyle(color: Color(0xff111827)),
-      selectedItemTextStyle: TextStyle(
-        color: Color(0xff111827),
-        fontWeight: FontWeight.w600,
-      ),
-      chipTextStyle: TextStyle(color: Color(0xff3730a3)),
-    );
-  }
-
-  /// Dark defaults that do not require a Material ancestor.
-  factory DropifyThemeData.dark() {
-    return const DropifyThemeData(
-      anchorColor: Color(0xff111827),
-      panelColor: Color(0xff1f2937),
-      textStyle: TextStyle(color: Color(0xfff9fafb)),
-      labelTextStyle: TextStyle(color: Color(0xffd1d5db), fontSize: 12),
-      hintTextStyle: TextStyle(color: Color(0xff9ca3af)),
-      itemTextStyle: TextStyle(color: Color(0xfff9fafb)),
-      selectedItemTextStyle: TextStyle(
-        color: Color(0xfff9fafb),
-        fontWeight: FontWeight.w600,
-      ),
-      chipTextStyle: TextStyle(color: Color(0xffc7d2fe)),
-      errorTextStyle: TextStyle(color: Color(0xfffca5a5), fontSize: 12),
-      anchorDecoration: BoxDecoration(
-        color: Color(0xff111827),
-        border: Border.fromBorderSide(BorderSide(color: Color(0xff4b5563))),
-        borderRadius: BorderRadius.all(Radius.circular(8)),
-      ),
-      panelDecoration: BoxDecoration(
-        color: Color(0xff1f2937),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Color(0x66000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-        borderRadius: BorderRadius.all(Radius.circular(8)),
-      ),
-      chipBackground: Color(0xff312e81),
-      focusedItemColor: Color(0xff374151),
-    );
-  }
-
-  /// Creates defaults from the nearest Material [Theme].
-  factory DropifyThemeData.fromMaterial(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+  /// Creates Material 3-oriented defaults from [theme].
+  ///
+  /// The returned value provides defaults for anchor, panel, search, entry,
+  /// async state, paging footer, and confirmable multi-select footer styling.
+  factory DropifyThemeData.fromMaterial(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
     return DropifyThemeData(
-      anchorColor: theme.colorScheme.surface,
-      panelColor: theme.colorScheme.surface,
-      textStyle: theme.textTheme.bodyMedium,
-      labelTextStyle: theme.textTheme.labelMedium,
-      hintTextStyle: theme.textTheme.bodyMedium?.copyWith(
-        color: theme.hintColor,
+      anchorDecorationTheme: const InputDecorationTheme(
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        isDense: true,
       ),
-      itemTextStyle: theme.textTheme.bodyMedium,
-      selectedItemTextStyle: theme.textTheme.bodyMedium?.copyWith(
-        fontWeight: FontWeight.w600,
+      trailingIcon: Icons.keyboard_arrow_down,
+      clearIcon: Icons.close,
+      anchorValueTextStyle: textTheme.bodyLarge,
+      anchorHintTextStyle: textTheme.bodyLarge?.copyWith(
+        color: colorScheme.onSurfaceVariant,
       ),
-      chipTextStyle: theme.textTheme.labelMedium?.copyWith(
-        color: theme.colorScheme.onSecondaryContainer,
+      anchorErrorTextStyle: textTheme.bodySmall?.copyWith(
+        color: colorScheme.error,
       ),
-      errorTextStyle:
-          theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error) ??
-          TextStyle(color: theme.colorScheme.error, fontSize: 12),
-      searchDecoration: InputDecoration(
+      anchorPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      panelDecoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      panelPadding: const EdgeInsets.symmetric(vertical: 4),
+      panelMaxHeight: 320,
+      panelElevation: 3,
+      panelColor: colorScheme.surface,
+      panelShadowColor: colorScheme.shadow,
+      panelSurfaceTintColor: colorScheme.surfaceTint,
+      panelShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      panelSide: BorderSide(color: colorScheme.outlineVariant),
+      panelClipBehavior: Clip.none,
+      animationDuration: const Duration(milliseconds: 120),
+      animationCurve: Curves.easeOut,
+      searchInputDecoration: const InputDecoration(
         border: OutlineInputBorder(),
         isDense: true,
-        fillColor: theme.colorScheme.surface,
-        focusColor: theme.colorScheme.primary,
+        hintText: 'Search',
       ),
-      anchorDecoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border.all(color: theme.colorScheme.outline),
-        borderRadius: const BorderRadius.all(Radius.circular(8)),
+      searchFieldPadding: const EdgeInsets.all(8),
+      searchTextStyle: textTheme.bodyMedium,
+      searchIcon: Icons.search,
+      searchClearIcon: Icons.close,
+      entryTextStyle: textTheme.bodyMedium,
+      entryDisabledTextStyle: textTheme.bodyMedium?.copyWith(
+        color: colorScheme.onSurfaceVariant,
       ),
-      panelDecoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        boxShadow: kElevationToShadow[4],
-        borderRadius: const BorderRadius.all(Radius.circular(8)),
+      entrySelectedDecoration: BoxDecoration(
+        color: colorScheme.secondaryContainer.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(8),
       ),
-      chipBackground: theme.colorScheme.secondaryContainer,
-      focusedItemColor: theme.colorScheme.primary.withValues(alpha: 0.08),
-      borderRadius: const BorderRadius.all(Radius.circular(8)),
+      entryPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      entrySelectedIcon: Icons.check,
+      entrySpacing: 8,
+      loadingBuilder: (context) => const _DropifyStateMessage(
+        key: ValueKey<String>('dropify.async.loading'),
+        message: 'Loading...',
+        showProgress: true,
+      ),
+      emptyBuilder: (context, hasQuery) => _DropifyStateMessage(
+        key: const ValueKey<String>('dropify.async.empty'),
+        message: hasQuery ? 'No results found' : 'No data available',
+      ),
+      noResultsBuilder: (context) => const _DropifyStateMessage(
+        key: ValueKey<String>('dropify.paging.noItems'),
+        message: 'No results found',
+      ),
+      errorBuilder: (context, error, retry) => _DropifyErrorMessage(
+        key: const ValueKey<String>('dropify.async.error'),
+        message: 'Something went wrong',
+        retryKey: const ValueKey<String>('dropify.async.retry'),
+        onRetry: retry,
+      ),
+      firstPageProgressBuilder: (context) => const _DropifyStateMessage(
+        key: ValueKey<String>('dropify.paging.firstPageProgress'),
+        message: 'Loading...',
+        showProgress: true,
+      ),
+      newPageProgressBuilder: (context) => const _DropifyStateMessage(
+        key: ValueKey<String>('dropify.paging.newPageProgress'),
+        message: 'Loading more...',
+        showProgress: true,
+      ),
+      firstPageErrorBuilder: (context, error, retry) => _DropifyErrorMessage(
+        key: const ValueKey<String>('dropify.paging.firstPageError'),
+        message: 'Could not load results',
+        retryKey: const ValueKey<String>('dropify.paging.retry'),
+        onRetry: retry,
+      ),
+      newPageErrorBuilder: (context, error, retry) => _DropifyErrorMessage(
+        key: const ValueKey<String>('dropify.paging.newPageError'),
+        message: 'Could not load more',
+        retryKey: const ValueKey<String>('dropify.paging.retry'),
+        onRetry: retry,
+      ),
+      noMoreItemsBuilder: (context) => const _DropifyStateMessage(
+        key: ValueKey<String>('dropify.paging.noMoreItems'),
+        message: 'No more items',
+      ),
+      footerPadding: const EdgeInsets.all(8),
     );
   }
 
-  /// Returns a copy with changed fields.
+  /// Decoration applied to the default themed anchor.
+  final InputDecorationTheme? anchorDecorationTheme;
+
+  /// Icon shown at the trailing edge of the closed anchor.
+  final IconData? trailingIcon;
+
+  /// Icon shown by the clear affordance.
+  final IconData? clearIcon;
+
+  /// Text style for selected values in the anchor.
+  final TextStyle? anchorValueTextStyle;
+
+  /// Text style for hint text in the anchor.
+  final TextStyle? anchorHintTextStyle;
+
+  /// Text style for validation error text in the anchor.
+  final TextStyle? anchorErrorTextStyle;
+
+  /// Padding inside the default themed anchor.
+  final EdgeInsetsGeometry? anchorPadding;
+
+  /// Decoration applied to the dropdown panel surface.
+  final BoxDecoration? panelDecoration;
+
+  /// Padding inside the dropdown panel.
+  final EdgeInsetsGeometry? panelPadding;
+
+  /// Maximum height of the dropdown panel.
+  final double? panelMaxHeight;
+
+  /// Material elevation for the dropdown panel surface.
+  final double? panelElevation;
+
+  /// Explicit Material color for the dropdown panel surface.
+  final Color? panelColor;
+
+  /// Explicit Material shadow color for the dropdown panel surface.
+  final Color? panelShadowColor;
+
+  /// Explicit Material surface tint color for the dropdown panel surface.
+  final Color? panelSurfaceTintColor;
+
+  /// Explicit Material shape for the dropdown panel surface.
+  final OutlinedBorder? panelShape;
+
+  /// Explicit Material border side applied to [panelShape].
+  final BorderSide? panelSide;
+
+  /// Explicit clipping behavior for the dropdown panel surface.
+  final Clip? panelClipBehavior;
+
+  /// Duration used by panel animations.
+  final Duration? animationDuration;
+
+  /// Curve used by panel animations.
+  final Curve? animationCurve;
+
+  /// Decoration for the search text field.
+  final InputDecoration? searchInputDecoration;
+
+  /// Padding around the search text field.
+  final EdgeInsetsGeometry? searchFieldPadding;
+
+  /// Text style for search input.
+  final TextStyle? searchTextStyle;
+
+  /// Icon shown in the search field.
+  final IconData? searchIcon;
+
+  /// Icon shown by the search clear affordance.
+  final IconData? searchClearIcon;
+
+  /// Text style for enabled entries.
+  final TextStyle? entryTextStyle;
+
+  /// Text style for disabled entries.
+  final TextStyle? entryDisabledTextStyle;
+
+  /// Decoration applied to selected entries.
+  final BoxDecoration? entrySelectedDecoration;
+
+  /// Decoration applied to hovered entries.
+  final BoxDecoration? entryHoverDecoration;
+
+  /// Decoration applied to focused entries.
+  final BoxDecoration? entryFocusDecoration;
+
+  /// Padding inside each entry row.
+  final EdgeInsetsGeometry? entryPadding;
+
+  /// Icon shown for selected entries.
+  final IconData? entrySelectedIcon;
+
+  /// Spacing between entry row children.
+  final double? entrySpacing;
+
+  /// Optional divider inserted between entries by themed builders.
+  final Divider? entryDivider;
+
+  /// Builder for async loading states.
+  final WidgetBuilder? loadingBuilder;
+
+  /// Builder for async error states.
+  final Widget Function(BuildContext, Object error, VoidCallback retry)?
+  errorBuilder;
+
+  /// Builder for async empty states.
+  ///
+  /// The boolean argument is true when the current query is not empty.
+  final Widget Function(BuildContext, bool hasQuery)? emptyBuilder;
+
+  /// Builder for static no-results states.
+  final WidgetBuilder? noResultsBuilder;
+
+  /// Builder for paginated first-page loading states.
+  final WidgetBuilder? firstPageProgressBuilder;
+
+  /// Builder for paginated next-page loading footers.
+  final WidgetBuilder? newPageProgressBuilder;
+
+  /// Builder for paginated first-page error states.
+  final Widget Function(BuildContext, Object, VoidCallback)?
+  firstPageErrorBuilder;
+
+  /// Builder for paginated next-page error footers.
+  final Widget Function(BuildContext, Object, VoidCallback)?
+  newPageErrorBuilder;
+
+  /// Builder for paginated no-more-items footers.
+  final WidgetBuilder? noMoreItemsBuilder;
+
+  /// Button style for confirmable multi-select apply actions.
+  final ButtonStyle? confirmButtonStyle;
+
+  /// Button style for confirmable multi-select cancel actions.
+  final ButtonStyle? cancelButtonStyle;
+
+  /// Padding around confirmable multi-select and paging footers.
+  final EdgeInsetsGeometry? footerPadding;
+
+  /// Returns a copy of this theme with the given fields replaced.
+  ///
+  /// Null arguments leave the corresponding field unchanged.
+  @override
   DropifyThemeData copyWith({
-    Color? anchorColor,
-    Color? panelColor,
-    TextStyle? textStyle,
-    TextStyle? labelTextStyle,
-    TextStyle? hintTextStyle,
-    TextStyle? itemTextStyle,
-    TextStyle? selectedItemTextStyle,
-    TextStyle? chipTextStyle,
-    TextStyle? errorTextStyle,
-    InputDecoration? searchDecoration,
-    Decoration? anchorDecoration,
-    Decoration? panelDecoration,
+    InputDecorationTheme? anchorDecorationTheme,
+    IconData? trailingIcon,
+    IconData? clearIcon,
+    TextStyle? anchorValueTextStyle,
+    TextStyle? anchorHintTextStyle,
+    TextStyle? anchorErrorTextStyle,
     EdgeInsetsGeometry? anchorPadding,
+    BoxDecoration? panelDecoration,
     EdgeInsetsGeometry? panelPadding,
-    EdgeInsetsGeometry? itemPadding,
-    BoxConstraints? panelConstraints,
     double? panelMaxHeight,
-    IconData? chevronIcon,
-    String? hintText,
-    String? searchHintText,
-    Color? chipBackground,
-    Color? focusedItemColor,
-    double? disabledOpacity,
-    EdgeInsetsGeometry? padding,
-    BorderRadius? borderRadius,
-    WidgetBuilder? defaultLoadingBuilder,
-    Widget Function(BuildContext, Object, VoidCallback)? defaultErrorBuilder,
-    Widget Function(BuildContext, String)? defaultEmptyBuilder,
+    double? panelElevation,
+    Color? panelColor,
+    Color? panelShadowColor,
+    Color? panelSurfaceTintColor,
+    OutlinedBorder? panelShape,
+    BorderSide? panelSide,
+    Clip? panelClipBehavior,
+    Duration? animationDuration,
+    Curve? animationCurve,
+    InputDecoration? searchInputDecoration,
+    EdgeInsetsGeometry? searchFieldPadding,
+    TextStyle? searchTextStyle,
+    IconData? searchIcon,
+    IconData? searchClearIcon,
+    TextStyle? entryTextStyle,
+    TextStyle? entryDisabledTextStyle,
+    BoxDecoration? entrySelectedDecoration,
+    BoxDecoration? entryHoverDecoration,
+    BoxDecoration? entryFocusDecoration,
+    EdgeInsetsGeometry? entryPadding,
+    IconData? entrySelectedIcon,
+    double? entrySpacing,
+    Divider? entryDivider,
+    WidgetBuilder? loadingBuilder,
+    Widget Function(BuildContext, Object, VoidCallback)? errorBuilder,
+    Widget Function(BuildContext, bool)? emptyBuilder,
+    WidgetBuilder? noResultsBuilder,
+    WidgetBuilder? firstPageProgressBuilder,
+    WidgetBuilder? newPageProgressBuilder,
+    Widget Function(BuildContext, Object, VoidCallback)? firstPageErrorBuilder,
+    Widget Function(BuildContext, Object, VoidCallback)? newPageErrorBuilder,
+    WidgetBuilder? noMoreItemsBuilder,
+    ButtonStyle? confirmButtonStyle,
+    ButtonStyle? cancelButtonStyle,
+    EdgeInsetsGeometry? footerPadding,
   }) {
     return DropifyThemeData(
-      anchorColor: anchorColor ?? this.anchorColor,
-      panelColor: panelColor ?? this.panelColor,
-      textStyle: textStyle ?? this.textStyle,
-      labelTextStyle: labelTextStyle ?? this.labelTextStyle,
-      hintTextStyle: hintTextStyle ?? this.hintTextStyle,
-      itemTextStyle: itemTextStyle ?? this.itemTextStyle,
-      selectedItemTextStyle:
-          selectedItemTextStyle ?? this.selectedItemTextStyle,
-      chipTextStyle: chipTextStyle ?? this.chipTextStyle,
-      errorTextStyle: errorTextStyle ?? this.errorTextStyle,
-      searchDecoration: searchDecoration ?? this.searchDecoration,
-      anchorDecoration: anchorDecoration ?? this.anchorDecoration,
-      panelDecoration: panelDecoration ?? this.panelDecoration,
+      anchorDecorationTheme:
+          anchorDecorationTheme ?? this.anchorDecorationTheme,
+      trailingIcon: trailingIcon ?? this.trailingIcon,
+      clearIcon: clearIcon ?? this.clearIcon,
+      anchorValueTextStyle: anchorValueTextStyle ?? this.anchorValueTextStyle,
+      anchorHintTextStyle: anchorHintTextStyle ?? this.anchorHintTextStyle,
+      anchorErrorTextStyle: anchorErrorTextStyle ?? this.anchorErrorTextStyle,
       anchorPadding: anchorPadding ?? this.anchorPadding,
+      panelDecoration: panelDecoration ?? this.panelDecoration,
       panelPadding: panelPadding ?? this.panelPadding,
-      itemPadding: itemPadding ?? this.itemPadding,
-      panelConstraints: panelConstraints ?? this.panelConstraints,
       panelMaxHeight: panelMaxHeight ?? this.panelMaxHeight,
-      chevronIcon: chevronIcon ?? this.chevronIcon,
-      hintText: hintText ?? this.hintText,
-      searchHintText: searchHintText ?? this.searchHintText,
-      chipBackground: chipBackground ?? this.chipBackground,
-      focusedItemColor: focusedItemColor ?? this.focusedItemColor,
-      disabledOpacity: disabledOpacity ?? this.disabledOpacity,
-      padding: padding ?? this.padding,
-      borderRadius: borderRadius ?? this.borderRadius,
-      defaultLoadingBuilder:
-          defaultLoadingBuilder ?? this.defaultLoadingBuilder,
-      defaultErrorBuilder: defaultErrorBuilder ?? this.defaultErrorBuilder,
-      defaultEmptyBuilder: defaultEmptyBuilder ?? this.defaultEmptyBuilder,
+      panelElevation: panelElevation ?? this.panelElevation,
+      panelColor: panelColor ?? this.panelColor,
+      panelShadowColor: panelShadowColor ?? this.panelShadowColor,
+      panelSurfaceTintColor:
+          panelSurfaceTintColor ?? this.panelSurfaceTintColor,
+      panelShape: panelShape ?? this.panelShape,
+      panelSide: panelSide ?? this.panelSide,
+      panelClipBehavior: panelClipBehavior ?? this.panelClipBehavior,
+      animationDuration: animationDuration ?? this.animationDuration,
+      animationCurve: animationCurve ?? this.animationCurve,
+      searchInputDecoration:
+          searchInputDecoration ?? this.searchInputDecoration,
+      searchFieldPadding: searchFieldPadding ?? this.searchFieldPadding,
+      searchTextStyle: searchTextStyle ?? this.searchTextStyle,
+      searchIcon: searchIcon ?? this.searchIcon,
+      searchClearIcon: searchClearIcon ?? this.searchClearIcon,
+      entryTextStyle: entryTextStyle ?? this.entryTextStyle,
+      entryDisabledTextStyle:
+          entryDisabledTextStyle ?? this.entryDisabledTextStyle,
+      entrySelectedDecoration:
+          entrySelectedDecoration ?? this.entrySelectedDecoration,
+      entryHoverDecoration: entryHoverDecoration ?? this.entryHoverDecoration,
+      entryFocusDecoration: entryFocusDecoration ?? this.entryFocusDecoration,
+      entryPadding: entryPadding ?? this.entryPadding,
+      entrySelectedIcon: entrySelectedIcon ?? this.entrySelectedIcon,
+      entrySpacing: entrySpacing ?? this.entrySpacing,
+      entryDivider: entryDivider ?? this.entryDivider,
+      loadingBuilder: loadingBuilder ?? this.loadingBuilder,
+      errorBuilder: errorBuilder ?? this.errorBuilder,
+      emptyBuilder: emptyBuilder ?? this.emptyBuilder,
+      noResultsBuilder: noResultsBuilder ?? this.noResultsBuilder,
+      firstPageProgressBuilder:
+          firstPageProgressBuilder ?? this.firstPageProgressBuilder,
+      newPageProgressBuilder:
+          newPageProgressBuilder ?? this.newPageProgressBuilder,
+      firstPageErrorBuilder:
+          firstPageErrorBuilder ?? this.firstPageErrorBuilder,
+      newPageErrorBuilder: newPageErrorBuilder ?? this.newPageErrorBuilder,
+      noMoreItemsBuilder: noMoreItemsBuilder ?? this.noMoreItemsBuilder,
+      confirmButtonStyle: confirmButtonStyle ?? this.confirmButtonStyle,
+      cancelButtonStyle: cancelButtonStyle ?? this.cancelButtonStyle,
+      footerPadding: footerPadding ?? this.footerPadding,
     );
   }
 
-  /// Linearly interpolates between two Dropify themes.
-  static DropifyThemeData lerp(
-    DropifyThemeData a,
-    DropifyThemeData b,
-    double t,
+  /// Overlays non-null fields from [child] over [parent].
+  static DropifyThemeData merge(
+    DropifyThemeData parent,
+    DropifyThemeData? child,
   ) {
+    if (child == null) {
+      return parent;
+    }
+    return parent.copyWith(
+      anchorDecorationTheme: child.anchorDecorationTheme,
+      trailingIcon: child.trailingIcon,
+      clearIcon: child.clearIcon,
+      anchorValueTextStyle: child.anchorValueTextStyle,
+      anchorHintTextStyle: child.anchorHintTextStyle,
+      anchorErrorTextStyle: child.anchorErrorTextStyle,
+      anchorPadding: child.anchorPadding,
+      panelDecoration: child.panelDecoration,
+      panelPadding: child.panelPadding,
+      panelMaxHeight: child.panelMaxHeight,
+      panelElevation: child.panelElevation,
+      panelColor: child.panelColor,
+      panelShadowColor: child.panelShadowColor,
+      panelSurfaceTintColor: child.panelSurfaceTintColor,
+      panelShape: child.panelShape,
+      panelSide: child.panelSide,
+      panelClipBehavior: child.panelClipBehavior,
+      animationDuration: child.animationDuration,
+      animationCurve: child.animationCurve,
+      searchInputDecoration: child.searchInputDecoration,
+      searchFieldPadding: child.searchFieldPadding,
+      searchTextStyle: child.searchTextStyle,
+      searchIcon: child.searchIcon,
+      searchClearIcon: child.searchClearIcon,
+      entryTextStyle: child.entryTextStyle,
+      entryDisabledTextStyle: child.entryDisabledTextStyle,
+      entrySelectedDecoration: child.entrySelectedDecoration,
+      entryHoverDecoration: child.entryHoverDecoration,
+      entryFocusDecoration: child.entryFocusDecoration,
+      entryPadding: child.entryPadding,
+      entrySelectedIcon: child.entrySelectedIcon,
+      entrySpacing: child.entrySpacing,
+      entryDivider: child.entryDivider,
+      loadingBuilder: child.loadingBuilder,
+      errorBuilder: child.errorBuilder,
+      emptyBuilder: child.emptyBuilder,
+      noResultsBuilder: child.noResultsBuilder,
+      firstPageProgressBuilder: child.firstPageProgressBuilder,
+      newPageProgressBuilder: child.newPageProgressBuilder,
+      firstPageErrorBuilder: child.firstPageErrorBuilder,
+      newPageErrorBuilder: child.newPageErrorBuilder,
+      noMoreItemsBuilder: child.noMoreItemsBuilder,
+      confirmButtonStyle: child.confirmButtonStyle,
+      cancelButtonStyle: child.cancelButtonStyle,
+      footerPadding: child.footerPadding,
+    );
+  }
+
+  @override
+  DropifyThemeData lerp(ThemeExtension<DropifyThemeData>? other, double t) {
+    if (other is! DropifyThemeData) {
+      return this;
+    }
     return DropifyThemeData(
-      anchorColor: Color.lerp(a.anchorColor, b.anchorColor, t),
-      panelColor: Color.lerp(a.panelColor, b.panelColor, t),
-      textStyle: TextStyle.lerp(a.textStyle, b.textStyle, t),
-      labelTextStyle: TextStyle.lerp(a.labelTextStyle, b.labelTextStyle, t),
-      hintTextStyle: TextStyle.lerp(a.hintTextStyle, b.hintTextStyle, t),
-      itemTextStyle: TextStyle.lerp(a.itemTextStyle, b.itemTextStyle, t),
-      selectedItemTextStyle: TextStyle.lerp(
-        a.selectedItemTextStyle,
-        b.selectedItemTextStyle,
+      anchorValueTextStyle: TextStyle.lerp(
+        anchorValueTextStyle,
+        other.anchorValueTextStyle,
         t,
       ),
-      chipTextStyle: TextStyle.lerp(a.chipTextStyle, b.chipTextStyle, t),
-      errorTextStyle: TextStyle.lerp(a.errorTextStyle, b.errorTextStyle, t)!,
-      searchDecoration: t < 0.5 ? a.searchDecoration : b.searchDecoration,
-      anchorDecoration: Decoration.lerp(
-        a.anchorDecoration,
-        b.anchorDecoration,
+      anchorHintTextStyle: TextStyle.lerp(
+        anchorHintTextStyle,
+        other.anchorHintTextStyle,
         t,
-      )!,
-      panelDecoration: Decoration.lerp(
-        a.panelDecoration,
-        b.panelDecoration,
+      ),
+      anchorErrorTextStyle: TextStyle.lerp(
+        anchorErrorTextStyle,
+        other.anchorErrorTextStyle,
         t,
-      )!,
+      ),
       anchorPadding: EdgeInsetsGeometry.lerp(
-        a.anchorPadding,
-        b.anchorPadding,
-        t,
-      )!,
-      panelPadding: EdgeInsetsGeometry.lerp(a.panelPadding, b.panelPadding, t)!,
-      itemPadding: EdgeInsetsGeometry.lerp(a.itemPadding, b.itemPadding, t)!,
-      panelConstraints: BoxConstraints.lerp(
-        a.panelConstraints,
-        b.panelConstraints,
+        anchorPadding,
+        other.anchorPadding,
         t,
       ),
-      panelMaxHeight: lerpDouble(a.panelMaxHeight, b.panelMaxHeight, t)!,
-      chevronIcon: t < 0.5 ? a.chevronIcon : b.chevronIcon,
-      hintText: t < 0.5 ? a.hintText : b.hintText,
-      searchHintText: t < 0.5 ? a.searchHintText : b.searchHintText,
-      chipBackground: Color.lerp(a.chipBackground, b.chipBackground, t)!,
-      focusedItemColor: Color.lerp(a.focusedItemColor, b.focusedItemColor, t)!,
-      disabledOpacity: lerpDouble(a.disabledOpacity, b.disabledOpacity, t)!,
-      padding: EdgeInsetsGeometry.lerp(a.padding, b.padding, t),
-      borderRadius: BorderRadius.lerp(a.borderRadius, b.borderRadius, t),
-      defaultLoadingBuilder: t < 0.5
-          ? a.defaultLoadingBuilder
-          : b.defaultLoadingBuilder,
-      defaultErrorBuilder: t < 0.5
-          ? a.defaultErrorBuilder
-          : b.defaultErrorBuilder,
-      defaultEmptyBuilder: t < 0.5
-          ? a.defaultEmptyBuilder
-          : b.defaultEmptyBuilder,
+      panelDecoration: BoxDecoration.lerp(
+        panelDecoration,
+        other.panelDecoration,
+        t,
+      ),
+      panelPadding: EdgeInsetsGeometry.lerp(
+        panelPadding,
+        other.panelPadding,
+        t,
+      ),
+      panelMaxHeight: ui.lerpDouble(panelMaxHeight, other.panelMaxHeight, t),
+      panelElevation: ui.lerpDouble(panelElevation, other.panelElevation, t),
+      panelColor: Color.lerp(panelColor, other.panelColor, t),
+      panelShadowColor: Color.lerp(panelShadowColor, other.panelShadowColor, t),
+      panelSurfaceTintColor: Color.lerp(
+        panelSurfaceTintColor,
+        other.panelSurfaceTintColor,
+        t,
+      ),
+      panelShape: _lerpOutlinedBorder(panelShape, other.panelShape, t),
+      panelSide: panelSide == null && other.panelSide == null
+          ? null
+          : BorderSide.lerp(
+              panelSide ?? BorderSide.none,
+              other.panelSide ?? BorderSide.none,
+              t,
+            ),
+      panelClipBehavior: t < 0.5 ? panelClipBehavior : other.panelClipBehavior,
+      searchTextStyle: TextStyle.lerp(
+        searchTextStyle,
+        other.searchTextStyle,
+        t,
+      ),
+      searchFieldPadding: EdgeInsetsGeometry.lerp(
+        searchFieldPadding,
+        other.searchFieldPadding,
+        t,
+      ),
+      entryTextStyle: TextStyle.lerp(entryTextStyle, other.entryTextStyle, t),
+      entryDisabledTextStyle: TextStyle.lerp(
+        entryDisabledTextStyle,
+        other.entryDisabledTextStyle,
+        t,
+      ),
+      entrySelectedDecoration: BoxDecoration.lerp(
+        entrySelectedDecoration,
+        other.entrySelectedDecoration,
+        t,
+      ),
+      entryPadding: EdgeInsetsGeometry.lerp(
+        entryPadding,
+        other.entryPadding,
+        t,
+      ),
+      entrySpacing: ui.lerpDouble(entrySpacing, other.entrySpacing, t),
+    );
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      DiagnosticsProperty<InputDecorationTheme?>(
+        'anchorDecorationTheme',
+        anchorDecorationTheme,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<IconData?>(
+        'trailingIcon',
+        trailingIcon,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<IconData?>(
+        'clearIcon',
+        clearIcon,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<TextStyle?>(
+        'anchorValueTextStyle',
+        anchorValueTextStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<TextStyle?>(
+        'anchorHintTextStyle',
+        anchorHintTextStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<TextStyle?>(
+        'anchorErrorTextStyle',
+        anchorErrorTextStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<EdgeInsetsGeometry?>(
+        'anchorPadding',
+        anchorPadding,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<BoxDecoration?>(
+        'panelDecoration',
+        panelDecoration,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<EdgeInsetsGeometry?>(
+        'panelPadding',
+        panelPadding,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DoubleProperty('panelMaxHeight', panelMaxHeight, defaultValue: null),
+    );
+    properties.add(
+      DoubleProperty('panelElevation', panelElevation, defaultValue: null),
+    );
+    properties.add(ColorProperty('panelColor', panelColor, defaultValue: null));
+    properties.add(
+      ColorProperty('panelShadowColor', panelShadowColor, defaultValue: null),
+    );
+    properties.add(
+      ColorProperty(
+        'panelSurfaceTintColor',
+        panelSurfaceTintColor,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<OutlinedBorder?>(
+        'panelShape',
+        panelShape,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<BorderSide?>(
+        'panelSide',
+        panelSide,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      EnumProperty<Clip?>(
+        'panelClipBehavior',
+        panelClipBehavior,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<Duration?>(
+        'animationDuration',
+        animationDuration,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<Curve?>(
+        'animationCurve',
+        animationCurve,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<InputDecoration?>(
+        'searchInputDecoration',
+        searchInputDecoration,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<EdgeInsetsGeometry?>(
+        'searchFieldPadding',
+        searchFieldPadding,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<TextStyle?>(
+        'searchTextStyle',
+        searchTextStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<IconData?>(
+        'searchIcon',
+        searchIcon,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<IconData?>(
+        'searchClearIcon',
+        searchClearIcon,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<TextStyle?>(
+        'entryTextStyle',
+        entryTextStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<TextStyle?>(
+        'entryDisabledTextStyle',
+        entryDisabledTextStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<BoxDecoration?>(
+        'entrySelectedDecoration',
+        entrySelectedDecoration,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<BoxDecoration?>(
+        'entryHoverDecoration',
+        entryHoverDecoration,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<BoxDecoration?>(
+        'entryFocusDecoration',
+        entryFocusDecoration,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<EdgeInsetsGeometry?>(
+        'entryPadding',
+        entryPadding,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<IconData?>(
+        'entrySelectedIcon',
+        entrySelectedIcon,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DoubleProperty('entrySpacing', entrySpacing, defaultValue: null),
+    );
+    properties.add(
+      DiagnosticsProperty<Divider?>(
+        'entryDivider',
+        entryDivider,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<WidgetBuilder?>.has('loadingBuilder', loadingBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<
+        Widget Function(BuildContext, Object, VoidCallback)?
+      >.has('errorBuilder', errorBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<Widget Function(BuildContext, bool hasQuery)?>.has(
+        'emptyBuilder',
+        emptyBuilder,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<WidgetBuilder?>.has(
+        'noResultsBuilder',
+        noResultsBuilder,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<WidgetBuilder?>.has(
+        'firstPageProgressBuilder',
+        firstPageProgressBuilder,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<WidgetBuilder?>.has(
+        'newPageProgressBuilder',
+        newPageProgressBuilder,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<
+        Widget Function(BuildContext, Object, VoidCallback)?
+      >.has('firstPageErrorBuilder', firstPageErrorBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<
+        Widget Function(BuildContext, Object, VoidCallback)?
+      >.has('newPageErrorBuilder', newPageErrorBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<WidgetBuilder?>.has(
+        'noMoreItemsBuilder',
+        noMoreItemsBuilder,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<ButtonStyle?>(
+        'confirmButtonStyle',
+        confirmButtonStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<ButtonStyle?>(
+        'cancelButtonStyle',
+        cancelButtonStyle,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<EdgeInsetsGeometry?>(
+        'footerPadding',
+        footerPadding,
+        defaultValue: null,
+      ),
     );
   }
 
@@ -391,67 +850,178 @@ class DropifyThemeData {
   bool operator ==(Object other) {
     return identical(this, other) ||
         other is DropifyThemeData &&
-            other.anchorColor == anchorColor &&
-            other.panelColor == panelColor &&
-            other.textStyle == textStyle &&
-            other.labelTextStyle == labelTextStyle &&
-            other.hintTextStyle == hintTextStyle &&
-            other.itemTextStyle == itemTextStyle &&
-            other.selectedItemTextStyle == selectedItemTextStyle &&
-            other.chipTextStyle == chipTextStyle &&
-            other.errorTextStyle == errorTextStyle &&
-            other.searchDecoration == searchDecoration &&
-            other.anchorDecoration == anchorDecoration &&
-            other.panelDecoration == panelDecoration &&
+            other.anchorDecorationTheme == anchorDecorationTheme &&
+            other.trailingIcon == trailingIcon &&
+            other.clearIcon == clearIcon &&
+            other.anchorValueTextStyle == anchorValueTextStyle &&
+            other.anchorHintTextStyle == anchorHintTextStyle &&
+            other.anchorErrorTextStyle == anchorErrorTextStyle &&
             other.anchorPadding == anchorPadding &&
+            other.panelDecoration == panelDecoration &&
             other.panelPadding == panelPadding &&
-            other.itemPadding == itemPadding &&
-            other.panelConstraints == panelConstraints &&
             other.panelMaxHeight == panelMaxHeight &&
-            other.chevronIcon == chevronIcon &&
-            other.hintText == hintText &&
-            other.searchHintText == searchHintText &&
-            other.chipBackground == chipBackground &&
-            other.focusedItemColor == focusedItemColor &&
-            other.disabledOpacity == disabledOpacity &&
-            other.padding == padding &&
-            other.borderRadius == borderRadius &&
-            other.defaultLoadingBuilder == defaultLoadingBuilder &&
-            other.defaultErrorBuilder == defaultErrorBuilder &&
-            other.defaultEmptyBuilder == defaultEmptyBuilder;
+            other.panelElevation == panelElevation &&
+            other.panelColor == panelColor &&
+            other.panelShadowColor == panelShadowColor &&
+            other.panelSurfaceTintColor == panelSurfaceTintColor &&
+            other.panelShape == panelShape &&
+            other.panelSide == panelSide &&
+            other.panelClipBehavior == panelClipBehavior &&
+            other.animationDuration == animationDuration &&
+            other.animationCurve == animationCurve &&
+            other.searchInputDecoration == searchInputDecoration &&
+            other.searchFieldPadding == searchFieldPadding &&
+            other.searchTextStyle == searchTextStyle &&
+            other.searchIcon == searchIcon &&
+            other.searchClearIcon == searchClearIcon &&
+            other.entryTextStyle == entryTextStyle &&
+            other.entryDisabledTextStyle == entryDisabledTextStyle &&
+            other.entrySelectedDecoration == entrySelectedDecoration &&
+            other.entryHoverDecoration == entryHoverDecoration &&
+            other.entryFocusDecoration == entryFocusDecoration &&
+            other.entryPadding == entryPadding &&
+            other.entrySelectedIcon == entrySelectedIcon &&
+            other.entrySpacing == entrySpacing &&
+            other.entryDivider == entryDivider &&
+            other.loadingBuilder == loadingBuilder &&
+            other.errorBuilder == errorBuilder &&
+            other.emptyBuilder == emptyBuilder &&
+            other.noResultsBuilder == noResultsBuilder &&
+            other.firstPageProgressBuilder == firstPageProgressBuilder &&
+            other.newPageProgressBuilder == newPageProgressBuilder &&
+            other.firstPageErrorBuilder == firstPageErrorBuilder &&
+            other.newPageErrorBuilder == newPageErrorBuilder &&
+            other.noMoreItemsBuilder == noMoreItemsBuilder &&
+            other.confirmButtonStyle == confirmButtonStyle &&
+            other.cancelButtonStyle == cancelButtonStyle &&
+            other.footerPadding == footerPadding;
   }
 
   @override
   int get hashCode {
     return Object.hashAll(<Object?>[
-      anchorColor,
-      panelColor,
-      textStyle,
-      labelTextStyle,
-      hintTextStyle,
-      itemTextStyle,
-      selectedItemTextStyle,
-      chipTextStyle,
-      errorTextStyle,
-      searchDecoration,
-      anchorDecoration,
-      panelDecoration,
+      anchorDecorationTheme,
+      trailingIcon,
+      clearIcon,
+      anchorValueTextStyle,
+      anchorHintTextStyle,
+      anchorErrorTextStyle,
       anchorPadding,
+      panelDecoration,
       panelPadding,
-      itemPadding,
-      panelConstraints,
       panelMaxHeight,
-      chevronIcon,
-      hintText,
-      searchHintText,
-      chipBackground,
-      focusedItemColor,
-      disabledOpacity,
-      padding,
-      borderRadius,
-      defaultLoadingBuilder,
-      defaultErrorBuilder,
-      defaultEmptyBuilder,
+      panelElevation,
+      panelColor,
+      panelShadowColor,
+      panelSurfaceTintColor,
+      panelShape,
+      panelSide,
+      panelClipBehavior,
+      animationDuration,
+      animationCurve,
+      searchInputDecoration,
+      searchFieldPadding,
+      searchTextStyle,
+      searchIcon,
+      searchClearIcon,
+      entryTextStyle,
+      entryDisabledTextStyle,
+      entrySelectedDecoration,
+      entryHoverDecoration,
+      entryFocusDecoration,
+      entryPadding,
+      entrySelectedIcon,
+      entrySpacing,
+      entryDivider,
+      loadingBuilder,
+      errorBuilder,
+      emptyBuilder,
+      noResultsBuilder,
+      firstPageProgressBuilder,
+      newPageProgressBuilder,
+      firstPageErrorBuilder,
+      newPageErrorBuilder,
+      noMoreItemsBuilder,
+      confirmButtonStyle,
+      cancelButtonStyle,
+      footerPadding,
     ]);
+  }
+}
+
+class _DropifyStateMessage extends StatelessWidget {
+  const _DropifyStateMessage({
+    super.key,
+    required this.message,
+    this.showProgress = false,
+  });
+
+  final String message;
+  final bool showProgress;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      liveRegion: true,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          spacing: 12,
+          children: [
+            if (showProgress)
+              const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            Flexible(child: Text(message)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+OutlinedBorder? _lerpOutlinedBorder(
+  OutlinedBorder? a,
+  OutlinedBorder? b,
+  double t,
+) {
+  final shape = ShapeBorder.lerp(a, b, t);
+  return shape is OutlinedBorder ? shape : null;
+}
+
+class _DropifyErrorMessage extends StatelessWidget {
+  const _DropifyErrorMessage({
+    super.key,
+    required this.message,
+    required this.retryKey,
+    required this.onRetry,
+  });
+
+  final String message;
+  final Key retryKey;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      liveRegion: true,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          spacing: 8,
+          children: [
+            Text(message),
+            TextButton(
+              key: retryKey,
+              onPressed: onRetry,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

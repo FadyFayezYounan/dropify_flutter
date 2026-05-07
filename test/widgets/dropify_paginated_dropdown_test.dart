@@ -1,205 +1,338 @@
-import 'dart:async';
-
 import 'package:dropify_flutter/dropify_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
+
+import '../helpers/dropify_test_app.dart';
 
 void main() {
-  testWidgets('first page loads on open and explicit loadMore appends', (
+  testWidgets('themed paginated default item exposes selected semantics', (
     tester,
   ) async {
-    final DropifyController<String> controller =
-        DropifyController<String>.single();
-    String? selected;
-
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: DropifyPaginatedDropdown<String>(
-            controller: controller,
-            firstPageKey: 1,
-            fetchPage: (int pageKey, String query) async {
-              return DropifyPage<String>(
-                entries: <DropifyEntry<String>>[
-                  DropifyEntry<String>(
-                    value: 'item-$pageKey',
-                    label: 'Item $pageKey',
-                  ),
-                ],
-                nextPageKey: pageKey == 1 ? 2 : null,
-              );
-            },
-            onChanged: (String? value) {
-              selected = value;
-            },
+      dropifyTestApp(
+        DropifyPaginatedDropdown<int, String>(
+          state: DropifyPagingState<int, String>(
+            pages: const [
+              <String>['Alpha'],
+            ],
+            keys: const [0],
+            hasNextPage: false,
           ),
+          fetchNextPage: () {},
+          itemLabelBuilder: (item) => item,
+          keyOf: (item) => item,
+          initialValue: 'Alpha',
+          searchable: false,
         ),
       ),
     );
 
-    await tester.tap(find.byKey(DropifyKeys.anchor));
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(DropifyKeys.row('item-1')), findsOneWidget);
-
-    controller.loadMore();
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(DropifyKeys.row('item-2')), findsOneWidget);
-
-    await tester.tap(find.byKey(DropifyKeys.row('item-2')));
-    await tester.pumpAndSettle();
-
-    expect(selected, 'item-2');
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'Alpha' &&
+            widget.properties.selected == true,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('dropify.item.Alpha')),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('query reset reloads first page for latest query', (
+  testWidgets('opening paginated dropdown defers initial load outside build', (
     tester,
   ) async {
-    final List<String> requests = <String>[];
+    final controller = DropifyPaginatedHarnessController();
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: DropifyPaginatedDropdown<String>(
-            queryDebounce: Duration.zero,
-            firstPageKey: 1,
-            fetchPage: (int pageKey, String query) async {
-              requests.add('$pageKey:$query');
-              return DropifyPage<String>(
-                entries: <DropifyEntry<String>>[
-                  DropifyEntry<String>(value: query, label: 'Query $query'),
-                ],
-              );
-            },
-          ),
-        ),
+      dropifyTestApp(
+        DropifyPaginatedHarness(controller: controller, searchable: false),
       ),
     );
 
-    await tester.tap(find.byKey(DropifyKeys.anchor));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(DropifyKeys.searchField), 'abc');
-    await tester.pumpAndSettle();
+    expect(controller.pagingState.pages, isNull);
 
-    expect(requests, <String>['1:', '1:abc']);
-    expect(find.byKey(DropifyKeys.row('abc')), findsOneWidget);
-  });
-
-  testWidgets('first-page error uses main retry state', (tester) async {
-    int calls = 0;
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: DropifyPaginatedDropdown<String>(
-            fetchPage: (int pageKey, String query) async {
-              calls += 1;
-              if (calls == 1) {
-                throw Exception('first failed');
-              }
-              return const DropifyPage<String>(
-                entries: <DropifyEntry<String>>[
-                  DropifyEntry<String>(value: 'ok', label: 'OK'),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-
-    await tester.tap(find.byKey(DropifyKeys.anchor));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(DropifyKeys.retryButton), findsOneWidget);
-
-    await tester.tap(find.byKey(DropifyKeys.retryButton));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(DropifyKeys.row('ok')), findsOneWidget);
-  });
-
-  testWidgets('later-page error keeps entries and retries footer', (
-    tester,
-  ) async {
-    final DropifyController<String> controller =
-        DropifyController<String>.single();
-    int pageTwoCalls = 0;
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: DropifyPaginatedDropdown<String>(
-            controller: controller,
-            firstPageKey: 1,
-            fetchPage: (int pageKey, String query) async {
-              if (pageKey == 1) {
-                return const DropifyPage<String>(
-                  entries: <DropifyEntry<String>>[
-                    DropifyEntry<String>(value: 'first', label: 'First'),
-                  ],
-                  nextPageKey: 2,
-                );
-              }
-              pageTwoCalls += 1;
-              if (pageTwoCalls == 1) {
-                throw Exception('next failed');
-              }
-              return const DropifyPage<String>(
-                entries: <DropifyEntry<String>>[
-                  DropifyEntry<String>(value: 'second', label: 'Second'),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-
-    await tester.tap(find.byKey(DropifyKeys.anchor));
-    await tester.pumpAndSettle();
-    controller.loadMore();
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(DropifyKeys.row('first')), findsOneWidget);
-    expect(find.byKey(DropifyKeys.pageRetryButton), findsOneWidget);
-
-    await tester.tap(find.byKey(DropifyKeys.pageRetryButton));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(DropifyKeys.row('second')), findsOneWidget);
-  });
-
-  testWidgets('dispose during pending page ignores late completion', (
-    tester,
-  ) async {
-    final Completer<DropifyPage<String>> completer =
-        Completer<DropifyPage<String>>();
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: DropifyPaginatedDropdown<String>(
-            fetchPage: (int pageKey, String query) => completer.future,
-          ),
-        ),
-      ),
-    );
-
-    await tester.tap(find.byKey(DropifyKeys.anchor));
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
     await tester.pump();
-    await tester.pumpWidget(const SizedBox.shrink());
-
-    completer.complete(
-      const DropifyPage<String>(
-        entries: <DropifyEntry<String>>[
-          DropifyEntry<String>(value: 'late', label: 'Late'),
-        ],
-      ),
-    );
-    await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
+    await tester.pump();
+    expect(controller.fetchNextPageCalls, greaterThanOrEqualTo(1));
+    expect(find.text('Alpha'), findsOneWidget);
   });
+
+  testWidgets('paginated body uses shared shell and caller-owned next page', (
+    tester,
+  ) async {
+    final controller = DropifyPaginatedHarnessController();
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        DropifyPaginatedHarness(controller: controller, searchable: false),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pump();
+    await tester.pump();
+
+    final pagedList = tester.widget<PagedListView<int, String>>(
+      find.byType(PagedListView<int, String>),
+    );
+    expect(find.byType(Scrollbar), findsOneWidget);
+    expect(pagedList.controller, isNotNull);
+    expect(pagedList.primary, isFalse);
+    expect(pagedList.shrinkWrap, isFalse);
+    expect(pagedList.padding, EdgeInsets.zero);
+
+    await tester.fling(
+      find.byType(PagedListView<int, String>),
+      const Offset(0, -300),
+      1000,
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(controller.fetchNextPageCalls, greaterThanOrEqualTo(1));
+  });
+
+  testWidgets('paginated search delegates ownership to caller', (tester) async {
+    final controller = DropifyPaginatedHarnessController();
+
+    await tester.pumpWidget(
+      dropifyTestApp(DropifyPaginatedHarness(controller: controller)),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('dropify.search.field')),
+      'al',
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(controller.searchQueries, const ['al']);
+    expect(controller.pagingState.search, 'al');
+    expect(controller.fetchNextPageCalls, greaterThanOrEqualTo(1));
+  });
+
+  testWidgets('paginated delegate state builders resolve', (tester) async {
+    await _pumpRawPaginated(tester, state: DropifyPagingState<int, String>());
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('firstPageProgress')),
+      findsOneWidget,
+    );
+
+    await _pumpRawPaginated(
+      tester,
+      state: DropifyPagingState<int, String>(error: StateError('first')),
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('firstPageError')),
+      findsOneWidget,
+    );
+
+    await _pumpRawPaginated(
+      tester,
+      state: DropifyPagingState<int, String>(
+        pages: const [<String>[]],
+        keys: const [0],
+        hasNextPage: false,
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('noItems')), findsOneWidget);
+
+    await _pumpRawPaginated(
+      tester,
+      state: DropifyPagingState<int, String>(
+        pages: const [
+          <String>['Alpha'],
+        ],
+        keys: const [0],
+        hasNextPage: true,
+        isLoading: true,
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('newPageProgress')),
+      findsOneWidget,
+    );
+
+    await _pumpRawPaginated(
+      tester,
+      state: DropifyPagingState<int, String>(
+        pages: const [
+          <String>['Alpha'],
+        ],
+        keys: const [0],
+        hasNextPage: true,
+        error: StateError('next'),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('newPageError')), findsOneWidget);
+
+    await _pumpRawPaginated(
+      tester,
+      state: DropifyPagingState<int, String>(
+        pages: const [
+          <String>['Alpha'],
+        ],
+        keys: const [0],
+        hasNextPage: false,
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('noMoreItems')), findsOneWidget);
+  });
+
+  testWidgets('paginated outside tap and Escape close panel', (tester) async {
+    await _pumpRawPaginated(
+      tester,
+      state: DropifyPagingState<int, String>(
+        pages: const [
+          <String>['Alpha'],
+        ],
+        keys: const [0],
+        hasNextPage: false,
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey<String>('dropify.panel')), findsOneWidget);
+
+    await tester.tapAt(const Offset(790, 590));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey<String>('dropify.panel')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey<String>('dropify.anchor')));
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey<String>('dropify.panel')), findsNothing);
+  });
+
+  testWidgets('paginated controller and validation keep working', (
+    tester,
+  ) async {
+    final formKey = GlobalKey<FormState>();
+    final controller = DropifyController<String>.single();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      dropifyTestApp(
+        Form(
+          key: formKey,
+          child: DropifyPaginatedDropdown<int, String>(
+            state: DropifyPagingState<int, String>(
+              pages: const [
+                <String>['Alpha'],
+              ],
+              keys: const [0],
+              hasNextPage: false,
+            ),
+            fetchNextPage: () {},
+            controller: controller,
+            itemLabelBuilder: (item) => item,
+            searchable: false,
+            validator: (value) =>
+                value is DropifySingleValue<String> && value.value == null
+                ? 'Required'
+                : null,
+          ),
+        ),
+      ),
+    );
+
+    expect(formKey.currentState!.validate(), isFalse);
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('dropify.validation.error')),
+      findsOneWidget,
+    );
+
+    controller.open();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey<String>('dropify.panel')), findsOneWidget);
+    await tester.tap(find.text('Alpha'));
+    await tester.pumpAndSettle();
+
+    expect(controller.value, 'Alpha');
+    expect(formKey.currentState!.validate(), isTrue);
+
+    controller.open();
+    await tester.pumpAndSettle();
+    controller.close();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey<String>('dropify.panel')), findsNothing);
+  });
+}
+
+Future<void> _pumpRawPaginated(
+  WidgetTester tester, {
+  required DropifyPagingState<int, String> state,
+}) async {
+  await tester.pumpWidget(
+    dropifyTestApp(
+      RawPaginatedDropify<int, String>(
+        state: state,
+        fetchNextPage: () {},
+        anchorBuilder: (context, anchorState) => SizedBox(
+          width: 240,
+          child: TextButton(
+            key: const ValueKey<String>('dropify.anchor'),
+            onPressed: anchorState.open,
+            child: const Text('Open'),
+          ),
+        ),
+        itemBuilder: (context, item, index, selected, onTap) =>
+            SizedBox(height: 40, child: Text(item)),
+        firstPageProgressBuilder: (context) => const SizedBox(
+          key: ValueKey<String>('firstPageProgress'),
+          child: Text('First loading'),
+        ),
+        newPageProgressBuilder: (context) => const SizedBox(
+          key: ValueKey<String>('newPageProgress'),
+          child: Text('New loading'),
+        ),
+        firstPageErrorBuilder: (context, error, retry) => const SizedBox(
+          key: ValueKey<String>('firstPageError'),
+          child: Text('First error'),
+        ),
+        newPageErrorBuilder: (context, error, retry) => const SizedBox(
+          key: ValueKey<String>('newPageError'),
+          child: Text('New error'),
+        ),
+        noItemsFoundBuilder: (context) => const SizedBox(
+          key: ValueKey<String>('noItems'),
+          child: Text('No items'),
+        ),
+        noMoreItemsBuilder: (context) => const SizedBox(
+          key: ValueKey<String>('noMoreItems'),
+          child: Text('No more'),
+        ),
+        searchable: false,
+        loadOnOpen: false,
+      ),
+    ),
+  );
 }

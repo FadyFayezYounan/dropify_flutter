@@ -1,52 +1,70 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
-/// A selectable value displayed by Dropify widgets.
+/// A selectable option used by static Dropify widgets.
 ///
-/// The [value] is the identity of the entry. Entries with equal values compare
-/// equal, matching Dropify's value-based selection contract.
+/// Entries provide the value emitted by selection and the default presentation
+/// data used by static row builders and local search.
 @immutable
 class DropifyEntry<T> {
-  /// Creates a Dropify entry.
+  /// Creates a Dropify option entry.
+  ///
+  /// The [value] argument is required. The [enabled] argument defaults to true.
   const DropifyEntry({
     required this.value,
-    required this.label,
-    this.labelWidget,
-    this.leadingIcon,
-    this.trailingIcon,
+    this.label,
+    this.leading,
+    this.trailing,
     this.enabled = true,
-    this.style,
+    this.searchableText,
   });
 
-  /// The value used to identify this entry.
+  /// The value emitted when this entry is selected.
   final T value;
 
-  /// The plain text label for this entry.
-  final String label;
+  /// The default visible label.
+  ///
+  /// If null, default builders use [value].toString().
+  final String? label;
 
-  /// An optional widget that replaces the default text label presentation.
-  final Widget? labelWidget;
+  /// Optional leading widget rendered by default entry builders.
+  final Widget? leading;
 
-  /// An optional widget displayed before the label.
-  final Widget? leadingIcon;
-
-  /// An optional widget displayed after the label.
-  final Widget? trailingIcon;
+  /// Optional trailing widget rendered by default entry builders.
+  final Widget? trailing;
 
   /// Whether this entry can be selected.
+  ///
+  /// Defaults to true. Disabled entries remain visible but cannot be selected.
   final bool enabled;
 
-  /// Optional Material button styling for default widgets in later layers.
-  final ButtonStyle? style;
+  /// Optional search text override.
+  ///
+  /// If null, the default matcher uses [label] or [value].toString().
+  final String? searchableText;
+
+  /// The text used by the default matcher.
+  String get effectiveSearchText => searchableText ?? label ?? value.toString();
 
   @override
   bool operator ==(Object other) {
-    return identical(this, other) ||
-        other is DropifyEntry<T> && other.value == value;
+    return other is DropifyEntry<T> &&
+        other.value == value &&
+        other.label == label &&
+        other.leading == leading &&
+        other.trailing == trailing &&
+        other.enabled == enabled &&
+        other.searchableText == searchableText;
   }
 
   @override
-  int get hashCode => value.hashCode;
-
-  @override
-  String toString() => 'DropifyEntry<$T>($label, $value)';
+  int get hashCode {
+    return Object.hash(
+      value,
+      label,
+      leading,
+      trailing,
+      enabled,
+      searchableText,
+    );
+  }
 }

@@ -2,9 +2,11 @@ import 'package:example/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('gallery shows raw demo entry', (WidgetTester tester) async {
+  testWidgets('example app renders demo tabs', (tester) async {
     await tester.pumpWidget(const DropifyExampleApp());
 
-    expect(find.text('Raw static demo'), findsOneWidget);
+    expect(find.text('Dropify'), findsOneWidget);
+    expect(find.text('Static'), findsOneWidget);
+    expect(find.text('Async'), findsOneWidget);
   });
 }

@@ -1,109 +1,58 @@
 import 'package:flutter/material.dart';
 
-import 'async_demo_keys.dart';
-import 'form_demo_keys.dart';
-import 'paginated_demo_keys.dart';
-import 'pages/async_page.dart';
-import 'pages/form_page.dart';
-import 'pages/paginated_page.dart';
-import 'pages/raw_page.dart';
-import 'pages/static_page.dart';
-import 'pages/theming_page.dart';
-import 'raw_demo_keys.dart';
-import 'static_demo_keys.dart';
-import 'theme_demo_keys.dart';
+import 'pages/accessibility_theme_page.dart';
+import 'pages/async_dropdown_page.dart';
+import 'pages/paginated_dropdown_page.dart';
+import 'pages/selection_forms_page.dart';
+import 'pages/static_dropdown_page.dart';
 
 void main() {
   runApp(const DropifyExampleApp());
 }
 
-/// Example gallery application for dropify_flutter.
 class DropifyExampleApp extends StatelessWidget {
-  /// Creates the example app.
   const DropifyExampleApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Dropify',
-      theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.indigo)),
-      home: const DropifyGallery(),
+      title: 'Dropify Example',
+      theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
+      home: const DropifyExampleHome(),
     );
   }
 }
 
-/// Minimal gallery shell for Phase 1.
-class DropifyGallery extends StatelessWidget {
-  /// Creates the gallery shell.
-  const DropifyGallery({super.key});
+class DropifyExampleHome extends StatelessWidget {
+  const DropifyExampleHome({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Dropify Gallery')),
-      body: ListView(
-        children: <Widget>[
-          ListTile(
-            key: RawDemoKeys.rawNavTile,
-            title: const Text('Raw static demo'),
-            subtitle: const Text('RawDropify with custom anchor and body'),
-            onTap: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(builder: (_) => const RawPage()),
-              );
-            },
+    return DefaultTabController(
+      length: 5,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Dropify'),
+          bottom: const TabBar(
+            isScrollable: true,
+            tabs: [
+              Tab(text: 'Static'),
+              Tab(text: 'Async'),
+              Tab(text: 'Paging'),
+              Tab(text: 'Forms'),
+              Tab(text: 'Theme'),
+            ],
           ),
-          ListTile(
-            key: StaticDemoKeys.staticNavTile,
-            title: const Text('Static dropdowns'),
-            subtitle: const Text('Default single and multi DropifyDropdown'),
-            onTap: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(builder: (_) => const StaticPage()),
-              );
-            },
-          ),
-          ListTile(
-            key: AsyncDemoKeys.asyncNavTile,
-            title: const Text('Async dropdowns'),
-            subtitle: const Text('Loading, search, empty, and retry states'),
-            onTap: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(builder: (_) => const AsyncPage()),
-              );
-            },
-          ),
-          ListTile(
-            key: PaginatedDemoKeys.paginatedNavTile,
-            title: const Text('Paginated dropdowns'),
-            subtitle: const Text('Infinite scroll, page retry, and end state'),
-            onTap: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(builder: (_) => const PaginatedPage()),
-              );
-            },
-          ),
-          ListTile(
-            key: FormDemoKeys.formNavTile,
-            title: const Text('Form dropdowns'),
-            subtitle: const Text('Validation, save, static, async, paginated'),
-            onTap: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(builder: (_) => const FormPage()),
-              );
-            },
-          ),
-          ListTile(
-            key: ThemeDemoKeys.themeNavTile,
-            title: const Text('Theming'),
-            subtitle: const Text('Light, dark, and custom DropifyTheme data'),
-            onTap: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(builder: (_) => const ThemingPage()),
-              );
-            },
-          ),
-        ],
+        ),
+        body: const TabBarView(
+          children: [
+            StaticDropdownPage(),
+            AsyncDropdownPage(),
+            PaginatedDropdownPage(),
+            SelectionFormsPage(),
+            AccessibilityThemePage(),
+          ],
+        ),
       ),
     );
   }

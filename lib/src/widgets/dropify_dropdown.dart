@@ -1,348 +1,318 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import '../core/dropify_controller.dart';
-import '../core/dropify_data_source.dart';
 import '../core/dropify_entry.dart';
-import '../core/dropify_state.dart';
-import '../core/raw_dropify.dart';
-import '../theme/dropify_theme.dart';
-import '../theme/dropify_theme_data.dart';
-import '_dropify_anchor.dart';
-import '_dropify_panel.dart';
+import '../core/dropify_menu_body_mode.dart';
+import '../core/dropify_selection.dart';
+import '../core/dropify_value.dart';
+import 'raw_static_dropify.dart';
+import '_dropify_themed_helpers.dart';
 
-/// Builds a custom row for a default static Dropify dropdown panel.
-typedef DropifyDropdownItemBuilder<T> =
-    Widget Function(
-      BuildContext context,
-      DropifyEntry<T> entry,
-      bool selected,
-      VoidCallback? onSelect,
-    );
-
-/// Builds a chip for a selected value in a multi-select Dropify dropdown.
-typedef DropifyDropdownChipBuilder<T> =
-    Widget Function(
-      BuildContext context,
-      DropifyEntry<T> entry,
-      VoidCallback? onDeleted,
-    );
-
-/// Builds the empty state for a default Dropify dropdown panel.
-typedef DropifyDropdownEmptyBuilder =
-    Widget Function(BuildContext context, String query);
-
-/// Builds the loading state for a default Dropify dropdown panel.
-typedef DropifyDropdownLoadingBuilder = Widget Function(BuildContext context);
-
-/// Builds the error state for a default Dropify dropdown panel.
-typedef DropifyDropdownErrorBuilder =
-    Widget Function(BuildContext context, Object error, VoidCallback retry);
-
-/// A searchable dropdown for an in-memory list of [DropifyEntry] objects.
+/// A Material-styled dropdown backed by in-memory [DropifyEntry] values.
 ///
-/// Use this widget when all selectable values are already available locally.
-/// Static entries are filtered with a case-insensitive label matcher unless
-/// [staticMatcher] is supplied.
+/// Use this widget when every option is available locally. The dropdown can
+/// render a search field, disabled entries, clear affordances, form validation,
+/// and single or multi-selection flows.
 ///
-/// {@tool snippet}
-/// ```dart
-/// DropifyDropdown<String>(
-///   entries: const [
-///     DropifyEntry(value: 'apple', label: 'Apple'),
-///     DropifyEntry(value: 'banana', label: 'Banana'),
-///   ],
-///   onChanged: (value) {},
-/// )
-/// ```
-/// {@end-tool}
+/// The [entries] list is filtered locally when [searchable] is true. To provide
+/// a custom row builder or matcher, use [RawStaticDropify].
 ///
 /// See also:
 ///
-///  * [DropifyAsyncDropdown], for data fetched from an async callback.
-///  * [DropifyPaginatedDropdown], for incrementally loaded data.
-///  * [DropifyFormField], for `Form` integration.
-///  * [RawDropify], for fully custom dropdown chrome.
-class DropifyDropdown<T> extends StatefulWidget {
-  /// Creates a single-select static dropdown.
+///  * [RawStaticDropify], which provides static dropdown behavior without the
+///    Material-styled anchor.
+///  * [DropifyAsyncDropdown], for debounced remote search.
+///  * [DropifyPaginatedDropdown], for caller-owned paginated results.
+class DropifyDropdown<T> extends StatelessWidget {
+  /// Creates a single-selection static dropdown.
+  ///
+  /// The [entries] argument is required. The [searchable] argument defaults to
+  /// false and [showClearButton] defaults to false.
   const DropifyDropdown({
     super.key,
-    this.controller,
     required this.entries,
+    this.controller,
     this.initialValue,
-    ValueChanged<T?>? onChanged,
+    this.onChanged,
     this.label,
     this.hintText,
-    this.errorText,
-    this.searchEnabled = true,
-    this.searchHint,
-    this.itemBuilder,
-    this.anchorBuilder,
-    this.panelDecoration,
-    this.emptyBuilder,
-    this.staticMatcher,
-    this.theme,
+    this.helperText,
+    this.prefixIcon,
+    this.searchable = false,
+    this.searchHintText,
+    this.showClearButton = false,
     this.enabled = true,
-    this.focusNode,
-  }) : _isMulti = false,
-       initialValues = const <Never>[],
-       minSelection = null,
-       maxSelection = null,
-       chipBuilder = null,
-       closeOnSelect = null,
-       _onSingleChanged = onChanged,
-       _onMultiChanged = null;
+    this.validator,
+    this.autovalidateMode,
+    this.itemLabelBuilder,
+    this.keyOf,
+    this.equals,
+    this.menuBodyMode = DropifyMenuBodyMode.automatic,
+    this.scrollToSelectedOnOpen = true,
+  }) : selectionMode = DropifySelectionMode.single,
+       initialValues = null,
+       onChangedMulti = null,
+       confirmable = false,
+       confirmLabel = null,
+       cancelLabel = null;
 
-  /// Creates a multi-select static dropdown.
+  /// Creates a multi-selection static dropdown.
+  ///
+  /// When [confirmable] is false, toggles are emitted immediately. When
+  /// [confirmable] is true, toggles are staged until the user applies them.
   const DropifyDropdown.multi({
     super.key,
-    this.controller,
     required this.entries,
-    this.initialValues = const <Never>[],
-    ValueChanged<List<T>>? onChanged,
-    this.minSelection,
-    this.maxSelection,
-    this.chipBuilder,
-    this.closeOnSelect = false,
+    this.controller,
+    this.initialValues,
+    ValueChanged<Set<T>>? onChanged,
     this.label,
     this.hintText,
-    this.errorText,
-    this.searchEnabled = true,
-    this.searchHint,
-    this.itemBuilder,
-    this.anchorBuilder,
-    this.panelDecoration,
-    this.emptyBuilder,
-    this.staticMatcher,
-    this.theme,
+    this.helperText,
+    this.prefixIcon,
+    this.searchable = false,
+    this.searchHintText,
+    this.showClearButton = false,
     this.enabled = true,
-    this.focusNode,
-  }) : _isMulti = true,
+    this.validator,
+    this.autovalidateMode,
+    this.itemLabelBuilder,
+    this.keyOf,
+    this.equals,
+    this.confirmable = false,
+    this.confirmLabel,
+    this.cancelLabel,
+    this.menuBodyMode = DropifyMenuBodyMode.automatic,
+    this.scrollToSelectedOnOpen = true,
+  }) : selectionMode = DropifySelectionMode.multi,
        initialValue = null,
-       _onSingleChanged = null,
-       _onMultiChanged = onChanged;
+       onChanged = null,
+       onChangedMulti = onChanged;
 
-  /// Optional external controller.
-  final DropifyController<T>? controller;
-
-  /// Entries available to the dropdown.
+  /// The options shown by the dropdown.
+  ///
+  /// Disabled entries remain visible but cannot be selected.
   final List<DropifyEntry<T>> entries;
 
-  /// Initial selected value for internally controlled single dropdowns.
+  /// The active selection mode for this widget instance.
+  final DropifySelectionMode selectionMode;
+
+  /// An optional external controller for selection and open state.
+  ///
+  /// If null, the widget creates and disposes its own controller.
+  final DropifyController<T>? controller;
+
+  /// The initially selected value for single-selection dropdowns.
   final T? initialValue;
 
-  /// Initial selected values for internally controlled multi dropdowns.
-  final List<T> initialValues;
+  /// The initially selected values for multi-selection dropdowns.
+  final Set<T>? initialValues;
 
-  /// Minimum number of selected values for multi-select dropdowns.
-  final int? minSelection;
+  /// Called when single selection changes.
+  final ValueChanged<T?>? onChanged;
 
-  /// Maximum number of selected values for multi-select dropdowns.
-  final int? maxSelection;
+  /// Called when multi selection changes.
+  final ValueChanged<Set<T>>? onChangedMulti;
 
-  /// Builds selected chips for multi-select dropdowns.
-  final DropifyDropdownChipBuilder<T>? chipBuilder;
-
-  /// Whether selecting an entry closes the dropdown.
-  final bool? closeOnSelect;
-
-  /// Optional label shown above the selected value or chips.
+  /// The label displayed by the default themed anchor.
   final String? label;
 
-  /// Text shown when there is no selection.
+  /// The hint text displayed when no value is selected.
   final String? hintText;
 
-  /// Optional error text shown by the default anchor.
-  final String? errorText;
+  /// Helper text displayed below the anchor.
+  final String? helperText;
 
-  /// Whether the default panel includes a search field.
-  final bool searchEnabled;
+  /// An optional icon displayed before the selected value or hint.
+  final Widget? prefixIcon;
 
-  /// Hint text for the default search field.
-  final String? searchHint;
+  /// Whether the panel includes a search field.
+  ///
+  /// Defaults to false.
+  final bool searchable;
 
-  /// Builds custom rows for the default panel.
-  final DropifyDropdownItemBuilder<T>? itemBuilder;
+  /// Hint text for the search field.
+  ///
+  /// If null, the theme-provided search decoration is used.
+  final String? searchHintText;
 
-  /// Replaces the default anchor when provided.
-  final DropifyAnchorBuilder<T>? anchorBuilder;
+  /// Whether a clear button is shown when a value is selected.
+  ///
+  /// Defaults to false.
+  final bool showClearButton;
 
-  /// Overrides the default panel decoration.
-  final Decoration? panelDecoration;
-
-  /// Builds the default panel empty state.
-  final DropifyDropdownEmptyBuilder? emptyBuilder;
-
-  /// Overrides static filtering.
-  final DropifyStaticMatcher<T>? staticMatcher;
-
-  /// Per-widget theme override.
-  final DropifyThemeData? theme;
-
-  /// Whether the default anchor can open the dropdown.
+  /// Whether the dropdown accepts user interaction.
+  ///
+  /// Defaults to true.
   final bool enabled;
 
-  /// Optional focus node for the default anchor.
-  final FocusNode? focusNode;
+  /// Validates the current Dropify value when used inside a [Form].
+  final FormFieldValidator<DropifyValue<T>>? validator;
 
-  final bool _isMulti;
-  final ValueChanged<T?>? _onSingleChanged;
-  final ValueChanged<List<T>>? _onMultiChanged;
+  /// Controls when validation runs.
+  final AutovalidateMode? autovalidateMode;
 
-  @override
-  State<DropifyDropdown<T>> createState() => _DropifyDropdownState<T>();
+  /// Builds the visible label for an item value.
+  ///
+  /// If null, each entry's [DropifyEntry.label] or value string is used.
+  final String Function(T item)? itemLabelBuilder;
+
+  /// Returns a stable identity key for a value.
+  ///
+  /// Use this when new object instances can represent the same logical item.
+  final Object Function(T item)? keyOf;
+
+  /// Compares two values for selection identity.
+  ///
+  /// Prefer [keyOf] when a stable identity key is available.
+  final bool Function(T a, T b)? equals;
+
+  /// Whether multi-selection changes are staged until applied.
+  ///
+  /// Defaults to false.
+  final bool confirmable;
+
+  /// The label for the confirm button in confirmable multi-selection.
+  ///
+  /// If null, the default visible copy is used.
+  final String? confirmLabel;
+
+  /// The label for the cancel button in confirmable multi-selection.
+  ///
+  /// If null, the default visible copy is used.
+  final String? cancelLabel;
+
+  /// Controls whether non-empty static row bodies are eager or lazy.
+  ///
+  /// Defaults to [DropifyMenuBodyMode.automatic], which keeps the built-in
+  /// static threshold. Paginated dropdowns do not use this setting.
+  final DropifyMenuBodyMode menuBodyMode;
+
+  /// Whether opening the menu should jump to the selected visible row.
+  ///
+  /// Defaults to true. If the selected value is not present in the current
+  /// visible rows, opening preserves normal initial scroll offset behavior.
+  final bool scrollToSelectedOnOpen;
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties.add(IterableProperty<DropifyEntry<T>>('entries', entries));
-    properties.add(FlagProperty('isMulti', value: _isMulti, ifTrue: 'multi'));
+    properties.add(IntProperty('entries', entries.length));
     properties.add(
-      FlagProperty('searchEnabled', value: searchEnabled, ifFalse: 'no search'),
+      EnumProperty<DropifySelectionMode>('selectionMode', selectionMode),
+    );
+    properties.add(
+      ObjectFlagProperty<DropifyController<T>?>.has('controller', controller),
+    );
+    properties.add(
+      DiagnosticsProperty<T?>('initialValue', initialValue, defaultValue: null),
+    );
+    properties.add(
+      IterableProperty<T>('initialValues', initialValues, defaultValue: null),
+    );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<T?>?>.has('onChanged', onChanged),
+    );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<Set<T>>?>.has(
+        'onChangedMulti',
+        onChangedMulti,
+      ),
+    );
+    properties.add(StringProperty('label', label, defaultValue: null));
+    properties.add(StringProperty('hintText', hintText, defaultValue: null));
+    properties.add(
+      StringProperty('helperText', helperText, defaultValue: null),
+    );
+    properties.add(
+      FlagProperty('searchable', value: searchable, ifTrue: 'searchable'),
+    );
+    properties.add(
+      FlagProperty(
+        'showClearButton',
+        value: showClearButton,
+        ifTrue: 'shows clear button',
+      ),
     );
     properties.add(
       FlagProperty('enabled', value: enabled, ifFalse: 'disabled'),
     );
-    properties.add(StringProperty('label', label, defaultValue: null));
-    properties.add(StringProperty('hintText', hintText, defaultValue: null));
-    properties.add(StringProperty('errorText', errorText, defaultValue: null));
-  }
-}
-
-class _DropifyDropdownState<T> extends State<DropifyDropdown<T>> {
-  DropifyController<T>? _internalController;
-  late DropifyController<T> _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _bindController();
-  }
-
-  @override
-  void didUpdateWidget(DropifyDropdown<T> oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller ||
-        oldWidget._isMulti != widget._isMulti ||
-        oldWidget.minSelection != widget.minSelection ||
-        oldWidget.maxSelection != widget.maxSelection) {
-      _disposeInternalController();
-      _bindController();
-    }
-  }
-
-  @override
-  void dispose() {
-    _disposeInternalController();
-    super.dispose();
-  }
-
-  void _bindController() {
-    _internalController = widget.controller == null
-        ? (widget._isMulti
-              ? DropifyController<T>.multi(
-                  initialValues: widget.initialValues,
-                  minSelection: widget.minSelection,
-                  maxSelection: widget.maxSelection,
-                )
-              : DropifyController<T>.single(initialValue: widget.initialValue))
-        : null;
-    _controller = widget.controller ?? _internalController!;
-  }
-
-  void _disposeInternalController() {
-    _internalController?.dispose();
-    _internalController = null;
+    properties.add(
+      ObjectFlagProperty<String Function(T item)?>.has(
+        'itemLabelBuilder',
+        itemLabelBuilder,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<Object Function(T item)?>.has('keyOf', keyOf),
+    );
+    properties.add(
+      ObjectFlagProperty<bool Function(T a, T b)?>.has('equals', equals),
+    );
+    properties.add(
+      FlagProperty('confirmable', value: confirmable, ifTrue: 'confirmable'),
+    );
+    properties.add(
+      EnumProperty<DropifyMenuBodyMode>('menuBodyMode', menuBodyMode),
+    );
+    properties.add(
+      FlagProperty(
+        'scrollToSelectedOnOpen',
+        value: scrollToSelectedOnOpen,
+        ifTrue: 'scrolls to selected on open',
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final DropifyThemeData effectiveTheme = widget.theme ??
-        DropifyTheme.of(context);
-    final StaticDropifyDataSource<T> dataSource = StaticDropifyDataSource<T>(
-      entries: widget.entries,
+    final anchor = themedAnchorBuilder<T>(
+      label: label,
+      hintText: hintText,
+      helperText: helperText,
+      prefixIcon: prefixIcon,
+      itemLabelBuilder: itemLabelBuilder,
     );
-    if (widget._isMulti) {
-      return RawDropify<T>.multi(
-        controller: _controller,
-        dataSource: dataSource,
-        staticMatcher: widget.staticMatcher,
-        closeOnSelect: widget.closeOnSelect,
-        onSelectionChanged: _handleSelectionChanged,
-        anchorBuilder:
-            (
-              BuildContext context,
-              DropifyController<T> controller,
-              Widget? child,
-            ) {
-              return _buildAnchor(context, controller, child, effectiveTheme);
-            },
-        bodyBuilder: (BuildContext context, DropifyState<T> state) {
-          return _buildPanel(context, state, effectiveTheme);
-        },
+    final effectiveEntries = entriesWithLabels(entries, itemLabelBuilder);
+    if (selectionMode == DropifySelectionMode.single) {
+      return RawStaticDropify<T>(
+        entries: effectiveEntries,
+        anchorBuilder: anchor,
+        controller: controller,
+        initialValue: initialValue,
+        onChanged: onChanged,
+        searchable: searchable,
+        searchHintText: searchHintText,
+        showClearButton: showClearButton,
+        enabled: enabled,
+        validator: validator,
+        autovalidateMode: autovalidateMode,
+        keyOf: keyOf,
+        equals: equals,
+        menuBodyMode: menuBodyMode,
+        scrollToSelectedOnOpen: scrollToSelectedOnOpen,
       );
     }
-    return RawDropify<T>(
-      controller: _controller,
-      dataSource: dataSource,
-      staticMatcher: widget.staticMatcher,
-      closeOnSelect: widget.closeOnSelect,
-      onSelectionChanged: _handleSelectionChanged,
-      anchorBuilder:
-          (
-            BuildContext context,
-            DropifyController<T> controller,
-            Widget? child,
-          ) {
-            return _buildAnchor(context, controller, child, effectiveTheme);
-          },
-      bodyBuilder: (BuildContext context, DropifyState<T> state) {
-        return _buildPanel(context, state, effectiveTheme);
-      },
+    return RawStaticDropify<T>.multi(
+      entries: effectiveEntries,
+      anchorBuilder: anchor,
+      controller: controller,
+      initialValues: initialValues,
+      onChanged: onChangedMulti,
+      searchable: searchable,
+      searchHintText: searchHintText,
+      showClearButton: showClearButton,
+      enabled: enabled,
+      validator: validator,
+      autovalidateMode: autovalidateMode,
+      keyOf: keyOf,
+      equals: equals,
+      menuBodyMode: menuBodyMode,
+      scrollToSelectedOnOpen: scrollToSelectedOnOpen,
+      confirmable: confirmable,
+      confirmLabel: confirmLabel,
+      cancelLabel: cancelLabel,
     );
-  }
-
-  Widget _buildAnchor(
-    BuildContext context,
-    DropifyController<T> controller,
-    Widget? child,
-    DropifyThemeData theme,
-  ) {
-    return widget.anchorBuilder?.call(context, controller, child) ??
-        DropifyAnchor<T>(
-          controller: controller,
-          entries: widget.entries,
-          theme: theme,
-          enabled: widget.enabled,
-          label: widget.label,
-          hintText: widget.hintText,
-          errorText: widget.errorText,
-          focusNode: widget.focusNode,
-          chipBuilder: widget.chipBuilder,
-        );
-  }
-
-  Widget _buildPanel(
-    BuildContext context,
-    DropifyState<T> state,
-    DropifyThemeData theme,
-  ) {
-    return DropifyPanel<T>(
-      state: state,
-      theme: theme,
-      searchEnabled: widget.searchEnabled,
-      searchHint: widget.searchHint,
-      panelDecoration: widget.panelDecoration,
-      itemBuilder: widget.itemBuilder,
-      emptyBuilder: widget.emptyBuilder,
-    );
-  }
-
-  void _handleSelectionChanged(T? value, List<T> values) {
-    if (widget._isMulti) {
-      widget._onMultiChanged?.call(List<T>.unmodifiable(values));
-    } else {
-      widget._onSingleChanged?.call(value);
-    }
   }
 }

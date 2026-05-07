@@ -1,342 +1,332 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import '../core/dropify_controller.dart';
-import '../core/dropify_data_source.dart';
-import '../core/dropify_state.dart';
-import '../core/raw_dropify.dart';
-import '../theme/dropify_theme.dart';
-import '../theme/dropify_theme_data.dart';
-import '_dropify_anchor.dart';
-import '_dropify_panel.dart';
-import 'dropify_dropdown.dart';
+import '../core/dropify_menu_body_mode.dart';
+import '../core/dropify_selection.dart';
+import '../core/dropify_value.dart';
+import 'raw_async_dropify.dart';
+import '_dropify_themed_helpers.dart';
 
-/// A searchable dropdown whose entries are fetched asynchronously.
+/// A Material-styled dropdown backed by a debounced async fetcher.
 ///
-/// The dropdown debounces query changes, ignores stale responses, and renders
-/// loading, empty, error, and retry states through the default panel.
-///
-/// {@tool snippet}
-/// ```dart
-/// DropifyAsyncDropdown<String>(
-///   fetch: (query) async => [
-///     DropifyEntry(value: query, label: query),
-///   ],
-///   onChanged: (value) {},
-/// )
-/// ```
-/// {@end-tool}
+/// Use this widget when options are loaded from a remote search, database, or
+/// other asynchronous source. The fetcher receives a [DropifyCancelToken] so
+/// replacement searches can cancel old work and stale results can be ignored.
 ///
 /// See also:
 ///
-///  * [DropifyDropdown], for local static entries.
-///  * [DropifyPaginatedDropdown], for page-based loading.
-///  * [DropifyFormField], for `Form` integration.
-///  * [RawDropify], for fully custom dropdown chrome.
-class DropifyAsyncDropdown<T> extends StatefulWidget {
-  /// Creates a single-select async dropdown.
+///  * [RawAsyncDropify], which exposes custom async item and state builders.
+///  * [DropifyDropdown], for in-memory entries.
+///  * [DropifyPaginatedDropdown], for caller-owned paginated results.
+class DropifyAsyncDropdown<T> extends StatelessWidget {
+  /// Creates a single-selection async dropdown.
+  ///
+  /// The [fetcher] and [itemLabelBuilder] arguments are required.
   const DropifyAsyncDropdown({
     super.key,
+    required this.fetcher,
+    required this.itemLabelBuilder,
     this.controller,
-    required this.fetch,
-    this.fetchOnOpen = true,
     this.initialValue,
-    ValueChanged<T?>? onChanged,
+    this.onChanged,
     this.label,
     this.hintText,
-    this.errorText,
-    this.searchEnabled = true,
-    this.searchHint,
-    this.itemBuilder,
-    this.anchorBuilder,
-    this.panelDecoration,
-    this.loadingBuilder,
-    this.errorBuilder,
-    this.emptyBuilder,
-    this.theme,
+    this.helperText,
+    this.prefixIcon,
+    this.searchable = true,
+    this.searchHintText,
+    this.searchDebounce = const Duration(milliseconds: 300),
+    this.showClearButton = false,
     this.enabled = true,
-    this.focusNode,
-    this.queryDebounce = const Duration(milliseconds: 300),
-  }) : _isMulti = false,
-       initialValues = const <Never>[],
-       minSelection = null,
-       maxSelection = null,
-       chipBuilder = null,
-       closeOnSelect = null,
-       _onSingleChanged = onChanged,
-       _onMultiChanged = null;
+    this.validator,
+    this.autovalidateMode,
+    this.keyOf,
+    this.equals,
+    this.loadOnOpen = true,
+    this.cacheItems = true,
+    this.menuBodyMode = DropifyMenuBodyMode.automatic,
+    this.scrollToSelectedOnOpen = true,
+  }) : selectionMode = DropifySelectionMode.single,
+       initialValues = null,
+       onChangedMulti = null,
+       confirmable = false,
+       confirmLabel = null,
+       cancelLabel = null;
 
-  /// Creates a multi-select async dropdown.
+  /// Creates a multi-selection async dropdown.
+  ///
+  /// When [confirmable] is true, selected values are staged until the user
+  /// applies them.
   const DropifyAsyncDropdown.multi({
     super.key,
+    required this.fetcher,
+    required this.itemLabelBuilder,
     this.controller,
-    required this.fetch,
-    this.fetchOnOpen = true,
-    this.initialValues = const <Never>[],
-    ValueChanged<List<T>>? onChanged,
-    this.minSelection,
-    this.maxSelection,
-    this.chipBuilder,
-    this.closeOnSelect = false,
+    this.initialValues,
+    ValueChanged<Set<T>>? onChanged,
     this.label,
     this.hintText,
-    this.errorText,
-    this.searchEnabled = true,
-    this.searchHint,
-    this.itemBuilder,
-    this.anchorBuilder,
-    this.panelDecoration,
-    this.loadingBuilder,
-    this.errorBuilder,
-    this.emptyBuilder,
-    this.theme,
+    this.helperText,
+    this.prefixIcon,
+    this.searchable = true,
+    this.searchHintText,
+    this.searchDebounce = const Duration(milliseconds: 300),
+    this.showClearButton = false,
     this.enabled = true,
-    this.focusNode,
-    this.queryDebounce = const Duration(milliseconds: 300),
-  }) : _isMulti = true,
+    this.validator,
+    this.autovalidateMode,
+    this.keyOf,
+    this.equals,
+    this.loadOnOpen = true,
+    this.cacheItems = true,
+    this.confirmable = false,
+    this.confirmLabel,
+    this.cancelLabel,
+    this.menuBodyMode = DropifyMenuBodyMode.automatic,
+    this.scrollToSelectedOnOpen = true,
+  }) : selectionMode = DropifySelectionMode.multi,
        initialValue = null,
-       _onSingleChanged = null,
-       _onMultiChanged = onChanged;
+       onChanged = null,
+       onChangedMulti = onChanged;
 
-  /// Optional external controller.
+  /// Fetches items for the current search query.
+  ///
+  /// Replacement fetches cancel the previous token. Cancelled and stale
+  /// completions do not update visible state.
+  final DropifyAsyncFetcher<T> fetcher;
+
+  /// Builds the visible label for an item value.
+  final String Function(T item) itemLabelBuilder;
+
+  /// The active selection mode for this widget instance.
+  final DropifySelectionMode selectionMode;
+
+  /// An optional external controller for selection and open state.
   final DropifyController<T>? controller;
 
-  /// Fetches entries for the current query.
-  final DropifyAsyncFetcher<T> fetch;
-
-  /// Whether opening the dropdown triggers the first fetch.
-  final bool fetchOnOpen;
-
-  /// Initial selected value for internally controlled single dropdowns.
+  /// The initially selected value for single-selection dropdowns.
   final T? initialValue;
 
-  /// Initial selected values for internally controlled multi dropdowns.
-  final List<T> initialValues;
+  /// The initially selected values for multi-selection dropdowns.
+  final Set<T>? initialValues;
 
-  /// Minimum number of selected values for multi-select dropdowns.
-  final int? minSelection;
+  /// Called when single selection changes.
+  final ValueChanged<T?>? onChanged;
 
-  /// Maximum number of selected values for multi-select dropdowns.
-  final int? maxSelection;
+  /// Called when multi selection changes.
+  final ValueChanged<Set<T>>? onChangedMulti;
 
-  /// Builds selected chips for multi-select dropdowns.
-  final DropifyDropdownChipBuilder<T>? chipBuilder;
-
-  /// Whether selecting an entry closes the dropdown.
-  final bool? closeOnSelect;
-
-  /// Optional label shown above the selected value or chips.
+  /// The label displayed by the default themed anchor.
   final String? label;
 
-  /// Text shown when there is no selection.
+  /// The hint text displayed when no value is selected.
   final String? hintText;
 
-  /// Optional error text shown by the default anchor.
-  final String? errorText;
+  /// Helper text displayed below the anchor.
+  final String? helperText;
 
-  /// Whether the default panel includes a search field.
-  final bool searchEnabled;
+  /// An optional icon displayed before the selected value or hint.
+  final Widget? prefixIcon;
 
-  /// Hint text for the default search field.
-  final String? searchHint;
+  /// Whether the panel includes a search field.
+  ///
+  /// Defaults to true.
+  final bool searchable;
 
-  /// Builds custom rows for the default panel.
-  final DropifyDropdownItemBuilder<T>? itemBuilder;
+  /// Hint text for the search field.
+  final String? searchHintText;
 
-  /// Replaces the default anchor when provided.
-  final DropifyAnchorBuilder<T>? anchorBuilder;
+  /// The debounce duration before running [fetcher].
+  ///
+  /// Defaults to 300 milliseconds.
+  final Duration searchDebounce;
 
-  /// Overrides the default panel decoration.
-  final Decoration? panelDecoration;
+  /// Whether a clear button is shown when a value is selected.
+  ///
+  /// Defaults to false.
+  final bool showClearButton;
 
-  /// Builds the loading state for the default panel.
-  final DropifyDropdownLoadingBuilder? loadingBuilder;
-
-  /// Builds the error state for the default panel.
-  final DropifyDropdownErrorBuilder? errorBuilder;
-
-  /// Builds the empty state for the default panel.
-  final DropifyDropdownEmptyBuilder? emptyBuilder;
-
-  /// Per-widget theme override.
-  final DropifyThemeData? theme;
-
-  /// Whether the default anchor can open the dropdown.
+  /// Whether the dropdown accepts user interaction.
+  ///
+  /// Defaults to true.
   final bool enabled;
 
-  /// Optional focus node for the default anchor.
-  final FocusNode? focusNode;
+  /// Validates the current Dropify value when used inside a [Form].
+  final FormFieldValidator<DropifyValue<T>>? validator;
 
-  /// Debounce applied before async query fetches.
-  final Duration queryDebounce;
+  /// Controls when validation runs.
+  final AutovalidateMode? autovalidateMode;
 
-  final bool _isMulti;
-  final ValueChanged<T?>? _onSingleChanged;
-  final ValueChanged<List<T>>? _onMultiChanged;
+  /// Returns a stable identity key for a value.
+  final Object Function(T item)? keyOf;
 
-  @override
-  State<DropifyAsyncDropdown<T>> createState() =>
-      _DropifyAsyncDropdownState<T>();
+  /// Compares two values for selection identity.
+  final bool Function(T a, T b)? equals;
+
+  /// Whether the first request starts when the panel opens.
+  ///
+  /// Defaults to true.
+  final bool loadOnOpen;
+
+  /// Whether fetched items are cached for this widget instance.
+  ///
+  /// Defaults to true.
+  final bool cacheItems;
+
+  /// Controls whether loaded async row bodies are eager or lazy.
+  ///
+  /// Defaults to [DropifyMenuBodyMode.automatic], which uses lazy indexed rows
+  /// for async loaded and refreshing data. Paginated dropdowns do not use this
+  /// setting.
+  final DropifyMenuBodyMode menuBodyMode;
+
+  /// Whether opening the menu should jump to the selected visible row.
+  ///
+  /// Defaults to true. Async dropdowns only inspect currently rendered loaded or
+  /// refreshing rows and never fetch extra items to find a selection.
+  final bool scrollToSelectedOnOpen;
+
+  /// Whether multi-selection changes are staged until applied.
+  final bool confirmable;
+
+  /// The label for the confirm button in confirmable multi-selection.
+  final String? confirmLabel;
+
+  /// The label for the cancel button in confirmable multi-selection.
+  final String? cancelLabel;
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties.add(FlagProperty('isMulti', value: _isMulti, ifTrue: 'multi'));
     properties.add(
-      FlagProperty('fetchOnOpen', value: fetchOnOpen, ifFalse: 'manual fetch'),
+      ObjectFlagProperty<DropifyAsyncFetcher<T>>.has('fetcher', fetcher),
     );
     properties.add(
-      FlagProperty('searchEnabled', value: searchEnabled, ifFalse: 'no search'),
+      ObjectFlagProperty<String Function(T item)>.has(
+        'itemLabelBuilder',
+        itemLabelBuilder,
+      ),
+    );
+    properties.add(
+      EnumProperty<DropifySelectionMode>('selectionMode', selectionMode),
+    );
+    properties.add(
+      ObjectFlagProperty<DropifyController<T>?>.has('controller', controller),
+    );
+    properties.add(
+      DiagnosticsProperty<T?>('initialValue', initialValue, defaultValue: null),
+    );
+    properties.add(
+      IterableProperty<T>('initialValues', initialValues, defaultValue: null),
+    );
+    properties.add(StringProperty('label', label, defaultValue: null));
+    properties.add(StringProperty('hintText', hintText, defaultValue: null));
+    properties.add(
+      StringProperty('helperText', helperText, defaultValue: null),
+    );
+    properties.add(
+      FlagProperty('searchable', value: searchable, ifTrue: 'searchable'),
+    );
+    properties.add(
+      DiagnosticsProperty<Duration>('searchDebounce', searchDebounce),
+    );
+    properties.add(
+      FlagProperty(
+        'showClearButton',
+        value: showClearButton,
+        ifTrue: 'shows clear button',
+      ),
     );
     properties.add(
       FlagProperty('enabled', value: enabled, ifFalse: 'disabled'),
     );
-    properties.add(StringProperty('label', label, defaultValue: null));
-    properties.add(StringProperty('hintText', hintText, defaultValue: null));
-    properties.add(StringProperty('errorText', errorText, defaultValue: null));
     properties.add(
-      DiagnosticsProperty<Duration>('queryDebounce', queryDebounce),
+      ObjectFlagProperty<Object Function(T item)?>.has('keyOf', keyOf),
     );
-  }
-}
-
-class _DropifyAsyncDropdownState<T> extends State<DropifyAsyncDropdown<T>> {
-  DropifyController<T>? _internalController;
-  late DropifyController<T> _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _bindController();
-  }
-
-  @override
-  void didUpdateWidget(DropifyAsyncDropdown<T> oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller ||
-        oldWidget._isMulti != widget._isMulti ||
-        oldWidget.minSelection != widget.minSelection ||
-        oldWidget.maxSelection != widget.maxSelection) {
-      _disposeInternalController();
-      _bindController();
-    }
-  }
-
-  @override
-  void dispose() {
-    _disposeInternalController();
-    super.dispose();
-  }
-
-  void _bindController() {
-    _internalController = widget.controller == null
-        ? (widget._isMulti
-              ? DropifyController<T>.multi(
-                  initialValues: widget.initialValues,
-                  minSelection: widget.minSelection,
-                  maxSelection: widget.maxSelection,
-                )
-              : DropifyController<T>.single(initialValue: widget.initialValue))
-        : null;
-    _controller = widget.controller ?? _internalController!;
-  }
-
-  void _disposeInternalController() {
-    _internalController?.dispose();
-    _internalController = null;
+    properties.add(
+      ObjectFlagProperty<bool Function(T a, T b)?>.has('equals', equals),
+    );
+    properties.add(
+      FlagProperty('loadOnOpen', value: loadOnOpen, ifTrue: 'loads on open'),
+    );
+    properties.add(
+      FlagProperty('cacheItems', value: cacheItems, ifTrue: 'caches items'),
+    );
+    properties.add(
+      EnumProperty<DropifyMenuBodyMode>('menuBodyMode', menuBodyMode),
+    );
+    properties.add(
+      FlagProperty(
+        'scrollToSelectedOnOpen',
+        value: scrollToSelectedOnOpen,
+        ifTrue: 'scrolls to selected on open',
+      ),
+    );
+    properties.add(
+      FlagProperty('confirmable', value: confirmable, ifTrue: 'confirmable'),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final DropifyThemeData effectiveTheme = widget.theme ??
-        DropifyTheme.of(context);
-    final AsyncDropifyDataSource<T> dataSource = AsyncDropifyDataSource<T>(
-      fetch: widget.fetch,
-      fetchOnOpen: widget.fetchOnOpen,
+    final anchor = themedAnchorBuilder<T>(
+      label: label,
+      hintText: hintText,
+      helperText: helperText,
+      prefixIcon: prefixIcon,
+      itemLabelBuilder: itemLabelBuilder,
     );
-    if (widget._isMulti) {
-      return RawDropify<T>.multi(
-        controller: _controller,
-        dataSource: dataSource,
-        closeOnSelect: widget.closeOnSelect,
-        queryDebounce: widget.queryDebounce,
-        onSelectionChanged: _handleSelectionChanged,
-        anchorBuilder:
-            (
-              BuildContext context,
-              DropifyController<T> controller,
-              Widget? child,
-            ) {
-              return _buildAnchor(context, controller, child, effectiveTheme);
-            },
-        bodyBuilder: (BuildContext context, DropifyState<T> state) {
-          return _buildPanel(context, state, effectiveTheme);
-        },
+    final itemBuilder = themedAsyncItemBuilder<T>(
+      itemLabelBuilder: itemLabelBuilder,
+      keyOf: keyOf,
+    );
+    if (selectionMode == DropifySelectionMode.single) {
+      return RawAsyncDropify<T>(
+        fetcher: fetcher,
+        anchorBuilder: anchor,
+        itemBuilder: itemBuilder,
+        controller: controller,
+        initialValue: initialValue,
+        onChanged: onChanged,
+        searchable: searchable,
+        searchHintText: searchHintText,
+        searchDebounce: searchDebounce,
+        showClearButton: showClearButton,
+        enabled: enabled,
+        validator: validator,
+        autovalidateMode: autovalidateMode,
+        keyOf: keyOf,
+        equals: equals,
+        loadOnOpen: loadOnOpen,
+        cacheItems: cacheItems,
+        menuBodyMode: menuBodyMode,
+        scrollToSelectedOnOpen: scrollToSelectedOnOpen,
       );
     }
-    return RawDropify<T>(
-      controller: _controller,
-      dataSource: dataSource,
-      closeOnSelect: widget.closeOnSelect,
-      queryDebounce: widget.queryDebounce,
-      onSelectionChanged: _handleSelectionChanged,
-      anchorBuilder:
-          (
-            BuildContext context,
-            DropifyController<T> controller,
-            Widget? child,
-          ) {
-            return _buildAnchor(context, controller, child, effectiveTheme);
-          },
-      bodyBuilder: (BuildContext context, DropifyState<T> state) {
-        return _buildPanel(context, state, effectiveTheme);
-      },
+    return RawAsyncDropify<T>.multi(
+      fetcher: fetcher,
+      anchorBuilder: anchor,
+      itemBuilder: itemBuilder,
+      controller: controller,
+      initialValues: initialValues,
+      onChanged: onChangedMulti,
+      searchable: searchable,
+      searchHintText: searchHintText,
+      searchDebounce: searchDebounce,
+      showClearButton: showClearButton,
+      enabled: enabled,
+      validator: validator,
+      autovalidateMode: autovalidateMode,
+      keyOf: keyOf,
+      equals: equals,
+      loadOnOpen: loadOnOpen,
+      cacheItems: cacheItems,
+      menuBodyMode: menuBodyMode,
+      scrollToSelectedOnOpen: scrollToSelectedOnOpen,
+      confirmable: confirmable,
+      confirmLabel: confirmLabel,
+      cancelLabel: cancelLabel,
     );
-  }
-
-  Widget _buildAnchor(
-    BuildContext context,
-    DropifyController<T> controller,
-    Widget? child,
-    DropifyThemeData theme,
-  ) {
-    return widget.anchorBuilder?.call(context, controller, child) ??
-        DropifyAnchor<T>(
-          controller: controller,
-          entries: controller.entries,
-          theme: theme,
-          enabled: widget.enabled,
-          label: widget.label,
-          hintText: widget.hintText,
-          errorText: widget.errorText,
-          focusNode: widget.focusNode,
-          chipBuilder: widget.chipBuilder,
-        );
-  }
-
-  Widget _buildPanel(
-    BuildContext context,
-    DropifyState<T> state,
-    DropifyThemeData theme,
-  ) {
-    return DropifyPanel<T>(
-      state: state,
-      theme: theme,
-      searchEnabled: widget.searchEnabled,
-      searchHint: widget.searchHint,
-      panelDecoration: widget.panelDecoration,
-      itemBuilder: widget.itemBuilder,
-      loadingBuilder: widget.loadingBuilder,
-      errorBuilder: widget.errorBuilder,
-      emptyBuilder: widget.emptyBuilder,
-    );
-  }
-
-  void _handleSelectionChanged(T? value, List<T> values) {
-    if (widget._isMulti) {
-      widget._onMultiChanged?.call(List<T>.unmodifiable(values));
-    } else {
-      widget._onSingleChanged?.call(value);
-    }
   }
 }

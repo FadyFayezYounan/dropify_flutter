@@ -1,137 +1,323 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../internal/debouncer.dart';
-import '../internal/default_matcher.dart';
-import '../internal/paging.dart';
+import '../internal/_dropify_panel.dart';
+import '../theme/dropify_theme.dart';
 import 'dropify_controller.dart';
-import 'dropify_data_source.dart';
-import 'dropify_entry.dart';
-import 'dropify_state.dart';
+import 'dropify_selection.dart';
+import 'dropify_value.dart';
 
-/// Builds the anchor for a [RawDropify].
-typedef DropifyAnchorBuilder<T> =
-    Widget Function(
-      BuildContext context,
-      DropifyController<T> controller,
-      Widget? child,
-    );
-
-/// Builds the overlay body for a [RawDropify].
-typedef DropifyBodyBuilder<T> =
-    Widget Function(BuildContext context, DropifyState<T> state);
-
-/// Matches a static entry against a query.
-typedef DropifyStaticMatcher<T> =
-    bool Function(DropifyEntry<T> entry, String query);
-
-/// Reports the current single or multi selection.
-typedef DropifySelectionChanged<T> = void Function(T? value, List<T> values);
-
-/// The primitive dropdown layer that owns overlay and data-source state.
+/// Builds the closed Dropify anchor.
 ///
-/// Use [RawDropify] when the default Dropify anchor or panel is not the right
-/// UI for your app. The widget still provides controller attachment,
-/// open/close lifecycle, query state, selection helpers, async retry, paging,
-/// and [RawMenuAnchor] positioning.
+/// The builder receives a [DropifyAnchorState] with the committed selection,
+/// enabled state, validation error text, and actions for opening, closing, and
+/// clearing the dropdown.
+typedef AnchorBuilder<T> =
+    Widget Function(BuildContext context, DropifyAnchorState<T> state);
+
+/// Builds the open Dropify panel body.
 ///
-/// {@tool snippet}
-/// ```dart
-/// RawDropify<String>(
-///   dataSource: const StaticDropifyDataSource(entries: [
-///     DropifyEntry(value: 'apple', label: 'Apple'),
-///   ]),
-///   anchorBuilder: (context, controller, child) => TextButton(
-///     onPressed: controller.open,
-///     child: const Text('Open'),
-///   ),
-///   bodyBuilder: (context, state) => Text('${state.entries.length} items'),
-/// )
-/// ```
-/// {@end-tool}
+/// The builder receives a [DropifyPanelState] with selection helpers, the
+/// current search query, and the panel focus node. Panel builders should use
+/// [DropifyPanelState.select], [DropifyPanelState.toggle], and
+/// [DropifyPanelState.close] instead of managing overlay state directly.
+typedef PanelBuilder<T> =
+    Widget Function(BuildContext context, DropifyPanelState<T> state);
+
+/// Configuration and actions passed to [AnchorBuilder].
+class DropifyAnchorState<T> {
+  /// Creates anchor state for a Dropify anchor builder.
+  const DropifyAnchorState({
+    required this.mode,
+    required this.value,
+    required this.values,
+    required this.isOpen,
+    required this.enabled,
+    required this.open,
+    required this.close,
+    required this.clear,
+    this.errorText,
+  });
+
+  /// The active selection mode.
+  final DropifySelectionMode mode;
+
+  /// The selected single value.
+  ///
+  /// Null when nothing is selected or when [mode] is
+  /// [DropifySelectionMode.multi].
+  final T? value;
+
+  /// The selected multi values.
+  ///
+  /// Empty when nothing is selected or when [mode] is
+  /// [DropifySelectionMode.single].
+  final Set<T> values;
+
+  /// Whether the panel is open.
+  final bool isOpen;
+
+  /// Whether the anchor is enabled.
+  final bool enabled;
+
+  /// Current form validation error text, if any.
+  final String? errorText;
+
+  /// Opens the panel if [enabled] is true.
+  final VoidCallback open;
+
+  /// Closes the panel.
+  final VoidCallback close;
+
+  /// Clears selection, or null when clearing is unavailable.
+  ///
+  /// This is null when the widget is disabled, no value is selected, or the
+  /// owning widget was not configured to show a clear affordance.
+  final VoidCallback? clear;
+}
+
+/// Configuration and actions passed to [PanelBuilder].
+class DropifyPanelState<T> {
+  /// Creates panel state for a Dropify panel builder.
+  const DropifyPanelState({
+    required this.mode,
+    required this.value,
+    required this.values,
+    required this.searchQuery,
+    required this.isSelected,
+    required this.toggle,
+    required this.select,
+    required this.close,
+    required this.focusScope,
+  });
+
+  /// The active selection mode.
+  final DropifySelectionMode mode;
+
+  /// The selected single value.
+  final T? value;
+
+  /// The selected multi values.
+  final Set<T> values;
+
+  /// The current search query.
+  final String searchQuery;
+
+  /// Whether an item is selected.
+  final bool Function(T item) isSelected;
+
+  /// Toggles a multi-selection item.
+  ///
+  /// In confirmable multi-selection mode, this updates the staged selection.
+  final void Function(T item) toggle;
+
+  /// Selects a single item and closes the panel.
+  final void Function(T item) select;
+
+  /// Closes the panel.
+  final VoidCallback close;
+
+  /// The focus node associated with panel traversal.
+  final FocusNode focusScope;
+}
+
+/// The unstyled Dropify dropdown core.
 ///
-/// See also:
+/// [RawDropify] owns menu anchoring, open and close behavior, search text,
+/// selection state, form validation, and controller attachment. It does not
+/// impose item rendering. Callers provide [anchorBuilder] for the closed control
+/// and [panelBuilder] for the open panel body.
 ///
-///  * [DropifyDropdown], for the default static dropdown chrome.
-///  * [DropifyAsyncDropdown], for debounced async search.
-///  * [DropifyPaginatedDropdown], for page-based loading.
+/// Use this widget for fully custom dropdown UI. Use `RawStaticDropify`,
+/// `RawAsyncDropify`, or `RawPaginatedDropify` when you want Dropify to provide
+/// data behavior as well.
 class RawDropify<T> extends StatefulWidget {
-  /// Creates a single-selection raw Dropify widget.
+  /// Creates a single-selection Dropify core.
+  ///
+  /// The [panelBuilder] and [anchorBuilder] arguments are required.
   const RawDropify({
     super.key,
-    this.controller,
-    this.dataSource,
+    required this.panelBuilder,
     required this.anchorBuilder,
-    required this.bodyBuilder,
-    this.onSelectionChanged,
-    this.onOpenChanged,
-    this.onQueryChanged,
+    this.controller,
+    this.initialValue,
+    this.onChanged,
+    this.searchController,
+    this.searchable = false,
+    this.searchHintText,
+    this.searchDebounce = const Duration(milliseconds: 300),
+    this.showClearButton = false,
+    this.matchAnchorWidth = true,
+    this.panelConstraints,
+    this.alignmentOffset = const Offset(0, 4),
     this.useRootOverlay = false,
     this.consumeOutsideTaps = false,
-    this.closeOnSelect,
-    this.queryDebounce = const Duration(milliseconds: 300),
-    this.staticMatcher,
-    this.child,
-  }) : _isMulti = false;
+    this.enabled = true,
+    this.autofocus = false,
+    this.focusNode,
+    this.onOpen,
+    this.onClose,
+    this.validator,
+    this.autovalidateMode,
+    this.keyOf,
+    this.equals,
+    this.onSearchChanged,
+  }) : selectionMode = DropifySelectionMode.single,
+       initialValues = null,
+       onChangedMulti = null,
+       confirmable = false,
+       confirmLabel = null,
+       cancelLabel = null;
 
-  /// Creates a multi-selection raw Dropify widget.
+  /// Creates a multi-selection Dropify core.
+  ///
+  /// When [confirmable] is false, toggles are committed immediately. When
+  /// [confirmable] is true, toggles are staged until the user applies them.
   const RawDropify.multi({
     super.key,
-    this.controller,
-    this.dataSource,
+    required this.panelBuilder,
     required this.anchorBuilder,
-    required this.bodyBuilder,
-    this.onSelectionChanged,
-    this.onOpenChanged,
-    this.onQueryChanged,
+    this.controller,
+    this.initialValues,
+    ValueChanged<Set<T>>? onChanged,
+    this.searchController,
+    this.searchable = false,
+    this.searchHintText,
+    this.searchDebounce = const Duration(milliseconds: 300),
+    this.showClearButton = false,
+    this.matchAnchorWidth = true,
+    this.panelConstraints,
+    this.alignmentOffset = const Offset(0, 4),
     this.useRootOverlay = false,
     this.consumeOutsideTaps = false,
-    this.closeOnSelect,
-    this.queryDebounce = const Duration(milliseconds: 300),
-    this.staticMatcher,
-    this.child,
-  }) : _isMulti = true;
+    this.enabled = true,
+    this.autofocus = false,
+    this.focusNode,
+    this.onOpen,
+    this.onClose,
+    this.validator,
+    this.autovalidateMode,
+    this.keyOf,
+    this.equals,
+    this.confirmable = false,
+    this.confirmLabel,
+    this.cancelLabel,
+    this.onSearchChanged,
+  }) : selectionMode = DropifySelectionMode.multi,
+       initialValue = null,
+       onChanged = null,
+       onChangedMulti = onChanged;
+
+  /// The selection mode.
+  final DropifySelectionMode selectionMode;
 
   /// Optional external controller.
+  ///
+  /// If null, [RawDropify] creates and disposes an internal controller. If a
+  /// controller is supplied, the caller owns its disposal.
   final DropifyController<T>? controller;
 
-  /// Entry source. Phase 1 supports [StaticDropifyDataSource].
-  final DropifyDataSource<T>? dataSource;
+  /// Initial single value.
+  final T? initialValue;
 
-  /// Builds the anchor widget.
-  final DropifyAnchorBuilder<T> anchorBuilder;
+  /// Initial multi values.
+  final Set<T>? initialValues;
 
-  /// Builds the custom overlay body.
-  final DropifyBodyBuilder<T> bodyBuilder;
+  /// Called when single selection changes.
+  final ValueChanged<T?>? onChanged;
 
-  /// Called after a selection changes.
-  final DropifySelectionChanged<T>? onSelectionChanged;
+  /// Called when multi selection changes.
+  final ValueChanged<Set<T>>? onChangedMulti;
 
-  /// Called when the overlay opens or closes.
-  final ValueChanged<bool>? onOpenChanged;
+  /// Builds the panel body.
+  final PanelBuilder<T> panelBuilder;
 
-  /// Called after query changes settle for [queryDebounce].
-  final ValueChanged<String>? onQueryChanged;
+  /// Builds the anchor.
+  final AnchorBuilder<T> anchorBuilder;
 
-  /// Whether the menu uses the root overlay.
+  /// Optional search text controller.
+  ///
+  /// If null, [RawDropify] creates and disposes an internal controller. If a
+  /// controller is supplied, the caller owns its disposal.
+  final TextEditingController? searchController;
+
+  /// Whether search is shown.
+  final bool searchable;
+
+  /// Search hint text.
+  final String? searchHintText;
+
+  /// Debounce duration advertised to specialized widgets.
+  ///
+  /// Defaults to 300 milliseconds.
+  final Duration searchDebounce;
+
+  /// Whether the clear affordance is exposed.
+  final bool showClearButton;
+
+  /// Whether the panel width matches the anchor width.
+  final bool matchAnchorWidth;
+
+  /// Panel constraints.
+  final BoxConstraints? panelConstraints;
+
+  /// Panel alignment offset.
+  final Offset alignmentOffset;
+
+  /// Whether to use the root overlay.
   final bool useRootOverlay;
 
-  /// Whether outside taps are consumed after closing the menu.
+  /// Whether outside taps are consumed by the menu overlay.
   final bool consumeOutsideTaps;
 
-  /// Whether selecting an entry closes the dropdown.
-  final bool? closeOnSelect;
+  /// Whether interactions are enabled.
+  final bool enabled;
 
-  /// Debounce applied to [onQueryChanged].
-  final Duration queryDebounce;
+  /// Whether the anchor autofocuses.
+  final bool autofocus;
 
-  /// Optional matcher for static sources.
-  final DropifyStaticMatcher<T>? staticMatcher;
+  /// Optional anchor focus node.
+  ///
+  /// If null, the underlying Material anchor creates its own focus node.
+  final FocusNode? focusNode;
 
-  /// Optional child passed to [anchorBuilder].
-  final Widget? child;
+  /// Called when the panel opens.
+  final VoidCallback? onOpen;
 
-  final bool _isMulti;
+  /// Called when the panel closes.
+  final VoidCallback? onClose;
+
+  /// Form validator.
+  final FormFieldValidator<DropifyValue<T>>? validator;
+
+  /// Autovalidation mode.
+  final AutovalidateMode? autovalidateMode;
+
+  /// Returns a stable identity key for a value.
+  ///
+  /// Use this when new object instances can represent the same logical item.
+  final Object Function(T item)? keyOf;
+
+  /// Compares two values for selection identity.
+  ///
+  /// Prefer [keyOf] when a stable identity key is available.
+  final bool Function(T a, T b)? equals;
+
+  /// Whether multi-select stages changes until Apply.
+  final bool confirmable;
+
+  /// Apply button label.
+  final String? confirmLabel;
+
+  /// Cancel button label.
+  final String? cancelLabel;
+
+  /// Called whenever raw search text changes.
+  final ValueChanged<String>? onSearchChanged;
 
   @override
   State<RawDropify<T>> createState() => _RawDropifyState<T>();
@@ -139,343 +325,544 @@ class RawDropify<T> extends StatefulWidget {
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties.add(FlagProperty('isMulti', value: _isMulti, ifTrue: 'multi'));
+    properties.add(
+      EnumProperty<DropifySelectionMode>('selectionMode', selectionMode),
+    );
+    properties.add(
+      ObjectFlagProperty<DropifyController<T>?>.has('controller', controller),
+    );
+    properties.add(
+      DiagnosticsProperty<T?>('initialValue', initialValue, defaultValue: null),
+    );
+    properties.add(
+      IterableProperty<T>('initialValues', initialValues, defaultValue: null),
+    );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<T?>?>.has('onChanged', onChanged),
+    );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<Set<T>>?>.has(
+        'onChangedMulti',
+        onChangedMulti,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<PanelBuilder<T>>.has('panelBuilder', panelBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<AnchorBuilder<T>>.has('anchorBuilder', anchorBuilder),
+    );
+    properties.add(
+      ObjectFlagProperty<TextEditingController?>.has(
+        'searchController',
+        searchController,
+      ),
+    );
+    properties.add(
+      FlagProperty('searchable', value: searchable, ifTrue: 'searchable'),
+    );
+    properties.add(
+      StringProperty('searchHintText', searchHintText, defaultValue: null),
+    );
+    properties.add(
+      DiagnosticsProperty<Duration>('searchDebounce', searchDebounce),
+    );
+    properties.add(
+      FlagProperty(
+        'showClearButton',
+        value: showClearButton,
+        ifTrue: 'shows clear button',
+      ),
+    );
+    properties.add(
+      FlagProperty(
+        'matchAnchorWidth',
+        value: matchAnchorWidth,
+        ifTrue: 'matches anchor width',
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<BoxConstraints?>(
+        'panelConstraints',
+        panelConstraints,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<Offset>(
+        'alignmentOffset',
+        alignmentOffset,
+        defaultValue: const Offset(0, 4),
+      ),
+    );
     properties.add(
       FlagProperty(
         'useRootOverlay',
         value: useRootOverlay,
-        ifTrue: 'use root overlay',
+        ifTrue: 'uses root overlay',
       ),
     );
     properties.add(
-      DiagnosticsProperty<Duration>('queryDebounce', queryDebounce),
+      FlagProperty(
+        'consumeOutsideTaps',
+        value: consumeOutsideTaps,
+        ifTrue: 'consumes outside taps',
+      ),
+    );
+    properties.add(
+      FlagProperty('enabled', value: enabled, ifFalse: 'disabled'),
+    );
+    properties.add(
+      FlagProperty('autofocus', value: autofocus, ifTrue: 'autofocus'),
+    );
+    properties.add(ObjectFlagProperty<FocusNode?>.has('focusNode', focusNode));
+    properties.add(ObjectFlagProperty<VoidCallback?>.has('onOpen', onOpen));
+    properties.add(ObjectFlagProperty<VoidCallback?>.has('onClose', onClose));
+    properties.add(
+      ObjectFlagProperty<FormFieldValidator<DropifyValue<T>>?>.has(
+        'validator',
+        validator,
+      ),
+    );
+    properties.add(
+      EnumProperty<AutovalidateMode?>(
+        'autovalidateMode',
+        autovalidateMode,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      ObjectFlagProperty<Object Function(T item)?>.has('keyOf', keyOf),
+    );
+    properties.add(
+      ObjectFlagProperty<bool Function(T a, T b)?>.has('equals', equals),
+    );
+    properties.add(
+      FlagProperty('confirmable', value: confirmable, ifTrue: 'confirmable'),
+    );
+    properties.add(
+      StringProperty('confirmLabel', confirmLabel, defaultValue: null),
+    );
+    properties.add(
+      StringProperty('cancelLabel', cancelLabel, defaultValue: null),
+    );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<String>?>.has(
+        'onSearchChanged',
+        onSearchChanged,
+      ),
     );
   }
 }
 
 class _RawDropifyState<T> extends State<RawDropify<T>> {
   final MenuController _menuController = MenuController();
-  late Debouncer _queryDebouncer;
-  DropifyController<T>? _internalController;
+  final FocusNode _panelFocusNode = FocusNode(debugLabel: 'Dropify panel');
+  bool _ownsController = false;
   late DropifyController<T> _controller;
-  String _lastQuery = '';
-  String? _lastAsyncQuery;
-  int _asyncRequestToken = 0;
-  DropifyPagingAdapter<T>? _pagingAdapter;
-  List<T> _lastMultiValues = List<T>.empty();
-  T? _lastSingleValue;
+  bool _ownsSearchController = false;
+  late TextEditingController _searchController;
+  FormFieldState<DropifyValue<T>>? _field;
+  Set<T>? _stagedValues;
 
-  bool get _closeOnSelect => widget.closeOnSelect ?? !widget._isMulti;
+  DropifySelectionIdentity<T> get _identity =>
+      DropifySelectionIdentity<T>(keyOf: widget.keyOf, equals: widget.equals);
 
   @override
   void initState() {
     super.initState();
-    _queryDebouncer = Debouncer(widget.queryDebounce);
-    _bindController(initial: true);
+    assert(_debugControllerModeIsValid());
+    _controller = widget.controller ?? _createController();
+    _ownsController = widget.controller == null;
+    _searchController = widget.searchController ?? TextEditingController();
+    _ownsSearchController = widget.searchController == null;
+    _controller.addListener(_handleControllerChanged);
+    _attachController();
+  }
+
+  bool _debugControllerModeIsValid() {
+    final controller = widget.controller;
+    if (controller == null || controller.mode == widget.selectionMode) {
+      return true;
+    }
+    throw AssertionError(
+      'DropifyController mode (${controller.mode}) must match '
+      'RawDropify selection mode (${widget.selectionMode}).',
+    );
+  }
+
+  DropifyController<T> _createController() {
+    return switch (widget.selectionMode) {
+      DropifySelectionMode.single => DropifyController<T>.single(
+        initialValue: widget.initialValue,
+      ),
+      DropifySelectionMode.multi => DropifyController<T>.multi(
+        initialValues: widget.initialValues,
+      ),
+    };
   }
 
   @override
-  void didUpdateWidget(RawDropify<T> oldWidget) {
+  void didUpdateWidget(covariant RawDropify<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
+    assert(_debugControllerModeIsValid());
     if (oldWidget.controller != widget.controller ||
-        oldWidget._isMulti != widget._isMulti) {
-      _unbindController();
-      _bindController(initial: true);
-    }
-    if (oldWidget.queryDebounce != widget.queryDebounce) {
-      _queryDebouncer.dispose();
-      _queryDebouncer = Debouncer(widget.queryDebounce);
-    }
-    if (oldWidget.dataSource != widget.dataSource ||
-        oldWidget.staticMatcher != widget.staticMatcher) {
-      _initializeDataSource();
-    }
-  }
-
-  @override
-  void dispose() {
-    _queryDebouncer.dispose();
-    _unbindController();
-    super.dispose();
-  }
-
-  void _bindController({required bool initial}) {
-    _internalController = widget.controller == null
-        ? (widget._isMulti
-              ? DropifyController<T>.multi()
-              : DropifyController<T>.single())
-        : null;
-    _controller = widget.controller ?? _internalController!;
-    if (_controller.isMulti != widget._isMulti) {
-      throw FlutterError(
-        'RawDropify.${widget._isMulti ? 'multi' : 'new'} requires a '
-        '${widget._isMulti ? 'multi' : 'single'} controller.',
+        (oldWidget.selectionMode != widget.selectionMode &&
+            widget.controller == null)) {
+      _replaceController(
+        widget.controller ?? _createController(),
+        ownsController: widget.controller == null,
       );
     }
-    _controller.attach(this);
-    _controller.addListener(_handleControllerChanged);
-    _configureDataActions();
-    _lastQuery = _controller.query;
-    _lastSingleValue = _controller.isMulti ? null : _controller.singleValue;
-    _lastMultiValues = _controller.isMulti
-        ? _controller.multiValues
-        : List<T>.empty();
-    _initializeDataSource();
+    if (oldWidget.searchController != widget.searchController) {
+      _replaceSearchController(
+        widget.searchController ?? TextEditingController(),
+        ownsSearchController: widget.searchController == null,
+      );
+    }
+    _attachController();
+    _syncFormField();
   }
 
-  void _unbindController() {
-    _disposePagingAdapter();
-    _controller.setDataActions();
-    _controller.removeListener(_handleControllerChanged);
-    _controller.detach(this);
-    _internalController?.dispose();
-    _internalController = null;
+  void _replaceController(
+    DropifyController<T> controller, {
+    required bool ownsController,
+  }) {
+    _controller
+      ..removeListener(_handleControllerChanged)
+      ..detach();
+    if (_ownsController) {
+      _controller.dispose();
+    }
+    _controller = controller;
+    _ownsController = ownsController;
+    _controller.addListener(_handleControllerChanged);
+  }
+
+  void _replaceSearchController(
+    TextEditingController controller, {
+    required bool ownsSearchController,
+  }) {
+    if (_ownsSearchController) {
+      _searchController.dispose();
+    }
+    _searchController = controller;
+    _ownsSearchController = ownsSearchController;
+  }
+
+  void _attachController() {
+    _controller.attach(
+      open: _open,
+      close: _close,
+      keyOf: widget.keyOf,
+      equals: widget.equals,
+    );
   }
 
   void _handleControllerChanged() {
-    if (_controller.isOpen && !_menuController.isOpen) {
-      _menuController.open();
-    } else if (!_controller.isOpen && _menuController.isOpen) {
-      _menuController.close();
-    }
-
-    if (_lastQuery != _controller.query) {
-      _lastQuery = _controller.query;
-      _handleQueryChanged();
-    }
-
-    final bool selectionChanged = _didSelectionChange();
-    if (selectionChanged) {
-      _notifySelectionChanged();
-      if (_closeOnSelect) {
-        _controller.close();
-      }
-    }
-
     if (mounted) {
+      _syncFormField();
       setState(() {});
     }
   }
 
-  bool _didSelectionChange() {
-    if (_controller.isMulti) {
-      final List<T> values = _controller.multiValues;
-      final bool changed = !listEquals(values, _lastMultiValues);
-      _lastMultiValues = values;
-      return changed;
-    }
-    final T? value = _controller.singleValue;
-    final bool changed = value != _lastSingleValue;
-    _lastSingleValue = value;
-    return changed;
-  }
-
-  void _notifySelectionChanged() {
-    widget.onSelectionChanged?.call(
-      _controller.isMulti ? null : _controller.singleValue,
-      _controller.isMulti ? _controller.multiValues : List<T>.empty(),
-    );
-  }
-
-  void _configureDataActions() {
-    final DropifyDataSource<T>? source = widget.dataSource;
-    if (source is AsyncDropifyDataSource<T>) {
-      _controller.setDataActions(
-        refresh: _fetchAsyncNow,
-        retry: _fetchAsyncNow,
-      );
+  void _syncFormField() {
+    final field = _field;
+    if (field == null || field.value == _formValue) {
       return;
     }
-    final DropifyPagingAdapter<T>? pagingAdapter = _pagingAdapter;
-    if (source is PaginatedDropifyDataSource<T> && pagingAdapter != null) {
-      _controller.setDataActions(
-        refresh: pagingAdapter.refresh,
-        retry: pagingAdapter.retry,
-        loadMore: pagingAdapter.loadMore,
-      );
-      return;
-    }
-    _controller.setDataActions();
+    field.didChange(_formValue);
   }
 
-  void _initializeDataSource() {
-    _disposePagingAdapter();
-    _configureDataActions();
-    final DropifyDataSource<T>? source = widget.dataSource;
-    switch (source) {
-      case null:
-        _controller.setEntries(
-          List<DropifyEntry<T>>.empty(),
-          status: DropifyStatus.idle,
-        );
-      case StaticDropifyDataSource<T>():
-        _refreshStaticEntries();
-      case AsyncDropifyDataSource<T>():
-        _lastAsyncQuery = null;
-        _controller.setEntries(
-          List<DropifyEntry<T>>.empty(),
-          status: DropifyStatus.idle,
-        );
-      case PaginatedDropifyDataSource<T>():
-        _pagingAdapter = DropifyPagingAdapter<T>(
-          controller: _controller,
-          dataSource: source,
-        );
-        _configureDataActions();
+  @override
+  void dispose() {
+    _controller
+      ..removeListener(_handleControllerChanged)
+      ..detach();
+    if (_ownsController) {
+      _controller.dispose();
     }
+    if (_ownsSearchController) {
+      _searchController.dispose();
+    }
+    _panelFocusNode.dispose();
+    super.dispose();
   }
 
-  void _disposePagingAdapter() {
-    _pagingAdapter?.dispose();
-    _pagingAdapter = null;
-  }
-
-  void _handleQueryChanged() {
-    final DropifyDataSource<T>? source = widget.dataSource;
-    if (source is StaticDropifyDataSource<T>) {
-      _refreshStaticEntries();
-      _queryDebouncer.run(() => widget.onQueryChanged?.call(_controller.query));
-      return;
-    }
-    if (source is AsyncDropifyDataSource<T>) {
-      _queryDebouncer.run(() {
-        widget.onQueryChanged?.call(_controller.query);
-        if (_controller.isOpen) {
-          _fetchAsyncNow();
-        }
-      });
-      return;
-    }
-    if (source is PaginatedDropifyDataSource<T>) {
-      _queryDebouncer.run(() {
-        widget.onQueryChanged?.call(_controller.query);
-        if (_controller.isOpen) {
-          _pagingAdapter?.refresh();
-        }
-      });
-    }
-  }
-
-  void _refreshStaticEntries() {
-    final DropifyDataSource<T>? source = widget.dataSource;
-    final List<DropifyEntry<T>> entries = switch (source) {
-      null => List<DropifyEntry<T>>.empty(),
-      StaticDropifyDataSource<T>(
-        entries: final List<DropifyEntry<T>> entries,
-      ) =>
-        _filter(entries),
-      AsyncDropifyDataSource<T>() => _controller.entries,
-      PaginatedDropifyDataSource<T>() => _controller.entries,
+  DropifyValue<T> get _formValue {
+    return switch (widget.selectionMode) {
+      DropifySelectionMode.single => DropifySingleValue<T>(_controller.value),
+      DropifySelectionMode.multi => DropifyMultiValue<T>(_controller.values),
     };
-    _controller.setEntries(
-      entries,
-      status: entries.isEmpty ? DropifyStatus.empty : DropifyStatus.data,
-    );
   }
 
-  List<DropifyEntry<T>> _filter(List<DropifyEntry<T>> entries) {
-    final DropifyStaticMatcher<T> matcher =
-        widget.staticMatcher ?? defaultDropifyMatcher;
-    return entries
-        .where((DropifyEntry<T> entry) => matcher(entry, _controller.query))
-        .toList(growable: false);
+  bool get _hasSelection {
+    return switch (widget.selectionMode) {
+      DropifySelectionMode.single => _controller.value != null,
+      DropifySelectionMode.multi => _controller.values.isNotEmpty,
+    };
   }
 
-  Future<void> _fetchAsyncNow() async {
-    final DropifyDataSource<T>? source = widget.dataSource;
-    if (source is! AsyncDropifyDataSource<T>) {
+  void _open() {
+    if (!widget.enabled) {
       return;
     }
-    final int token = _asyncRequestToken + 1;
-    _asyncRequestToken = token;
-    final String query = _controller.query;
-    _lastAsyncQuery = query;
-    _controller.setEntries(_controller.entries, status: DropifyStatus.loading);
-    try {
-      final List<DropifyEntry<T>> entries = await source.fetch(query);
-      if (!mounted || token != _asyncRequestToken) {
-        return;
-      }
-      _controller.setEntries(
-        entries,
-        status: entries.isEmpty ? DropifyStatus.empty : DropifyStatus.data,
-      );
-    } catch (error) {
-      if (!mounted || token != _asyncRequestToken) {
-        return;
-      }
-      _controller.setEntries(
-        _controller.entries,
-        status: DropifyStatus.error,
-        error: error,
-      );
+    if (widget.confirmable &&
+        widget.selectionMode == DropifySelectionMode.multi) {
+      _stagedValues = _controller.values;
+    }
+    _menuController.open();
+  }
+
+  void _close() {
+    _stagedValues = null;
+    _menuController.close();
+  }
+
+  void _handleOpened() {
+    _controller.setOpenState(true);
+    widget.onOpen?.call();
+  }
+
+  void _handleClosed() {
+    _stagedValues = null;
+    _controller.setOpenState(false);
+    widget.onClose?.call();
+  }
+
+  void _select(T item) {
+    _controller.setValue(item);
+    widget.onChanged?.call(item);
+    _close();
+  }
+
+  void _toggle(T item) {
+    if (widget.confirmable) {
+      setState(() {
+        _stagedValues = _identity.toggled(
+          _stagedValues ?? _controller.values,
+          item,
+        );
+      });
+      return;
+    }
+    _controller.toggle(item);
+    widget.onChangedMulti?.call(_controller.values);
+  }
+
+  void _clear() {
+    _controller.clear();
+    _stagedValues = null;
+    if (widget.selectionMode == DropifySelectionMode.single) {
+      widget.onChanged?.call(null);
+    } else {
+      widget.onChangedMulti?.call(_controller.values);
     }
   }
 
-  void _handleOpen() {
-    if (!_controller.isOpen) {
-      _controller.open();
+  void _apply() {
+    final staged = _stagedValues;
+    if (staged != null) {
+      _controller.setValues(staged);
+      widget.onChangedMulti?.call(_controller.values);
     }
-    final DropifyDataSource<T>? source = widget.dataSource;
-    if (source is AsyncDropifyDataSource<T> &&
-        source.fetchOnOpen &&
-        (_controller.entries.isEmpty || _lastAsyncQuery != _controller.query)) {
-      _fetchAsyncNow();
-    }
-    if (source is PaginatedDropifyDataSource<T> &&
-        (_controller.entries.isEmpty ||
-            _controller.status == DropifyStatus.idle)) {
-      _pagingAdapter?.refresh();
-    }
-    widget.onOpenChanged?.call(true);
+    _close();
   }
 
-  void _handleClose() {
-    if (_controller.isOpen) {
-      _controller.close();
+  void _handleReset() {
+    if (widget.selectionMode == DropifySelectionMode.single) {
+      _controller.setValue(widget.initialValue);
+    } else {
+      _controller.setValues({...?widget.initialValues});
     }
-    widget.onOpenChanged?.call(false);
-  }
-
-  DropifyState<T> _stateFor(RawMenuOverlayInfo? overlayInfo) {
-    return DropifyState<T>(
-      controller: _controller,
-      entries: _controller.entries,
-      status: _controller.status,
-      error: _controller.error,
-      pageError: _controller.pageError,
-      isLoadingMore: _controller.isLoadingMore,
-      hasMore: _controller.hasMore,
-      overlayInfo: overlayInfo,
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return DropifyControllerScope<T>(
-      controller: _controller,
-      child: RawMenuAnchor(
-        controller: _menuController,
-        useRootOverlay: widget.useRootOverlay,
-        consumeOutsideTaps: widget.consumeOutsideTaps,
-        onOpen: _handleOpen,
-        onClose: _handleClose,
-        overlayBuilder: (BuildContext context, RawMenuOverlayInfo info) {
-          return DropifyControllerScope<T>(
-            controller: _controller,
-            child: TapRegion(
-              groupId: info.tapRegionGroupId,
-              consumeOutsideTaps: widget.consumeOutsideTaps,
-              child: widget.bodyBuilder(context, _stateFor(info)),
-            ),
-          );
-        },
-        builder:
-            (BuildContext context, MenuController controller, Widget? child) {
-              return widget.anchorBuilder(context, _controller, child);
-            },
-        child: widget.child,
-      ),
+    return FormField<DropifyValue<T>>(
+      initialValue: _formValue,
+      validator: widget.validator,
+      autovalidateMode: widget.autovalidateMode ?? AutovalidateMode.disabled,
+      onReset: _handleReset,
+      builder: (field) {
+        _field = field;
+        final anchorState = DropifyAnchorState<T>(
+          mode: widget.selectionMode,
+          value: _controller.value,
+          values: _controller.values,
+          isOpen: _controller.isOpen,
+          enabled: widget.enabled,
+          errorText: field.errorText,
+          open: _open,
+          close: _close,
+          clear: widget.enabled && widget.showClearButton && _hasSelection
+              ? _clear
+              : null,
+        );
+        return RawMenuAnchor(
+          controller: _menuController,
+          childFocusNode: widget.focusNode,
+          useRootOverlay: widget.useRootOverlay,
+          consumeOutsideTaps: widget.consumeOutsideTaps,
+          onOpen: _handleOpened,
+          onClose: _handleClosed,
+          overlayBuilder: (context, info) {
+            final theme = DropifyTheme.of(context);
+            final baseConstraints = widget.panelConstraints;
+            final defaultMaxHeight = theme.panelMaxHeight ?? 320;
+            final requestedMaxHeight = _finiteOr(
+              baseConstraints?.maxHeight,
+              defaultMaxHeight,
+            );
+            final belowTop = info.anchorRect.bottom + widget.alignmentOffset.dy;
+            final belowSpace = math.max(
+              0.0,
+              info.overlaySize.height - belowTop,
+            );
+            final aboveSpace = math.max(
+              0.0,
+              info.anchorRect.top - widget.alignmentOffset.dy,
+            );
+            final placeAbove =
+                belowSpace < requestedMaxHeight && aboveSpace > belowSpace;
+            final availableHeight = placeAbove ? aboveSpace : belowSpace;
+            final panelMaxHeight = math.min(
+              requestedMaxHeight,
+              availableHeight,
+            );
+            final top = placeAbove
+                ? math.max(
+                    0.0,
+                    info.anchorRect.top -
+                        widget.alignmentOffset.dy -
+                        panelMaxHeight,
+                  )
+                : belowTop;
+            final requestedMaxWidth = _finiteOr(
+              baseConstraints?.maxWidth,
+              widget.matchAnchorWidth
+                  ? info.anchorRect.width
+                  : info.overlaySize.width,
+            );
+            final clampWidth = math.min(
+              requestedMaxWidth,
+              info.overlaySize.width,
+            );
+            final desiredLeft =
+                info.anchorRect.left + widget.alignmentOffset.dx;
+            final left = desiredLeft
+                .clamp(0.0, math.max(0.0, info.overlaySize.width - clampWidth))
+                .toDouble();
+            final availableWidth = math.max(0.0, info.overlaySize.width - left);
+            final panelMaxWidth = math.min(requestedMaxWidth, availableWidth);
+            final requestedMinWidth =
+                baseConstraints?.minWidth ??
+                (widget.matchAnchorWidth ? info.anchorRect.width : 0.0);
+            final panelMinWidth = math.min(requestedMinWidth, panelMaxWidth);
+            final requestedMinHeight = baseConstraints?.minHeight ?? 0.0;
+            final panelConstraints = BoxConstraints(
+              minWidth: panelMinWidth,
+              maxWidth: panelMaxWidth,
+              minHeight: math.min(requestedMinHeight, panelMaxHeight),
+              maxHeight: panelMaxHeight,
+            );
+            final panelState = DropifyPanelState<T>(
+              mode: widget.selectionMode,
+              value: _controller.value,
+              values: _stagedValues ?? _controller.values,
+              searchQuery: _searchController.text,
+              isSelected: (item) {
+                if (widget.confirmable) {
+                  return _identity.contains(
+                    _stagedValues ?? _controller.values,
+                    item,
+                  );
+                }
+                return _controller.isSelected(item);
+              },
+              toggle: _toggle,
+              select: _select,
+              close: _close,
+              focusScope: _panelFocusNode,
+            );
+            return Positioned(
+              left: left,
+              top: top,
+              child: TapRegion(
+                groupId: info.tapRegionGroupId,
+                onTapOutside: (_) => _close(),
+                child: Focus(
+                  focusNode: _panelFocusNode,
+                  autofocus: true,
+                  child: Shortcuts(
+                    shortcuts: const <ShortcutActivator, Intent>{
+                      SingleActivator(LogicalKeyboardKey.escape):
+                          DismissIntent(),
+                    },
+                    child: Actions(
+                      actions: <Type, Action<Intent>>{
+                        DismissIntent: CallbackAction<DismissIntent>(
+                          onInvoke: (_) {
+                            _close();
+                            return null;
+                          },
+                        ),
+                      },
+                      child: DropifyPanel(
+                        anchorWidth: info.anchorRect.width,
+                        matchAnchorWidth: widget.matchAnchorWidth,
+                        constraints: panelConstraints,
+                        searchable: widget.searchable,
+                        searchController: _searchController,
+                        searchHintText: widget.searchHintText,
+                        onSearchChanged: (query) {
+                          setState(() {});
+                          widget.onSearchChanged?.call(query);
+                        },
+                        confirmable:
+                            widget.confirmable &&
+                            widget.selectionMode == DropifySelectionMode.multi,
+                        confirmLabel: widget.confirmLabel,
+                        cancelLabel: widget.cancelLabel,
+                        onApply: _apply,
+                        onCancel: _close,
+                        child: widget.panelBuilder(context, panelState),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+          builder: (context, controller, child) {
+            return Shortcuts(
+              shortcuts: const <ShortcutActivator, Intent>{
+                SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+                SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+              },
+              child: Actions(
+                actions: <Type, Action<Intent>>{
+                  ActivateIntent: CallbackAction<ActivateIntent>(
+                    onInvoke: (_) {
+                      _open();
+                      return null;
+                    },
+                  ),
+                },
+                child: Focus(
+                  autofocus: widget.autofocus,
+                  focusNode: widget.focusNode,
+                  child: widget.anchorBuilder(context, anchorState),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
+}
+
+double _finiteOr(double? value, double fallback) {
+  return value != null && value.isFinite ? value : fallback;
 }
