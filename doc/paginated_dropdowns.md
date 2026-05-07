@@ -70,6 +70,10 @@ void resetForSearch(String query) {
 `DropifyPagingState<PageKey, T>` is available as a convenience state object when
 you want search text and cancellation metadata near the paging state.
 
+`searchDebounce` defaults to 300 milliseconds. `loadOnOpen` controls whether the
+first page is requested when the panel opens, and `invisibleItemsThreshold`
+controls how close to the end of the loaded list Dropify requests the next page.
+
 ## Rendered States
 
 | Paging state | Rendered UI |

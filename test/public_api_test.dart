@@ -104,18 +104,58 @@ void main() {
     final themedSingle = DropifyAsyncDropdown<String>(
       fetcher: fetcher,
       itemLabelBuilder: (item) => item,
+      searchDebounce: const Duration(milliseconds: 10),
+      loadOnOpen: false,
+      cacheItems: false,
     );
     expect(themedSingle.menuBodyMode, DropifyMenuBodyMode.automatic);
     expect(themedSingle.scrollToSelectedOnOpen, isTrue);
+    expect(themedSingle.searchDebounce, const Duration(milliseconds: 10));
+    expect(themedSingle.loadOnOpen, isFalse);
+    expect(themedSingle.cacheItems, isFalse);
 
     final themedMulti = DropifyAsyncDropdown<String>.multi(
       fetcher: fetcher,
       itemLabelBuilder: (item) => item,
       menuBodyMode: DropifyMenuBodyMode.lazyIndexed,
       scrollToSelectedOnOpen: false,
+      searchDebounce: const Duration(milliseconds: 20),
+      loadOnOpen: false,
+      cacheItems: false,
     );
     expect(themedMulti.menuBodyMode, DropifyMenuBodyMode.lazyIndexed);
     expect(themedMulti.scrollToSelectedOnOpen, isFalse);
+    expect(themedMulti.searchDebounce, const Duration(milliseconds: 20));
+    expect(themedMulti.loadOnOpen, isFalse);
+    expect(themedMulti.cacheItems, isFalse);
+  });
+
+  test('paginated themed constructors expose paging behavior controls', () {
+    Future<void> fetchNextPage() async {}
+
+    final themedSingle = DropifyPaginatedDropdown<int, String>(
+      state: PagingState<int, String>(),
+      fetchNextPage: fetchNextPage,
+      itemLabelBuilder: (item) => item,
+      searchDebounce: const Duration(milliseconds: 10),
+      loadOnOpen: false,
+      invisibleItemsThreshold: 5,
+    );
+    expect(themedSingle.searchDebounce, const Duration(milliseconds: 10));
+    expect(themedSingle.loadOnOpen, isFalse);
+    expect(themedSingle.invisibleItemsThreshold, 5);
+
+    final themedMulti = DropifyPaginatedDropdown<int, String>.multi(
+      state: PagingState<int, String>(),
+      fetchNextPage: fetchNextPage,
+      itemLabelBuilder: (item) => item,
+      searchDebounce: const Duration(milliseconds: 20),
+      loadOnOpen: false,
+      invisibleItemsThreshold: 6,
+    );
+    expect(themedMulti.searchDebounce, const Duration(milliseconds: 20));
+    expect(themedMulti.loadOnOpen, isFalse);
+    expect(themedMulti.invisibleItemsThreshold, 6);
   });
 
   test('theme data exposes Material panel chrome fields', () {

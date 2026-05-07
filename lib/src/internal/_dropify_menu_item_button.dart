@@ -540,9 +540,10 @@ Key dropifyMenuItemKey(Object? identity, Object? fallback) {
   if (identity != null) {
     return ValueKey<String>('dropify.item.${_sanitizeIdentity(identity)}');
   }
-  return ValueKey<String>('dropify.item.${fallback.hashCode}');
+  return ValueKey<String>('dropify.item.${_sanitizeIdentity(fallback)}');
 }
 
-String _sanitizeIdentity(Object identity) {
-  return identity.toString().replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '_');
+String _sanitizeIdentity(Object? identity) {
+  return identity?.toString().replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '_') ??
+      'null';
 }

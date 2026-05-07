@@ -835,10 +835,26 @@ class _RawDropifyState<T> extends State<RawDropify<T>> {
             );
           },
           builder: (context, controller, child) {
-            return Focus(
-              autofocus: widget.autofocus,
-              focusNode: widget.focusNode,
-              child: widget.anchorBuilder(context, anchorState),
+            return Shortcuts(
+              shortcuts: const <ShortcutActivator, Intent>{
+                SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+                SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+              },
+              child: Actions(
+                actions: <Type, Action<Intent>>{
+                  ActivateIntent: CallbackAction<ActivateIntent>(
+                    onInvoke: (_) {
+                      _open();
+                      return null;
+                    },
+                  ),
+                },
+                child: Focus(
+                  autofocus: widget.autofocus,
+                  focusNode: widget.focusNode,
+                  child: widget.anchorBuilder(context, anchorState),
+                ),
+              ),
             );
           },
         );

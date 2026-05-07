@@ -43,13 +43,20 @@ class DropifyPaginatedDropdown<PageKey, T> extends StatelessWidget {
     this.prefixIcon,
     this.searchable = true,
     this.searchHintText,
+    this.searchDebounce = const Duration(milliseconds: 300),
     this.showClearButton = false,
     this.enabled = true,
     this.validator,
     this.autovalidateMode,
     this.keyOf,
     this.equals,
-  }) : selectionMode = DropifySelectionMode.single,
+    this.loadOnOpen = true,
+    this.invisibleItemsThreshold = 3,
+  }) : assert(
+         invisibleItemsThreshold >= 0,
+         'invisibleItemsThreshold must not be negative.',
+       ),
+       selectionMode = DropifySelectionMode.single,
        initialValues = null,
        onChangedMulti = null,
        confirmable = false,
@@ -75,16 +82,23 @@ class DropifyPaginatedDropdown<PageKey, T> extends StatelessWidget {
     this.prefixIcon,
     this.searchable = true,
     this.searchHintText,
+    this.searchDebounce = const Duration(milliseconds: 300),
     this.showClearButton = false,
     this.enabled = true,
     this.validator,
     this.autovalidateMode,
     this.keyOf,
     this.equals,
+    this.loadOnOpen = true,
+    this.invisibleItemsThreshold = 3,
     this.confirmable = false,
     this.confirmLabel,
     this.cancelLabel,
-  }) : selectionMode = DropifySelectionMode.multi,
+  }) : assert(
+         invisibleItemsThreshold >= 0,
+         'invisibleItemsThreshold must not be negative.',
+       ),
+       selectionMode = DropifySelectionMode.multi,
        initialValue = null,
        onChanged = null,
        onChangedMulti = onChanged;
@@ -143,6 +157,11 @@ class DropifyPaginatedDropdown<PageKey, T> extends StatelessWidget {
   /// Hint text for the search field.
   final String? searchHintText;
 
+  /// Debounce duration before [onSearchChanged] is called.
+  ///
+  /// Defaults to 300 milliseconds.
+  final Duration searchDebounce;
+
   /// Whether a clear button is shown when a value is selected.
   final bool showClearButton;
 
@@ -162,6 +181,16 @@ class DropifyPaginatedDropdown<PageKey, T> extends StatelessWidget {
 
   /// Compares two values for selection identity.
   final bool Function(T a, T b)? equals;
+
+  /// Whether the first page is requested when the panel opens.
+  ///
+  /// Defaults to true.
+  final bool loadOnOpen;
+
+  /// Number of invisible trailing items that trigger [fetchNextPage].
+  ///
+  /// Defaults to 3.
+  final int invisibleItemsThreshold;
 
   /// Whether multi-selection changes are staged until applied.
   final bool confirmable;
@@ -217,6 +246,9 @@ class DropifyPaginatedDropdown<PageKey, T> extends StatelessWidget {
       FlagProperty('searchable', value: searchable, ifTrue: 'searchable'),
     );
     properties.add(
+      DiagnosticsProperty<Duration>('searchDebounce', searchDebounce),
+    );
+    properties.add(
       FlagProperty(
         'showClearButton',
         value: showClearButton,
@@ -231,6 +263,12 @@ class DropifyPaginatedDropdown<PageKey, T> extends StatelessWidget {
     );
     properties.add(
       ObjectFlagProperty<bool Function(T a, T b)?>.has('equals', equals),
+    );
+    properties.add(
+      FlagProperty('loadOnOpen', value: loadOnOpen, ifTrue: 'loads on open'),
+    );
+    properties.add(
+      IntProperty('invisibleItemsThreshold', invisibleItemsThreshold),
     );
     properties.add(
       FlagProperty('confirmable', value: confirmable, ifTrue: 'confirmable'),
@@ -262,12 +300,15 @@ class DropifyPaginatedDropdown<PageKey, T> extends StatelessWidget {
         onChanged: onChanged,
         searchable: searchable,
         searchHintText: searchHintText,
+        searchDebounce: searchDebounce,
         showClearButton: showClearButton,
         enabled: enabled,
         validator: validator,
         autovalidateMode: autovalidateMode,
         keyOf: keyOf,
         equals: equals,
+        loadOnOpen: loadOnOpen,
+        invisibleItemsThreshold: invisibleItemsThreshold,
       );
     }
     return RawPaginatedDropify<PageKey, T>.multi(
@@ -281,12 +322,15 @@ class DropifyPaginatedDropdown<PageKey, T> extends StatelessWidget {
       onChanged: onChangedMulti,
       searchable: searchable,
       searchHintText: searchHintText,
+      searchDebounce: searchDebounce,
       showClearButton: showClearButton,
       enabled: enabled,
       validator: validator,
       autovalidateMode: autovalidateMode,
       keyOf: keyOf,
       equals: equals,
+      loadOnOpen: loadOnOpen,
+      invisibleItemsThreshold: invisibleItemsThreshold,
       confirmable: confirmable,
       confirmLabel: confirmLabel,
       cancelLabel: cancelLabel,

@@ -141,6 +141,7 @@ class DropifyThemeData extends ThemeExtension<DropifyThemeData>
       errorBuilder: (context, error, retry) => _DropifyErrorMessage(
         key: const ValueKey<String>('dropify.async.error'),
         message: 'Something went wrong',
+        retryKey: const ValueKey<String>('dropify.async.retry'),
         onRetry: retry,
       ),
       firstPageProgressBuilder: (context) => const _DropifyStateMessage(
@@ -156,11 +157,13 @@ class DropifyThemeData extends ThemeExtension<DropifyThemeData>
       firstPageErrorBuilder: (context, error, retry) => _DropifyErrorMessage(
         key: const ValueKey<String>('dropify.paging.firstPageError'),
         message: 'Could not load results',
+        retryKey: const ValueKey<String>('dropify.paging.retry'),
         onRetry: retry,
       ),
       newPageErrorBuilder: (context, error, retry) => _DropifyErrorMessage(
         key: const ValueKey<String>('dropify.paging.newPageError'),
         message: 'Could not load more',
+        retryKey: const ValueKey<String>('dropify.paging.retry'),
         onRetry: retry,
       ),
       noMoreItemsBuilder: (context) => const _DropifyStateMessage(
@@ -992,10 +995,12 @@ class _DropifyErrorMessage extends StatelessWidget {
   const _DropifyErrorMessage({
     super.key,
     required this.message,
+    required this.retryKey,
     required this.onRetry,
   });
 
   final String message;
+  final Key retryKey;
   final VoidCallback onRetry;
 
   @override
@@ -1010,7 +1015,7 @@ class _DropifyErrorMessage extends StatelessWidget {
           children: [
             Text(message),
             TextButton(
-              key: const ValueKey<String>('dropify.async.retry'),
+              key: retryKey,
               onPressed: onRetry,
               child: const Text('Retry'),
             ),

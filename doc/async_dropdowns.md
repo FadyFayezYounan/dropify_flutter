@@ -50,11 +50,16 @@ The themed dropdown renders default loading, empty, error, and retry UI from
 
 ## Debounce And Cache
 
-Search is debounced by 300 milliseconds by default. `RawAsyncDropify` exposes
-`searchDebounce` for custom timing.
+Search is debounced by 300 milliseconds by default. `DropifyAsyncDropdown` and
+`RawAsyncDropify` expose `searchDebounce` for custom timing.
 
 `cacheItems` defaults to true. The cache belongs to one widget instance and is
-cleared when that instance is disposed.
+cleared when that instance is disposed. Set `cacheItems` to false to always ask
+the fetcher for the latest query result.
+
+`loadOnOpen` defaults to true. Set it to false when the first request should wait
+until the caller changes the search text or opens through another controlled
+flow.
 
 ## Body Modes And Selected Row Scroll
 

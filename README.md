@@ -81,7 +81,8 @@ DropifyAsyncDropdown<Country>(
 The fetcher receives a `DropifyCancelToken`. Replacement searches cancel the
 previous token, late stale results are ignored, and retry repeats the latest
 query. Async results are cached for the lifetime of the widget instance by
-default.
+default. Use `searchDebounce`, `loadOnOpen`, and `cacheItems` to tune request
+timing and cache behavior.
 
 Async dropdowns also jump to a selected item when it is present in the currently
 rendered loaded or refreshing rows. Dropify never fetches extra async results to
@@ -118,7 +119,9 @@ DropifyPaginatedDropdown<int, Country>(
 Dropify never mutates `PagingState`. It renders first-page, next-page, empty,
 error, retry, and no-more-items states from the state supplied by the caller.
 Search changes call `onSearchChanged` after debounce so the caller can cancel
-old work, reset pages, and fetch the new query.
+old work, reset pages, and fetch the new query. Use `searchDebounce`,
+`loadOnOpen`, and `invisibleItemsThreshold` to tune search timing, initial page
+requests, and next-page prefetching.
 
 ## Selection Modes
 

@@ -36,12 +36,15 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
     this.prefixIcon,
     this.searchable = true,
     this.searchHintText,
+    this.searchDebounce = const Duration(milliseconds: 300),
     this.showClearButton = false,
     this.enabled = true,
     this.validator,
     this.autovalidateMode,
     this.keyOf,
     this.equals,
+    this.loadOnOpen = true,
+    this.cacheItems = true,
     this.menuBodyMode = DropifyMenuBodyMode.automatic,
     this.scrollToSelectedOnOpen = true,
   }) : selectionMode = DropifySelectionMode.single,
@@ -68,12 +71,15 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
     this.prefixIcon,
     this.searchable = true,
     this.searchHintText,
+    this.searchDebounce = const Duration(milliseconds: 300),
     this.showClearButton = false,
     this.enabled = true,
     this.validator,
     this.autovalidateMode,
     this.keyOf,
     this.equals,
+    this.loadOnOpen = true,
+    this.cacheItems = true,
     this.confirmable = false,
     this.confirmLabel,
     this.cancelLabel,
@@ -131,6 +137,11 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
   /// Hint text for the search field.
   final String? searchHintText;
 
+  /// The debounce duration before running [fetcher].
+  ///
+  /// Defaults to 300 milliseconds.
+  final Duration searchDebounce;
+
   /// Whether a clear button is shown when a value is selected.
   ///
   /// Defaults to false.
@@ -152,6 +163,16 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
 
   /// Compares two values for selection identity.
   final bool Function(T a, T b)? equals;
+
+  /// Whether the first request starts when the panel opens.
+  ///
+  /// Defaults to true.
+  final bool loadOnOpen;
+
+  /// Whether fetched items are cached for this widget instance.
+  ///
+  /// Defaults to true.
+  final bool cacheItems;
 
   /// Controls whether loaded async row bodies are eager or lazy.
   ///
@@ -208,6 +229,9 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
       FlagProperty('searchable', value: searchable, ifTrue: 'searchable'),
     );
     properties.add(
+      DiagnosticsProperty<Duration>('searchDebounce', searchDebounce),
+    );
+    properties.add(
       FlagProperty(
         'showClearButton',
         value: showClearButton,
@@ -222,6 +246,12 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
     );
     properties.add(
       ObjectFlagProperty<bool Function(T a, T b)?>.has('equals', equals),
+    );
+    properties.add(
+      FlagProperty('loadOnOpen', value: loadOnOpen, ifTrue: 'loads on open'),
+    );
+    properties.add(
+      FlagProperty('cacheItems', value: cacheItems, ifTrue: 'caches items'),
     );
     properties.add(
       EnumProperty<DropifyMenuBodyMode>('menuBodyMode', menuBodyMode),
@@ -261,12 +291,15 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
         onChanged: onChanged,
         searchable: searchable,
         searchHintText: searchHintText,
+        searchDebounce: searchDebounce,
         showClearButton: showClearButton,
         enabled: enabled,
         validator: validator,
         autovalidateMode: autovalidateMode,
         keyOf: keyOf,
         equals: equals,
+        loadOnOpen: loadOnOpen,
+        cacheItems: cacheItems,
         menuBodyMode: menuBodyMode,
         scrollToSelectedOnOpen: scrollToSelectedOnOpen,
       );
@@ -280,12 +313,15 @@ class DropifyAsyncDropdown<T> extends StatelessWidget {
       onChanged: onChangedMulti,
       searchable: searchable,
       searchHintText: searchHintText,
+      searchDebounce: searchDebounce,
       showClearButton: showClearButton,
       enabled: enabled,
       validator: validator,
       autovalidateMode: autovalidateMode,
       keyOf: keyOf,
       equals: equals,
+      loadOnOpen: loadOnOpen,
+      cacheItems: cacheItems,
       menuBodyMode: menuBodyMode,
       scrollToSelectedOnOpen: scrollToSelectedOnOpen,
       confirmable: confirmable,

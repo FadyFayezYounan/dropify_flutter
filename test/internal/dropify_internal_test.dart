@@ -59,4 +59,35 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('menu item button gives explicit style highest precedence', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DropifyTheme(
+            data: const DropifyThemeData(entryPadding: EdgeInsets.all(24)),
+            child: DropifyMenuItemButton(
+              style: TextButton.styleFrom(padding: const EdgeInsets.all(4)),
+              onPressed: () {},
+              child: const Text('Action'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final button = tester.widget<TextButton>(find.byType(TextButton));
+    final padding = button.style?.padding?.resolve(<WidgetState>{});
+
+    expect(padding, const EdgeInsets.all(4));
+  });
+
+  test('menu item fallback key is deterministic readable text', () {
+    expect(
+      dropifyMenuItemKey(null, 'Remote Country'),
+      const ValueKey<String>('dropify.item.Remote_Country'),
+    );
+  });
 }

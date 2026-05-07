@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../core/raw_dropify.dart';
 import '../theme/dropify_theme.dart';
 
-class DropifyAnchor extends StatelessWidget {
+class DropifyAnchor<T> extends StatelessWidget {
   const DropifyAnchor({super.key, required this.state, required this.child});
 
-  final DropifyAnchorState<Object?> state;
+  final DropifyAnchorState<T> state;
   final Widget child;
 
   @override
@@ -71,20 +71,23 @@ class DropifyDefaultAnchor<T> extends StatelessWidget {
       contentPadding: decorationTheme?.contentPadding ?? theme.anchorPadding,
     ).applyDefaults(decorationTheme ?? const InputDecorationTheme());
 
-    return GestureDetector(
-      key: const ValueKey<String>('dropify.anchor'),
-      onTap: state.enabled ? state.open : null,
-      child: InputDecorator(
-        isEmpty: !hasValue,
-        isFocused: state.isOpen,
-        decoration: decoration,
-        child: Text(
-          hasValue ? valueText! : '',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: hasValue
-              ? theme.anchorValueTextStyle
-              : theme.anchorHintTextStyle ?? textTheme.bodyLarge,
+    return DropifyAnchor<T>(
+      state: state,
+      child: InkWell(
+        canRequestFocus: state.enabled,
+        onTap: state.enabled ? state.open : null,
+        child: InputDecorator(
+          isEmpty: !hasValue,
+          isFocused: state.isOpen,
+          decoration: decoration,
+          child: Text(
+            hasValue ? valueText! : '',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: hasValue
+                ? theme.anchorValueTextStyle
+                : theme.anchorHintTextStyle ?? textTheme.bodyLarge,
+          ),
         ),
       ),
     );
